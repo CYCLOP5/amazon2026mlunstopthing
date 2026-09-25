@@ -96,7 +96,9 @@ def model_load(model, rev, dev, maxlen):
     import torch
     from sentence_transformers import SentenceTransformer
 
-    use = dev if dev == "cuda" and torch.cuda.is_available() else "cpu"
+    if dev == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("cuda requested but unavailable")
+    use = dev
     m = SentenceTransformer(model, revision=rev, trust_remote_code=False, device=use)
     m.max_seq_length = maxlen
     if use == "cuda":

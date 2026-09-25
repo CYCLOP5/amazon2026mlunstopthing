@@ -255,6 +255,8 @@ def predict(m, x):
 def load_models(out):
     out = path(out)
     met = _json(out / "metadata.json")
+    if met.get("feature_names") != ff:
+        raise ValueError("model feature order mismatch")
     z = {}
     for name in met["models"]:
         p = out / met["model_files"][name]
