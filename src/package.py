@@ -298,16 +298,18 @@ def build(matching, candidate, test_dir, repo_root, code_root, readme, methodolo
     _, retrievers = calibration(calibration_file, gate_dir, neural_dir)
     add(out, "code/business_entity_resolution/models/calibration.json", file(calibration_file, "final calibration"))
     selected, prov = sources(pp, nn, retrievers)
-    if hf_cache:
+    if selected and hf_cache is None:
+        raise ValueError("hf cache is required for selected retrievers")
+    if selected:
         hf(hf_cache, selected, out)
     if (repo / "plan.md").is_file():
         add(out, "plan.md", repo / "plan.md")
     add(out, "Documentation_template.md", doc(methodology, "methodology document", filled=True))
-    man = manifest(out, prov, hf_cache is not None)
+    man = manifest(out, prov, bool(selected))
     dst.parent.mkdir(parents=True, exist_ok=True)
     write(dst, out, man)
     return {"zip": str(dst), "sha256": sha(dst), "files": len(out) + 1,
-            "offline_retriever_weights": hf_cache is not None}
+            "offline_retriever_weights": bool(selected)}
 
 
 def put(p, s):
@@ -325,10 +327,11 @@ def check():
         rs = match.hybrid.specs()
         r = path(t) / "repo"
         c, raw, out = r, r / "raw", r / "out"
+        pp = c / "reports/model_sources.json"
         put(c / "src/run.py", "print('ok')\n")
         put(c / "README.md", "run src/run.py\n")
         put(c / "pyproject.toml", "[project]\nname = 'x'\nversion = '0'\n")
-        put(c / "reports/model_sources.json", json.dumps([
+        put(pp, json.dumps([
             {"model": rs[0]["model"], "revision": rs[0]["revision"], "license": "mit", "parameters": 278044162},
             {"model": rs[1]["model"], "revision": rs[1]["revision"], "license": "apache-2.0", "parameters": 595776512},
             {"model": "org/model", "revision": "rev", "license": "mit", "parameters": 2},
@@ -352,6 +355,7 @@ def check():
         put(nd / "tokenizer.json", "{}")
         put(nd / ".env", "secret")
         put(nd / "neural_metadata.json", json.dumps({"parameters": 2, "problem_type": "multi_label_classification", "source": {"model": "org/model", "revision": "rev", "license": "mit"}}))
+        nn = load(nd / "neural_metadata.json")
         (nd / "checkpoint-1").mkdir()
         put(nd / "checkpoint-1/model.safetensors", "checkpoint")
         _, names, dense, gi = match._gate(gd)
@@ -378,17 +382,33 @@ def check():
                   r / "Documentation_template.md", gd, nd, cp, r / "team_submission.zip", "team", cache)
         with zf.ZipFile(z["zip"]) as x:
             ns = x.namelist()
+            man = json.loads(x.read("package_manifest.json"))
             assert x.testzip() is None
             assert "code/business_entity_resolution/models/calibration.json" in ns
             assert all(f"code/business_entity_resolution/models/hf/{p.parents[1].name}/snapshots/{p.name}/weights.bin" in ns
                        for p in sns)
+            assert x.read(f"code/business_entity_resolution/models/hf/{sns[0].parents[1].name}/snapshots/{sns[0].name}/weights.bin") == b"weight-0"
             assert not any("bge" in n for n in ns)
             assert not any("checkpoint" in n or ".env" in n for n in ns)
-            assert json.loads(x.read("package_manifest.json"))["offline_retriever_weights"] is True
-        nohf = build(out / "matching_results.tsv", out / "candidate_pairs.tsv", raw, r, c, c / "README.md",
-                     r / "Documentation_template.md", gd, nd, cp, r / "nohf.zip")
-        with zf.ZipFile(nohf["zip"]) as x:
-            assert json.loads(x.read("package_manifest.json"))["offline_retriever_weights"] is False
+            assert man["offline_retriever_weights"] is True
+            assert man["selected_model_provenance"][0]["model"] == rs[0]["model"]
+            wp = f"code/business_entity_resolution/models/hf/models--{rs[0]['model'].replace('/', '--')}/snapshots/{rs[0]['revision']}/weights.bin"
+            assert next(x for x in man["files"] if x["path"] == wp)["sha256"] == sha(cache / ("models--" + rs[0]["model"].replace("/", "--")) / "blobs/weight-0")
+        try:
+            build(out / "matching_results.tsv", out / "candidate_pairs.tsv", raw, r, c, c / "README.md",
+                  r / "Documentation_template.md", gd, nd, cp, r / "nohf.zip")
+        except ValueError as e:
+            assert "hf cache" in str(e)
+        else:
+            raise AssertionError("missing hf cache accepted")
+        shutil.rmtree(sns[-1])
+        try:
+            build(out / "matching_results.tsv", out / "candidate_pairs.tsv", raw, r, c, c / "README.md",
+                  r / "Documentation_template.md", gd, nd, cp, r / "missing.zip", hf_cache=cache)
+        except ValueError as e:
+            assert "snapshot" in str(e)
+        else:
+            raise AssertionError("missing selected revision accepted")
         put(out / "matching_results.tsv", "source1_entity_id\tmatched_entity_ids\nS1-a\tS2-no\n")
         try:
             build(out / "matching_results.tsv", out / "candidate_pairs.tsv", raw, r, c, c / "README.md",
@@ -427,6 +447,24 @@ def check():
             pass
         else:
             raise AssertionError("external hf link accepted")
+        bad = load(pp)
+        bad[0]["license"] = "bsd"
+        put(pp, json.dumps(bad))
+        try:
+            sources(pp, nn, cfg["retrievers"])
+        except ValueError as e:
+            assert "license" in str(e)
+        else:
+            raise AssertionError("ineligible source license accepted")
+        bad[0]["license"] = "mit"
+        bad[0]["parameters"] = lim + 1
+        put(pp, json.dumps(bad))
+        try:
+            sources(pp, nn, cfg["retrievers"])
+        except ValueError as e:
+            assert "parameter" in str(e)
+        else:
+            raise AssertionError("oversized source accepted")
     print("check: passed")
 
 

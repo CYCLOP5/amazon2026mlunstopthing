@@ -2,8 +2,10 @@ import argparse as ap
 import gc
 import hashlib as hh
 import json
+import sys
 import tempfile as tf
 import time
+import types
 from pathlib import Path as path
 
 import numpy as np
@@ -118,6 +120,11 @@ def check_params(n):
         raise ValueError("loaded model exceeds 8b parameters")
 
 
+def hf_cache():
+    p = path(__file__).resolve().parents[1] / "models/hf"
+    return p if p.is_dir() else None
+
+
 def model_load(model, rev, dev, maxlen):
     import torch
     from sentence_transformers import SentenceTransformer
@@ -128,6 +135,9 @@ def model_load(model, rev, dev, maxlen):
     kw = {"model_kwargs": {"attn_implementation": "sdpa"}}
     if family(model) == "qwen3":
         kw["tokenizer_kwargs"] = {"padding_side": "left"}
+    cache = hf_cache()
+    if cache is not None:
+        kw.update(cache_folder=str(cache), local_files_only=True)
     m = SentenceTransformer(model, revision=rev, trust_remote_code=False, device=use, **kw)
     if family(model) == "qwen3" and m.tokenizer.padding_side != "left":
         raise ValueError("qwen requires left tokenizer padding")
@@ -448,6 +458,48 @@ def check():
         mod = util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         assert mod.source(mod.src0, "test", "local")["license"] == "apache-2.0"
+        calls = []
+
+        class fake_model:
+            def __init__(self, *args, **kw):
+                calls.append((args, kw))
+                self.tokenizer = types.SimpleNamespace(padding_side="left")
+
+            def parameters(self):
+                return ()
+
+            def float(self):
+                return self
+
+            def half(self):
+                return self
+
+            def eval(self):
+                return self
+
+        old = {n: sys.modules.get(n) for n in ("torch", "sentence_transformers")}
+        sys.modules["torch"] = types.SimpleNamespace(cuda=types.SimpleNamespace(is_available=lambda: False))
+        sys.modules["sentence_transformers"] = types.SimpleNamespace(SentenceTransformer=fake_model)
+        try:
+            packed = moved.parents[1] / "models/hf"
+            packed.mkdir(parents=True)
+            mod.model_load(mod.mod0, mod.rev0, "cpu", 12)
+            plain = p / "plain/src/embed.py"
+            plain.parent.mkdir(parents=True)
+            plain.write_text(path(__file__).read_text(encoding="utf-8"), encoding="utf-8")
+            spec = util.spec_from_file_location("plain_embed", plain)
+            plainmod = util.module_from_spec(spec)
+            spec.loader.exec_module(plainmod)
+            plainmod.model_load(plainmod.mod0, plainmod.rev0, "cpu", 12)
+        finally:
+            for n, v in old.items():
+                if v is None:
+                    sys.modules.pop(n, None)
+                else:
+                    sys.modules[n] = v
+        assert calls[0][0] == (mod.mod0,) and calls[0][1]["revision"] == mod.rev0
+        assert calls[0][1]["cache_folder"] == str(packed) and calls[0][1]["local_files_only"] is True
+        assert "cache_folder" not in calls[1][1] and "local_files_only" not in calls[1][1]
     print("checks passed")
 
 
