@@ -397,6 +397,13 @@ def check():
         assert _neural(nd)[1] == ident
         _write(nd / "tokenizer_config.json", {"padding_side": "left"})
         assert _neural(nd)[1]["sha256"] != ident["sha256"]
+        import sys
+        from unittest.mock import patch
+        argv = ["match.py", "--data", str(data), "--cache", str(root / "cache"), "--gate", str(gd),
+                "--neural", str(nd), "--out", str(root / "cli"), "--retrievers", "e5", "qwen3"]
+        with patch.object(sys, "argv", argv), patch(__name__ + ".match") as cli:
+            main()
+            assert cli.call_count == 1
         calls = []
 
         def pred(x):

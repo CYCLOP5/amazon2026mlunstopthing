@@ -29,7 +29,7 @@ def tag(s):
     return "".join(x if x.isalnum() else "_" for x in s.lower()).strip("_")
 
 
-def specs(xs):
+def specs(xs=None):
     if xs is None:
         src = json.loads(embed.src0.read_text(encoding="utf-8"))
         xs = [(x["model"], x["revision"]) for x in src
