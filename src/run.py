@@ -540,7 +540,7 @@ def main():
     p.add_argument("--k-lex", type=int, default=10)
     p.add_argument("--k-dense", type=int, default=50)
     p.add_argument("--k-gate", type=int, default=20)
-    p.add_argument("--retrievers", choices=("e5", "qwen3"), nargs="+", default=["e5"])
+    p.add_argument("--retrievers", choices=("e5", "qwen3", "e5-large"), nargs="+", default=["e5"])
     p.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     p.add_argument("--gpu-ids", type=int, nargs="+")
     p.add_argument("--encoder-batch", type=int, default=64)

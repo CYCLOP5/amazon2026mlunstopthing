@@ -18,6 +18,7 @@ src0 = path(__file__).resolve().parents[1] / "reports/model_sources.json"
 fmt = "{role}: name: {nm}\naddress: {ad}\ncountry: {co}"
 rawfmt = "name: {nm}\naddress: {ad}\ncountry: {co}"
 qwen0 = "Qwen/Qwen3-Embedding-0.6B"
+large0 = "intfloat/multilingual-e5-large-instruct"
 bge0 = "BAAI/bge-m3"
 inst0 = "Given a business record, retrieve records for the SAME BUSINESS identity using the business name and address."
 
@@ -39,6 +40,8 @@ def family(model):
         return "e5"
     if model == qwen0:
         return "qwen3"
+    if model == large0:
+        return "e5-large"
     if model == bge0:
         return "bge-m3"
     raise ValueError("unsupported embedding model family")
@@ -55,6 +58,8 @@ def serial(d, role, model=mod0):
            for n, a, c in d.select("nm", "ad", "co").iter_rows()]
     if f == "qwen3" and role == "query":
         return [f"Instruct: {inst0}\nQuery:{x}" for x in raw]
+    if f == "e5-large" and role == "query":
+        return [f"Instruct: {inst0}\nQuery: {x}" for x in raw]
     return raw
 
 
@@ -133,6 +138,8 @@ def model_load(model, rev, dev, maxlen):
         raise RuntimeError("cuda requested but unavailable")
     use = dev
     kw = {"model_kwargs": {"attn_implementation": "sdpa"}}
+    if use == "cuda":
+        kw["model_kwargs"]["torch_dtype"] = torch.float16
     if family(model) == "qwen3":
         kw["tokenizer_kwargs"] = {"padding_side": "left"}
     cache = hf_cache()
@@ -181,7 +188,8 @@ def meta_core(data, model, rev, pars, maxlen, dim, co, fold, refs, qs, src, batc
            "source": src}
     if family(model) != "e5":
         out.update({"serialization": {"family": family(model), "reference": rawfmt,
-                                       "query": f"Instruct: {inst0}\nQuery:{rawfmt}" if family(model) == "qwen3" else rawfmt},
+                                       "query": f"Instruct: {inst0}\nQuery:{rawfmt}" if family(model) == "qwen3" else
+                                                f"Instruct: {inst0}\nQuery: {rawfmt}" if family(model) == "e5-large" else rawfmt},
                     "encoding": {"batch": batch, "normalize": True, "precision": "float32"},
                     "padding_side": "left" if family(model) == "qwen3" else None})
     return out
@@ -417,6 +425,9 @@ def check():
         zd = serial(aa, "passage", qwen0)[0]
         assert zq == f"Instruct: {inst0}\nQuery:name: राम Café\naddress: 1 गली\ncountry: india"
         assert zd == "name: राम Café\naddress: 1 गली\ncountry: india" and "Instruct:" not in zd
+        assert serial(aa, "query", large0)[0] == f"Instruct: {inst0}\nQuery: {zd}"
+        assert serial(aa, "passage", large0)[0] == zd
+        assert family(large0) == "e5-large"
         assert serial(aa, "query", bge0)[0] == zd
         assert "rid" not in zq and "fold" not in zq and "deg" not in zq and "own" not in zq
         ec = meta_core(d, mod0, rev0, 1, 32, 2, co, fold, (rr, serial(rr, "passage")),
@@ -426,6 +437,9 @@ def check():
         qc = meta_core(d, qwen0, "one", 1, 32, 2, co, fold, (rr, [zd] * len(rr)),
                        (qq, serial(qq, "query", qwen0)), {"license": "apache-2.0"}, 1)
         assert qc["serialization"]["query"] == f"Instruct: {inst0}\nQuery:{rawfmt}" and qc["padding_side"] == "left"
+        lc = meta_core(d, large0, "large", 1, 512, 2, co, fold, (rr, [zd] * len(rr)),
+                       (qq, serial(qq, "query", large0)), {"license": "mit"}, 1)
+        assert lc["serialization"]["query"] == f"Instruct: {inst0}\nQuery: {rawfmt}" and lc["maxlen"] == 512
         assert cache_base(p, mod0, rev0, "india", 0) == p / "e5_india_f0"
         assert cache_base(p, qwen0, "one", "india", 0) != cache_base(p, qwen0, "two", "india", 0)
         assert cache_base(p, qwen0, "one", "india", 0) != cache_base(p, bge0, "one", "india", 0)

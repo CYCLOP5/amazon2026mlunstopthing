@@ -33,7 +33,7 @@ def specs(xs=None):
     if xs is None:
         src = json.loads(embed.src0.read_text(encoding="utf-8"))
         xs = [(x["model"], x["revision"]) for x in src
-              if x["model"] in (embed.mod0, embed.qwen0)]
+              if x["model"] in (embed.mod0, embed.qwen0, embed.large0)]
     out = []
     for x in xs:
         if isinstance(x, dict):
@@ -44,8 +44,8 @@ def specs(xs=None):
         if not d.get("revision"):
             raise ValueError("model revision required")
         out.append(d)
-    if not 1 <= len(out) <= 2:
-        raise ValueError("one or two retrieval models required")
+    if not 1 <= len(out) <= 3:
+        raise ValueError("one to three retrieval models required")
     if len({(x["model"], x["revision"]) for x in out}) != len(out):
         raise ValueError("duplicate retrieval model")
     return out
@@ -62,7 +62,7 @@ def load(d, dev):
         n = int(d.get("params", 0))
         z = d.get("device", dev)
     else:
-        m, z, n = embed.model_load(d["model"], d["revision"], dev, ln)
+        m, z, n = embed.model_load(d["model"], d["revision"], dev, 512 if d["model"] == embed.large0 else ln)
     if n < 0:
         raise ValueError("invalid model parameter count")
     return m, z, n, src
@@ -78,7 +78,7 @@ def core(data, d, refs, txt, dim, co, pars, fallback=False):
     mp = data / "meta.json"
     f = embed.family(d["model"])
     out = {"v": 1, "model": d["model"], "revision": d["revision"], "params": pars,
-           "role": "passage", "format": embed.fmt, "maxlen": ln, "dtype": "float16",
+           "role": "passage", "format": embed.fmt, "maxlen": 512 if d["model"] == embed.large0 else ln, "dtype": "float16",
            "normalize": True, "dim": dim, "country": co,
            "inputs": {"references": embed.fprint(refs, txt)}, "prefixes": {"reference": "passage"},
            "data_meta_sha256": hh.sha256(mp.read_bytes()).hexdigest() if mp.exists() else None}
@@ -231,11 +231,11 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
             "refs": r, "idx": ix, "eq": eq, "encoders": es, "batch": batch,
             "dense_features": fs, "config": {"models": [{"model": x["spec"]["model"],
             "revision": x["spec"]["revision"], "params": x["params"], "source": x["source"], "feature": x["feature"], "device": x["device"],
-            "reference_cache": x["cache"], "cache_kind": x["cache_kind"],
+            "reference_cache": x["cache"], "cache_kind": x["cache_kind"], "maxlen": x["core"]["maxlen"],
             "encoding_corpus": x["core"]["inputs"]["references"],
             "search_pool": {"rows": len(r), "rid_sha256": ridfp(r)}} for x in es],
             "total_params": total, "reference_rows": len(r), "encoding_reference_rows": len(allr), "fallback": fallback,
-            "search_reference_rows": len(r), "maxlen": ln, "pair_chunk": pc}}
+            "search_reference_rows": len(r), "maxlen": max(x["core"]["maxlen"] for x in es), "pair_chunk": pc}}
 
 
 def near(q, r, k, dev, ix=None, rows=None):

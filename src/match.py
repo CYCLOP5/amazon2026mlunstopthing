@@ -18,8 +18,9 @@ try:
     import infer
     import neural
     import train
+    import tfeat
 except ImportError:
-    from src import block, embed, feat, hybrid, infer, neural, train
+    from src import block, embed, feat, hybrid, infer, neural, train, tfeat
 
 
 _sha = infer._sha
@@ -56,8 +57,6 @@ def _gate(d):
     names, dense = train._contract(m)
     if m.get("score_version") != block.sv:
         raise ValueError("gate candidate score version mismatch")
-    if names != list(feat.ff) + dense:
-        raise ValueError("invalid gate feature contract")
     fs = m.get("model_files", {})
     if not isinstance(m.get("models"), list) or not m["models"]:
         raise ValueError("gate metadata has no models")
@@ -65,6 +64,10 @@ def _gate(d):
         raise ValueError("invalid gate model file name")
     f = _files(d, [fs[n] for n in m["models"]])
     z = {"metadata_sha256": _sha(d / "metadata.json"), "files": f}
+    if m.get("feature_backend") == tfeat.backend:
+        if m["models"] != ["lgb"]:
+            raise ValueError("teammate gate requires its validated lightgbm booster")
+        z["feature_backend"] = tfeat.backend
     z["sha256"] = hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
     return m, names, dense, z
 
@@ -99,8 +102,8 @@ def _retrievers(xs):
     else:
         xs = hybrid.specs(xs)
     fs = [embed.family(x["model"]) for x in xs]
-    if fs not in (["e5"], ["e5", "qwen3"]):
-        raise ValueError("retrievers must be e5 or e5 plus qwen3")
+    if fs not in (["e5"], ["e5", "qwen3"], ["e5", "qwen3", "e5-large"]):
+        raise ValueError("retrievers must be e5 optionally followed by qwen3 and e5-large")
     return xs
 
 
@@ -114,11 +117,14 @@ def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu"):
     import torch
     precision = "bf16" if device == "cuda" and torch.cuda.is_bf16_supported() else "fp16" if device == "cuda" else "fp32"
     src = path(__file__).resolve().parent
+    srcs = ["data.py", "block.py", "embed.py", "hybrid.py", "feat.py", "train.py", "neural.py", "match.py"]
+    if gate.get("feature_backend") == tfeat.backend:
+        srcs += ["tfeat.py", "tm_prep.py", "tm_rules.py"]
     z = {"version": ver, "data_meta_sha256": _sha(data / "meta.json"), "data_version": dm.get("version"),
          "normalization": dm.get("normalization", "data.norm"), "retriever_sources_sha256": _sha(embed.src0),
          "gate": gate, "neural": nn, "retrievers": ret,
           "feature_contract": gate["feature_names"], "block_score_version": block.sv,
-          "source_files": {x: _sha(src / x) for x in ("data.py", "block.py", "embed.py", "hybrid.py", "feat.py", "train.py", "neural.py", "match.py")},
+           "source_files": {x: _sha(src / x) for x in srcs},
          "text_format": neural.fmt, "k": {"lexical": klex, "dense": kdense, "gate": kgate},
           "numeric": {"gate": "mean_probability", "neural": "sigmoid_probability", "topk_ties": "qid_asc",
                       "device": device, "neural_precision": precision, "retrieval_precision": "fp16" if device == "cuda" else "fp32",
@@ -177,7 +183,9 @@ def _blend(neural_prob, gate_prob, neural_weight):
 
 
 def _empty(split, sr):
-    return infer._empty(split).with_columns(pl.lit(sr, dtype=pl.UInt8).alias("sr"))
+    return infer._empty(split).with_columns(pl.lit(sr, dtype=pl.UInt8).alias("sr"),
+                                            pl.lit(None, dtype=pl.Float32).alias("gate_prob"),
+                                            pl.lit(None, dtype=pl.Float32).alias("neural_prob"))
 
 
 def _valid(d, q, refs, split, sr):
@@ -249,6 +257,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
             raise ValueError("gate metadata changed while loading")
     if not gate_models:
         raise ValueError("no loaded gate models")
+    ft = tfeat if gm.get("feature_backend") == tfeat.backend else feat
     if neural_bundle is None and neural_predictor is None:
         neural_bundle = neural.load(neural_dir, device)
     n, nq, npair, seen = 0, 0, 0, set()
@@ -266,7 +275,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                 raise ValueError("gate needs unavailable dense features")
             man["provenance"]["countries"][co] = {"status": "ready", "retrieval": state["config"],
                                                        "references": state["config"]["reference_rows"]}
-            fst = feat.prep(state["refs"])
+            fst = ft.prep(state["refs"])
             allowed = state["refs"]
             tm["setup"] += time.perf_counter() - t1
         else:
@@ -297,7 +306,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                         scored = _empty(split, sr)
                     else:
                         t1 = time.perf_counter()
-                        x, got = feat.make(fst, q, p, threads, dense)
+                        x, got = ft.make(fst, q, p, threads, dense)
                         if got != names:
                             raise ValueError("gate feature contract mismatch")
                         gp = _prob(np.mean([train.predict(m, x, threads) for m in gate_models.values()], axis=0, dtype=np.float64), "gate")
@@ -307,9 +316,12 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                         t1 = time.perf_counter()
                         npb = neural_predictor(tx) if neural_predictor is not None else neural.predict(neural_bundle, tx, neural_batch)
                         tm["neural"] += time.perf_counter() - t1
-                        npb = _blend(npb, post["gate"].to_numpy(), neural_weight)
+                        raw = _prob(npb, "neural")
+                        npb = _blend(raw, post["gate"].to_numpy(), neural_weight)
                         scored = post.select("qid", "tid", "sr", *(["y"] if split == "train" else [])).with_columns(
-                            pl.Series("prob", npb)).select("qid", "tid", "prob", "sr", *(["y"] if split == "train" else [])).sort("tid", "qid")
+                            pl.Series("prob", npb), pl.Series("gate_prob", post["gate"].to_numpy()),
+                            pl.Series("neural_prob", raw)).select("qid", "tid", "prob", "sr", "gate_prob", "neural_prob",
+                                                                 *(["y"] if split == "train" else [])).sort("tid", "qid")
                 _valid(scored, q, allowed, split, sr)
                 _pq(scored, pp)
                 _npy(cp, ids)
@@ -513,7 +525,7 @@ def main():
     p.add_argument("--country")
     p.add_argument("--rid-start", type=int); p.add_argument("--rid-stop", type=int)
     p.add_argument("--k-lex", type=int, default=10); p.add_argument("--k-dense", type=int, default=50); p.add_argument("--k-gate", type=int, default=20)
-    p.add_argument("--retrievers", choices=("e5", "qwen3"), nargs="+", default=["e5"])
+    p.add_argument("--retrievers", choices=("e5", "qwen3", "e5-large"), nargs="+", default=["e5"])
     p.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     p.add_argument("--threads", type=int, default=min(os.cpu_count() or 1, 8))
     p.add_argument("--encoder-batch", type=int, default=64); p.add_argument("--neural-batch", type=int, default=32); p.add_argument("--query-batch", type=int, default=512)

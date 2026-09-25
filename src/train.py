@@ -296,6 +296,11 @@ def _fit_cat(x, y, xv, yv, trees, threads):
 
 
 def predict(m, x, threads=None):
+    if not hasattr(m, "predict_proba"):
+        import lightgbm as lgb
+        if not isinstance(m, lgb.Booster) or (threads is not None and threads < 1):
+            raise ValueError("invalid lightgbm booster prediction")
+        return np.asarray(m.predict(x, num_threads=threads or 1), dtype=np.float64)
     kw = {}
     if threads is not None:
         if threads < 1:
@@ -308,6 +313,14 @@ def predict(m, x, threads=None):
 
 
 def _contract(met):
+    if met.get("feature_backend") == "teammate-v1-nos1":
+        try:
+            import tfeat
+        except ImportError:
+            from src import tfeat
+        return tfeat.contract(met)
+    if met.get("feature_backend") not in (None, "native"):
+        raise ValueError("unknown feature backend")
     names = met.get("feature_names")
     ds = met.get("dense_features")
     if ds is None:
@@ -319,6 +332,8 @@ def _contract(met):
 
 
 def _width(m):
+    if callable(getattr(m, "num_feature", None)):
+        return int(m.num_feature())
     v = getattr(m, "feature_names_", None)
     if isinstance(v, (list, tuple)) and v:
         return len(v)
@@ -337,7 +352,13 @@ def load_models(out):
     for name in met["models"]:
         p = out / met["model_files"][name]
         if name == "lgb":
-            z[name] = jl.load(p)
+            if met.get("feature_backend") == "teammate-v1-nos1":
+                import lightgbm as lgb
+                z[name] = lgb.Booster(model_file=str(p))
+                if z[name].feature_name() != names:
+                    raise ValueError("lightgbm feature names mismatch")
+            else:
+                z[name] = jl.load(p)
         elif name == "cat":
             from catboost import CatBoostClassifier
             m = CatBoostClassifier()

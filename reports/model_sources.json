@@ -20,5 +20,13 @@
     "license": "apache-2.0",
     "parameters": 567755777,
     "source": "https://huggingface.co/BAAI/bge-reranker-v2-m3"
+  },
+  {
+    "model": "intfloat/multilingual-e5-large-instruct",
+    "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439",
+    "license": "mit",
+    "parameters": 559890432,
+    "parameter_basis": "verified sentence transformer runtime parameter count",
+    "source": "https://huggingface.co/intfloat/multilingual-e5-large-instruct"
   }
 ]

@@ -338,6 +338,7 @@ def check():
         put(pp, json.dumps([
             {"model": rs[0]["model"], "revision": rs[0]["revision"], "license": "mit", "parameters": 278044162},
             {"model": rs[1]["model"], "revision": rs[1]["revision"], "license": "apache-2.0", "parameters": 595776512},
+            {"model": rs[2]["model"], "revision": rs[2]["revision"], "license": "mit", "parameters": 559890432},
             {"model": "org/model", "revision": "rev", "license": "mit", "parameters": 2},
         ]))
         put(c / "plan.md", "plan\n")
