@@ -68,9 +68,11 @@ def srcs(root, out):
     d = path(root) / "src"
     if not d.is_dir():
         raise ValueError(f"missing source directory {d}")
-    for p in sorted(d.rglob("*.py")):
+    bad = {".git", ".venv", "__pycache__", "artifacts", "cache", "data", "models", "output"}
+    for p in sorted(d.rglob("*")):
         r = rel(p, d)
-        if any(x in {"__pycache__", ".venv", ".git"} for x in r.parts):
+        if (not p.is_file() or p.is_symlink() or any(x in bad for x in r.parts) or
+                p.name.startswith(".env") or p.suffix in {".pyc", ".pyo", ".pem", ".key", ".parquet", ".tsv"}):
             continue
         add(out, f"code/business_entity_resolution/src/{r.as_posix()}", p)
     if not any(x.startswith("code/business_entity_resolution/src/") for x in out):
