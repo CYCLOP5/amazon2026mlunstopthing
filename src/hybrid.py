@@ -55,16 +55,16 @@ def feat(d):
 
 
 def load(d, dev):
+    src = embed.source(embed.src0, d["model"], d["revision"])
     if "encoder" in d:
         m = d["encoder"]
         n = int(d.get("params", 0))
         z = d.get("device", dev)
     else:
-        embed.source(embed.src0, d["model"], d["revision"])
         m, z, n = embed.model_load(d["model"], d["revision"], dev, ln)
     if n < 0:
         raise ValueError("invalid model parameter count")
-    return m, z, n
+    return m, z, n, src
 
 
 def enc(m, txt, batch):
@@ -106,16 +106,17 @@ def oldok(p, c):
     return a
 
 
-def dirs(cache, d, co, sp):
-    x = f"{embed.family(d['model'])}_{tag(d['revision'])}_{sp}_{tag(co)}"
+def dirs(cache, d, co, sp, fold):
+    pool = "fold2" if sp == "train" and fold == 2 else "all"
+    x = f"{embed.family(d['model'])}_{tag(d['revision'])}_{sp}_{pool}_{tag(co)}"
     return cache / "hybrid" / x, [cache / "embed-local", cache]
 
 
-def refs(data, cache, d, m, batch, r, co, sp):
+def refs(data, cache, d, m, batch, r, co, sp, fold):
     txt = embed.serial(r, "passage", d["model"])
     dim = int(m.get_embedding_dimension())
     c = core(data, d, r, txt, dim, co, sp)
-    dst, roots = dirs(cache, d, co, sp)
+    dst, roots = dirs(cache, d, co, sp, fold)
     mp = dst / "references.meta.json"
     rp = dst / "references.npy"
     pp = dst / "references.progress.json"
@@ -154,26 +155,22 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
     data, cache = path(data), path(cache)
     if batch < 1 or fold not in (0, 1, 2):
         raise ValueError("invalid batch or fold")
-    r = pl.read_parquet(data / split / "ref.parquet").filter(pl.col("co") == country).sort("rid")
-    if r.is_empty():
-        raise ValueError(f"no references for {country}")
-    br, ix, eq = block.setup(data, cache / "block", country, split, fold=0)
-    if not np.array_equal(r["rid"].to_numpy(), br["rid"].to_numpy()):
-        raise ValueError("lexical and dense reference mapping differs")
+    r, ix, eq = block.setup(data, cache / "block", country, split, fold=fold)
+    r = r.sort("rid")
     ms = specs(models)
     es, total = [], 0
     for d in ms:
-        m, dev, n = load(d, device)
+        m, dev, n, src = load(d, device)
         total += n
         if total > mx:
             raise ValueError("active retrieval models exceed 8b parameters")
-        a, cp, kind = refs(data, cache, d, m, batch, r, country, split)
+        a, cp, kind = refs(data, cache, d, m, batch, r, country, split, fold)
         fi = None
         if dev == "cpu":
             import faiss
             fi = faiss.IndexFlatIP(a.shape[1])
             fi.add(np.asarray(a, dtype=np.float32))
-        es.append({"spec": d, "model": m, "device": dev, "params": n, "refs": a, "index": fi,
+        es.append({"spec": d, "model": m, "device": dev, "params": n, "source": src, "refs": a, "index": fi,
                    "cache": str(cp), "cache_kind": kind, "feature": feat(d)})
     fs = [x["feature"] for x in es]
     if len(set(fs)) != len(fs):
@@ -181,7 +178,7 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
     return {"data": data, "cache": cache, "country": country, "split": split, "fold": fold,
             "refs": r, "idx": ix, "eq": eq, "encoders": es, "batch": batch,
             "dense_features": fs, "config": {"models": [{"model": x["spec"]["model"],
-            "revision": x["spec"]["revision"], "params": x["params"], "feature": x["feature"], "device": x["device"],
+            "revision": x["spec"]["revision"], "params": x["params"], "source": x["source"], "feature": x["feature"], "device": x["device"],
             "reference_cache": x["cache"], "cache_kind": x["cache_kind"]} for x in es],
             "total_params": total, "reference_rows": len(r), "maxlen": ln, "pair_chunk": pc}}
 
@@ -205,17 +202,19 @@ def near(q, r, k, dev, ix=None):
     if rb < k:
         raise RuntimeError("gpu cannot hold a bounded reference block; use cpu or reduce batch")
     qb = torch.tensor(q, device="cuda", dtype=torch.float16)
-    bs, bi = [], []
+    bs = bi = None
     for lo in range(0, len(r), int(rb)):
         z = torch.tensor(np.asarray(r[lo:lo + rb]), device="cuda", dtype=torch.float16)
         s, i = torch.topk(qb @ z.T, min(k, len(z)), dim=1)
-        bs.append(s)
-        bi.append(i + lo)
+        if bs is None:
+            bs, bi = s, i + lo
+        else:
+            s, j = torch.topk(torch.cat((bs, s), dim=1), k, dim=1)
+            bs = s
+            bi = torch.gather(torch.cat((bi, i + lo), dim=1), 1, j)
         del z
-    s, j = torch.topk(torch.cat(bs, dim=1), k, dim=1)
-    i = torch.gather(torch.cat(bi, dim=1), 1, j)
-    out = i.cpu().numpy(), s.float().cpu().numpy()
-    del qb, bs, bi, s, i
+    out = bi.cpu().numpy(), bs.float().cpu().numpy()
+    del qb, bs, bi
     torch.cuda.empty_cache()
     return out
 
@@ -341,18 +340,29 @@ def check():
                           "nn": ["lex coffee"], "an": ["road"], "own": [3], "sr": [2]})
         r.write_parquet(d / "train/ref.parquet")
         v = {"lex coffee": [1, 0], "coffee shop": [0, 1], "gold hidden": [-1, 0]}
+        qrev = next(x["revision"] for x in json.loads(embed.src0.read_text(encoding="utf-8")) if x["model"] == embed.qwen0)
         ms = [{"model": embed.mod0, "revision": embed.rev0, "encoder": fake(v), "params": 2},
-              {"model": embed.qwen0, "revision": "fake", "encoder": fake(v), "params": 3}]
+              {"model": embed.qwen0, "revision": qrev, "encoder": fake(v), "params": 3}]
         s = setup(d, p / "cache", "us", fold=2, models=ms, device="cpu", batch=1)
         x = search(s, q, 1, 1)
         y = search(s, q, 1, 1)
-        assert s["refs"]["rid"].to_list() == [1, 2, 3, 4]
+        assert s["refs"]["rid"].to_list() == [1]
         assert len({e["cache"] for e in s["encoders"]}) == 2
-        assert {1, 2, 4} <= set(x["qid"].to_list()) and 3 not in set(x["qid"].to_list())
+        assert x["qid"].to_list() == [1]
         assert x.filter(pl.col("qid") == 1)["ds_e5"][0] > 0
-        assert x.filter(pl.col("qid") == 2)["ns"][0] > 0
+        assert x.filter(pl.col("qid") == 1)["ns"][0] > 0
         assert x.filter(pl.col("y") == 1).is_empty()
         assert x.equals(y) and x.select("tid", "qid").n_unique() == len(x)
+        legacy = p / "reuse" / "e5_us_f0"
+        legacy.mkdir(parents=True)
+        rt = embed.serial(r, "passage")
+        lc = embed.meta_core(d, embed.mod0, embed.rev0, 2, ln, 2, "us", 0, (r, rt),
+                             (q, embed.serial(q, "query")), embed.source(embed.src0, embed.mod0, embed.rev0), 1)
+        atom(legacy / "meta.json", {"core": lc})
+        np.save(legacy / "references.npy", np.asarray([[1, 0], [0, 1], [-1, 0], [1, 0]], np.float16))
+        atom(legacy / "references.progress.json", {"done": len(r), "rows": len(r)})
+        reused = setup(d, p / "reuse", "us", fold=0, models=ms[:1], device="cpu", batch=1)
+        assert reused["encoders"][0]["cache_kind"] == "embed"
         src, out = p / "run", p / "out"
         src.mkdir()
         r.filter(pl.col("rid") == 3).write_parquet(src / "anchors.parquet")
@@ -360,6 +370,7 @@ def check():
         atom(src / "metrics.json", {"country": "us", "fold": 0, "score_version": block.sv})
         z = probe(d, p / "cache", src, out, ms, "cpu", 1, 1, 1)
         assert z["dense_features"] == ["ds_e5", "ds_qwen3"] and (out / "queries.parquet").exists()
+        assert z["retrieval"]["models"][0]["source"]["license"] == "mit"
     print("checks passed")
 
 
