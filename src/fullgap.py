@@ -35,6 +35,8 @@ def _imports():
 
 weights = (0., .2, .4, .6, .8, 1.)
 root = path(__file__).resolve().parents[1]
+features = ("gate_logit", "neural_logit", "gate_top_gap", "neural_top_gap",
+            "gate_rank", "neural_rank", "target_blank_address", "source_3")
 
 
 def _hash(z):
@@ -77,6 +79,24 @@ def _blend(gate, neural, weight):
 def _stack(gate, neural, model):
     x = model["intercept"] + model["coefficients"][0] * _logit(gate) + model["coefficients"][1] * _logit(neural)
     return (1 / (1 + np.exp(-np.clip(x, -80, 80)))).astype(np.float32)
+
+
+def _context(q, t, gate, neural, blank, sr):
+    """rank and top-two gaps over all postgate candidates for each target."""
+    x = np.empty((len(q), len(features)), dtype=np.float32)
+    x[:, 0], x[:, 1] = _logit(gate), _logit(neural)
+    for column, score in ((2, gate), (3, neural)):
+        order = np.lexsort((q, -score, t))
+        first = np.r_[True, t[order][1:] != t[order][:-1]]
+        starts = np.flatnonzero(first)
+        group_start = np.maximum.accumulate(np.where(first, np.arange(len(q)), 0))
+        x[order, column + 2] = np.arange(len(q)) - group_start + 1
+        next_row = np.minimum(starts + 1, np.r_[starts[1:] - 1, len(q) - 1])
+        gaps = score[order[starts]] - score[order[next_row]]
+        x[:, column] = np.repeat(gaps, np.diff(np.r_[starts, len(q)]))
+    x[:, 6] = blank[t]
+    x[:, 7] = sr == 3
+    return x
 
 
 def _input(data, bases):
@@ -196,7 +216,7 @@ def _valid(d, own, fold, which, meta):
         x = d[name].to_numpy()
         if not np.isfinite(x).all() or (x < 0).any() or (x > 1).any():
             raise ValueError(f"invalid {name}")
-    return q, t, y, d["gate_prob"].to_numpy(), d["neural_prob"].to_numpy(), d["prob"].to_numpy()
+    return q, t, y, d["gate_prob"].to_numpy(), d["neural_prob"].to_numpy(), d["prob"].to_numpy(), d["sr"].to_numpy()
 
 
 def _top(q, t, y, score, fold, allowed):
@@ -268,14 +288,18 @@ def _curve(rows, deg, mask):
     return max((initial, result), key=lambda z: (z["macro_f05"], z["pair_precision"], z["threshold"]))
 
 
-def _scan(runs, ref, own, which, model=None, fit=False):
+def _scan(runs, ref, own, blank, which, model=None, tree=None, fit=False):
     fold = ref["fold"].to_numpy()
     allowed = np.isin(np.arange(3), which)
-    stored = {w: [] for w in weights} if model is None else {"stack": []}
+    stored = {w: [] for w in weights} if model is None and tree is None else {}
+    if model is not None:
+        stored["stack"] = []
+    if tree is not None:
+        stored["nonlinear"] = []
     stored["v1"] = []
     keep = np.zeros(len(own), dtype=bool)
     fit_x, fit_y, fit_w = [], [], []
-    for q, t, y, gate, neural, prob in _batches(runs, own, fold, which):
+    for q, t, y, gate, neural, prob, sr in _batches(runs, own, fold, which):
         if 0 in which:
             eligible = fold[q] == 0
             keep[t[eligible][y[eligible] == 1]] = True
@@ -283,34 +307,42 @@ def _scan(runs, ref, own, which, model=None, fit=False):
         if not np.allclose(prob, _blend(gate, neural, runs[0]["manifest"]["config"]["numeric"]["blend"]["neural_weight"]), atol=2e-6):
             raise ValueError("saved probability contradicts hybrid configuration")
         stored["v1"].append(_top(q, t, y, base, fold, allowed))
-        if model is None:
+        if model is None and tree is None:
             for w in weights:
                 stored[w].append(_top(q, t, y, _blend(gate, neural, w), fold, allowed))
+        x = _context(q, t, gate, neural, blank, sr) if fit or tree is not None else None
         if fit:
             # no fold1/2 owner targets enter meta fit; tune still sees the full target pool.
             fit_indices = np.flatnonzero(_fit_edges(q, t, own, fold))
             selected = fit_indices[(y[fit_indices] == 1) | _sample(t[fit_indices])]
             if len(selected):
-                fit_x.append(np.column_stack((_logit(gate[selected]), _logit(neural[selected]))))
+                fit_x.append(x[selected])
                 fit_y.append(y[selected])
                 fit_w.append(np.where(y[selected] == 1, 1., 50.).astype(np.float32))
         if model is not None:
             stored["stack"].append(_top(q, t, y, _stack(gate, neural, model), fold, allowed))
+        if tree is not None:
+            stored["nonlinear"].append(_top(q, t, y, tree.predict(x, num_threads=int(os.environ["POLARS_MAX_THREADS"])).astype(np.float32), fold, allowed))
     rows = {key: _join(value) for key, value in stored.items()}
     if not fit:
-        return rows, keep, None
+        return rows, keep, None, None
     from sklearn.linear_model import LogisticRegression as logistic_regression
+    import lightgbm as lgb
     x, y, w = np.concatenate(fit_x), np.concatenate(fit_y), np.concatenate(fit_w)
     if set(np.unique(y)) != {0, 1}:
         raise ValueError("meta fit needs positive and negative pairs")
-    learner = logistic_regression(C=1., max_iter=200).fit(x, y, sample_weight=w)
+    learner = logistic_regression(C=1., max_iter=200).fit(x[:, :2], y, sample_weight=w)
     if not learner.n_iter_[0] < 200:
         raise ValueError("meta fit did not converge")
     model = {"features": ["gate_logit", "neural_logit"], "coefficients": learner.coef_[0].tolist(),
              "intercept": float(learner.intercept_[0]), "epsilon": float(np.finfo(np.float32).eps),
              "fit_pairs": len(y), "fit_positive": int(y.sum()), "fit_negative_sample": "target hash modulo 50; inverse-probability weight 50",
               "split": "even deterministic group hash held out; fold0 anchors and fold0-owned/orphan target groups only; crossing edges and fold1/2-owned target negatives excluded"}
-    return rows, keep, model
+    params = {"objective": "binary", "learning_rate": .05, "num_leaves": 15, "min_data_in_leaf": 100,
+              "lambda_l2": 10., "num_threads": int(os.environ["POLARS_MAX_THREADS"]), "verbosity": -1,
+              "seed": 42, "deterministic": True, "force_col_wise": True}
+    tree = lgb.train(params, lgb.Dataset(x, label=y, weight=w, feature_name=list(features)), num_boost_round=150)
+    return rows, keep, model, {"booster": tree, "params": params, "fit_pairs": len(y), "fit_positive": int(y.sum())}
 
 
 def _strata(ref, own, blank, keep, base, deg):
@@ -355,16 +387,19 @@ def _strata(ref, own, blank, keep, base, deg):
 
 def _report(z):
     lines = ["# overnight full-pool diagnosis", "", "complete training target corpus; target top1 is chosen before anchor filtering.",
-             "fold0 owner groups split for stack fit and separate cutoff selection; fold1 stays locked until --audit.",
+             "stack fit and cutoff selection use disjoint fold0 anchors; full-pool tune negatives reuse fit-side target groups, so tune is transductive rather than target-group-independent. fold1 stays locked until --audit.",
              "base models trained on fold2 and developed on fold0; fold0 blend comparisons reuse development labels.",
              "meta fit uses sampled fold0-owned/orphan negatives with inverse sampling weights; fold1/2-owned targets are excluded from meta fit but included in full-pool tune negatives. no raw features regenerated.", "",
+             "nonlinear stack: one fixed 150-tree, 15-leaf lightgbm fit on saved score/rank/gap/raw-target-blank/source context; no reference truth features.",
+             f"tree: {z['nonlinear']['path']} (relative to artifact output) sha256 {z['nonlinear']['sha256']}", "",
              f"selected: {z['selection']['variant']} @ {z['selection']['threshold']:.7g} (held-out fold0 macro {z['selection']['tune']['macro_f05']:.6f})",
              f"frozen v1 w=.6 @ .8: {z['v1']['macro_f05']:.6f} fold0 macro", "",
              "| variant | held-out fold0 macro | full fold0 macro | cutoff |", "| --- | ---: | ---: | ---: |"]
     for k, v in z["variants"].items():
         lines.append(f"| {k} | {v['tune']['macro_f05']:.6f} | {v['fold0_at_tune_cut']['macro_f05']:.6f} | {v['tune']['threshold']:.7g} |")
     stats = z["losses"]["overall"]
-    lines += ["", f"postgate oracle recall: {stats['postgate_recall']:.6f}; gate-lost: {stats['gate_lost']}; wrong-top1: {stats['wrong_top1']}; cutoff-lost: {stats['cutoff_lost']}.",
+    lines += ["", f"postgate oracle macro f0.5: {z['postgate_oracle']['macro_f05']:.6f}; recall: {stats['postgate_recall']:.6f}; missing final candidates: {stats['gate_lost']}; wrong-top1: {stats['wrong_top1']}; cutoff-lost: {stats['cutoff_lost']}.",
+              "the json gate_lost count combines initial retrieval misses and later gate pruning; saved postgate scores cannot separate them.",
               "loss tables by country, anchor with any blank alias (macro), individual blank target (errors only), and singleton anchor (=degree 0) are in the json report.",
               "oracle is constrained to saved postgate pairs, not the earlier lexical candidate pool."]
     if "audit" in z:
@@ -386,30 +421,53 @@ def run(data, bases, out, report, audit=False):
         saved = infer._json(selection_file)
         if saved["source"] != source:
             raise ValueError("frozen selection input changed")
+        prior = infer._json(report.with_suffix(".json"))
+        if (prior.get("source") != source or prior.get("selection") != saved["selection"] or
+                prior.get("nonlinear") != saved.get("nonlinear")):
+            raise ValueError("report does not match frozen selection")
+        record = saved.get("nonlinear")
+        if (not isinstance(record, dict) or record.get("path") != "nonlinear.txt" or
+                record.get("features") != list(features) or (out / "nonlinear.txt").is_symlink() or
+                infer._sha(out / "nonlinear.txt") != record.get("sha256")):
+            raise ValueError("frozen nonlinear model changed")
         chosen = saved["selection"]
+        tree = None
+        if chosen["variant"] == "nonlinear":
+            import lightgbm as lgb
+            tree = lgb.Booster(model_file=str(out / "nonlinear.txt"))
+            if tree.feature_name() != list(features):
+                raise ValueError("frozen nonlinear feature order changed")
         with (out / "audit.started").open("x", encoding="utf-8") as lock:
             lock.write(infer._sha(selection_file) + "\n")
         model = saved["stack"] if chosen["variant"] == "stack" else None
-        rows, _, _ = _scan(runs, ref, own, (1,), model=model) if model else _scan(runs, ref, own, (1,))
-        variant = rows["stack"] if model else rows[float(chosen["variant"].split("w=")[1])]
+        rows, _, _, _ = _scan(runs, ref, own, blank, (1,), model=model, tree=tree)
+        variant = rows[chosen["variant"]] if model or tree else rows[float(chosen["variant"].split("w=")[1])]
         m = fold == 1
         result = {"finalist": _fixed(variant, deg, m, chosen["threshold"]),
                   "v1": _fixed(rows["v1"], deg, m, .8), "source": source, "selection_sha256": infer._sha(selection_file)}
         infer._write(out / "audit.json", result)
-        z = infer._json(report.with_suffix(".json"))
+        z = prior
         z["audit"] = result
     else:
         if selection_file.exists():
             raise ValueError("selection already frozen; use --audit")
-        rows, keep, model = _scan(runs, ref, own, (0,), fit=True)
-        stack_rows, _, _ = _scan(runs, ref, own, (0,), model=model)
+        rows, keep, model, trained = _scan(runs, ref, own, blank, (0,), fit=True)
+        out.mkdir(parents=True, exist_ok=True)
+        tree_file = out / "nonlinear.txt"
+        temporary = out / "nonlinear.txt.tmp"
+        trained["booster"].save_model(str(temporary))
+        temporary.replace(tree_file)
+        nonlinear = {"path": tree_file.name, "sha256": infer._sha(tree_file), "features": list(features),
+                     "params": trained["params"], "fit_pairs": trained["fit_pairs"], "fit_positive": trained["fit_positive"]}
+        stack_rows, _, _, _ = _scan(runs, ref, own, blank, (0,), model=model, tree=trained["booster"])
         rows["stack"] = stack_rows["stack"]
+        rows["nonlinear"] = stack_rows["nonlinear"]
         full, tune = fold == 0, (fold == 0) & _held(np.arange(len(ref)))
         variants = {}
         for key, scores in rows.items():
             if key == "v1":
                 continue
-            name = "stack" if key == "stack" else f"w={key:.1f}"
+            name = key if isinstance(key, str) else f"w={key:.1f}"
             best = _curve(scores, deg, tune)
             variants[name] = {"tune": best, "fold0_at_tune_cut": _fixed(scores, deg, full, best["threshold"]),
                               "fold0_optimized_descriptive": _curve(scores, deg, full)}
@@ -421,15 +479,15 @@ def run(data, bases, out, report, audit=False):
         oracle_f = np.where(deg == 0, 1., 1.25 * retained / np.maximum(retained + .25 * deg, 1))
         truth = int(deg[full].sum())
         z = {"scope": "complete hybrid postgate train target pool; source1 macro f0.5",
-             "source": source, "selection": selection, "stack": model, "variants": variants,
+             "source": source, "selection": selection, "stack": model, "nonlinear": nonlinear, "variants": variants,
              "v1": _fixed(rows["v1"], deg, full, .8),
              "postgate_oracle": {"macro_f05": float(oracle_f[full].mean()),
                                  "pair_recall": int(retained[full].sum()) / truth if truth else 1.},
              "losses": _strata(ref, own, blank, keep, rows["v1"], deg),
              "limitations": ["base models fit fold2 but developed on fold0; fold0 screening is not independent",
-                             "stack fitted only on fold0 owner/ref-disjoint groups, sampled negatives weighted 50; excluding other-owner-fold negatives shifts meta fit calibration; fold1 audit untouched",
+                              "stack fit uses disjoint fold0 anchor/owner groups, sampled negatives weighted 50; cutoff anchors are held out but full-pool negatives reuse fit-side target groups; tune is transductive; excluding other-owner-fold fit negatives shifts calibration; fold1 audit untouched",
                              "target-top1 is computed on all references, including non-tune folds, before filtering"]}
-        infer._write(selection_file, {"source": source, "selection": selection, "stack": model})
+        infer._write(selection_file, {"source": source, "selection": selection, "stack": model, "nonlinear": nonlinear})
     infer._write(report.with_suffix(".json"), z)
     report.with_suffix(".md").parent.mkdir(parents=True, exist_ok=True)
     report.with_suffix(".md").write_text(_report(z), encoding="utf-8")
@@ -440,6 +498,19 @@ def check():
     assert os.environ["POLARS_MAX_THREADS"] == os.environ["ARROW_NUM_THREADS"]
     assert all(os.environ[key] == "1" for key in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"))
     assert np.allclose(_blend(np.array([.2], np.float32), np.array([.8], np.float32), .5), [.5])
+    context = _context(np.array([0, 1, 2, 3]), np.array([5, 5, 5, 6]),
+                       np.array([.6, .9, .7, .4], np.float32),
+                       np.array([.95, .2, .7, .4], np.float32),
+                       np.array([False] * 5 + [True, False]), np.array([2, 2, 2, 3]))
+    assert np.allclose(context[:3, 2], .2) and np.allclose(context[:3, 3], .25)
+    assert context[:, 4].tolist() == [3, 1, 2, 1] and context[:, 5].tolist() == [1, 3, 2, 1]
+    assert context[:, 6].tolist() == [1, 1, 1, 0] and context[:, 7].tolist() == [0, 0, 0, 1]
+    ties = _context(np.array([2, 1]), np.array([5, 5]), np.array([.5, .5], np.float32),
+                    np.array([.5, .5], np.float32), np.array([False] * 6), np.array([2, 2]))
+    assert ties[:, 4].tolist() == [2, 1] and ties[:, 5].tolist() == [2, 1]
+    # candidate 1 is outside the evaluation fold, yet still outranks candidate 0.
+    assert _top(np.array([0, 1]), np.array([5, 5]), np.array([1, 0]),
+                np.array([.6, .9]), np.array([0, 1]), np.array([True, False, False]))[0].size == 0
     strata_ref = pl.DataFrame({"rid": [0, 1, 2, 3], "deg": [0, 2, 1, 0], "blank": [0, 1, 0, 0],
                                "fold": [0, 0, 0, 1], "co": ["us"] * 4})
     strata_own = np.array([1, 1, 2, -1])
@@ -589,8 +660,47 @@ def check():
         assert first["losses"]["overall"]["gate_lost"] == 1
         assert first["postgate_oracle"]["macro_f05"] < 1
         assert first["stack"]["fit_positive"] > 0 and "audit" not in first
+        assert "nonlinear" in first["variants"] and first["nonlinear"]["features"] == list(features)
+        assert first["nonlinear"]["fit_pairs"] == first["stack"]["fit_pairs"]
+        tree_file = out / first["nonlinear"]["path"]
+        assert infer._sha(tree_file) == first["nonlinear"]["sha256"]
+        import lightgbm as lgb
+        loaded = lgb.Booster(model_file=str(tree_file))
+        scored, _, _, _ = _scan(runs, refs, own, np.arange(ntarget) % 7 == 0, (0,), tree=loaded)
+        replay = _fixed(scored["nonlinear"], degrees, refs["fold"].to_numpy() == 0,
+                        first["variants"]["nonlinear"]["tune"]["threshold"])
+        assert np.isclose(replay["macro_f05"], first["variants"]["nonlinear"]["fold0_at_tune_cut"]["macro_f05"])
+        bad = {**first, "selection": {"variant": "wrong"}}
+        infer._write(report.with_suffix(".json"), bad)
+        try:
+            run(data, bases, out, report, audit=True)
+        except ValueError as error:
+            assert "report does not match" in str(error)
+            assert not (out / "audit.started").exists()
+        else:
+            raise AssertionError("unrelated report accepted")
+        infer._write(report.with_suffix(".json"), first)
+        original = tree_file.read_bytes()
+        tree_file.write_bytes(original + b"modified")
+        try:
+            run(data, bases, out, report, audit=True)
+        except ValueError as error:
+            assert "frozen nonlinear model changed" in str(error)
+            assert not (out / "audit.started").exists()
+        else:
+            raise AssertionError("changed nonlinear model accepted")
+        tree_file.write_bytes(original)
+        # exercise the chosen-only nonlinear audit path, regardless of synthetic winner.
+        selected = {"variant": "nonlinear", "threshold": first["variants"]["nonlinear"]["tune"]["threshold"],
+                    "tune": first["variants"]["nonlinear"]["tune"]}
+        frozen = infer._json(out / "selection.json")
+        frozen["selection"] = selected
+        first["selection"] = selected
+        infer._write(out / "selection.json", frozen)
+        infer._write(report.with_suffix(".json"), first)
         run(data, bases, out, report, audit=True)
-        assert "audit" in infer._json(report.with_suffix(".json"))
+        audited = infer._json(report.with_suffix(".json"))
+        assert "audit" in audited and audited["audit"]["finalist"]["true_pairs"] == 77
         try:
             run(data, bases, out, report, audit=True)
         except ValueError as error:

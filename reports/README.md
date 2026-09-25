@@ -45,7 +45,7 @@ raw records caches detailed local probes and teammate diagnostic rows are not pu
 
 adding large-instruct recovered five extra positive queries at dense width 100
 that establishes a sampled blocking gain rather than a guaranteed full macro-score improvement
-the combined runtime is now implemented and undergoing complete scoring
+the combined runtime completed test scoring with exact target coverage; the overnight full-pool train replay and locked audit are documented below
 
 ## matcher and feature experiments
 
@@ -79,15 +79,15 @@ the baseline's separate team-reported public score is 0.964; the observed offlin
 
 the provisional 0.8 cutoff has the highest measured pair f0.5 among the recorded diagnostic operating points
 the diagnostic population and metric differ from full source1 macro f0.5
-complete upgraded calibration continues separately
+the completed upgraded full-pool calibration and locked audit are reported in the overnight results below
 
-## overnight cpu diagnostics
+## completed overnight results
 
-the 13-variant cached lexical-only screen did not improve the production-safe teammate gate's recall at 0.995 precision. its 487/13,827 candidate misses and blank-address slice are selected fold-0 diagnostics, not a hybrid full-pool ceiling. [tuning summary](overnight-tune.md) · [tuning data](overnight-tune.json) · [gap summary](overnight-gap.md) · [gap data](overnight-gap.json) · [cpu tree research](overnight-tree-research.md) · [entity-resolution research](overnight-er-research.md)
+the full-pool replay verified hashes and exact coverage for all 10,320,219 train targets. the frozen v1 locked audit scored 0.9758741644794233 source1 macro f0.5; the fold0-selected logistic stack scored 0.9786888883553567 on the same fold1 audit. this is offline evidence, not a new public score. the fold0 postgate oracle was 0.9955514140602323, below 0.998 for the saved candidate set only; changed retrieval or gate candidates can change that set. [full-pool summary](overnight-fullpool.md) · [full-pool data](overnight-fullpool.json)
 
-the [extended screen](overnight-tune-extended.md) tested two longer catboost fits and two weighted lightgbm fits with 12 cpu threads. depth-6 catboost improved with training length but did not displace the safe gate. [extended data](overnight-tune-extended.json)
+the json `gate_lost` field counts linked targets missing before the matcher and combines retrieval misses with gate pruning; saved final pairs do not distinguish those causes. blank addresses were 33,646/763,741 linked targets (4.4%); they accounted for 8,081/11,080 pre-matcher missing targets (72.9%) and 3,664/4,373 wrong-top1 outcomes (83.8%). the ambiguity audit found no exact raw-input duplicate groups with multiple owners, so these errors are not proven intrinsically irresolvable. [ambiguity summary](overnight-ambiguity.md) · [ambiguity data](overnight-ambiguity.json)
 
-upgraded full-pool output, calibration, and locked audit remain pending.
+the first 13 and extended four cached gate variants did not displace the existing safe lightgbm at recall for pair precision ≥0.995; longer catboost fits got closer. these are selected lexical-pair diagnostics, not source1 macro f0.5. blank10 width added 7.6% candidate pairs for 0.32 percentage points of retention, with no high-precision recall gain. [first tuning summary](overnight-tune.md) · [first tuning data](overnight-tune.json) · [extended summary](overnight-tune-extended.md) · [extended data](overnight-tune-extended.json) · [width summary](overnight-width.md) · [width data](overnight-width.json) · [gap summary](overnight-gap.md) · [gap data](overnight-gap.json) · [cpu tree research](overnight-tree-research.md) · [entity-resolution research](overnight-er-research.md)
 
 ## implementation and eligibility
 
@@ -103,13 +103,10 @@ upgraded full-pool output, calibration, and locked audit remain pending.
 passing a smoke test establishes executable wiring and output contracts
 it does not establish competition accuracy
 
-## final evidence still required
+## remaining evidence and release work
 
-- complete labeled-pool calibration for each candidate configuration
-- locked audit with unchanged selection rules
-- exact full test coverage and compatible model/configuration hashes
-- validated matching and candidate tsvs
-- candidate count mean/tails and actual archive hashes
+- decide whether to submit the offline logistic selection; no public score exists for it
+- if submitted, record its exact model/configuration, threshold, full test coverage, and validated matching and candidate tsvs
 - portal feedback and the updated submission-attempt count
 - finalized reproducibility artifacts and selected-model provenance
 

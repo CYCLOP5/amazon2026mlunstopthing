@@ -790,10 +790,10 @@ an ann replacement remains a measured future scaling change rather than an imple
 
 quota is distinct from regional physical gpu availability
 
-the upgraded configuration's full-pool calibration and locked audit remain pending
-upgraded v1 was submitted with provisional cutoff 0.8 and received a team-reported public leaderboard f0.5 of 0.969
-the original baseline's team-reported public score is 0.964; its offline locked-audit macro f0.5 is 0.9755015568, an observed difference of 0.0115015568 across different evaluation populations
-these results do not establish a cause for the baseline's observed difference
+the saved upgraded training-pool scores now have complete target coverage and verified hashes across all 10,320,219 targets
+the one-time fold1 audit scored frozen upgraded v1 at 0.9758741644794233 source1 macro f0.5 and the fold0-selected logistic stack at 0.9786888883553567
+these are offline training-pool results; the team-reported public scores remain 0.964 for the baseline and 0.969 for upgraded v1, with no new public score for the logistic selection
+the baseline offline/public difference is descriptive across different evaluation populations and does not identify a cause
 complete test coverage correct file format and exact candidate membership remain mandatory
 
 current operator documentation is in [arch](docs/arch.md), [ops](docs/ops.md), [training](docs/training.md), and [status](docs/status.md)
@@ -801,10 +801,18 @@ the [evidence index](reports/README.md) maps every main result to its scope
 
 ## overnight cpu screening and score update
 
-the team-reported public scores are 0.964 for the original baseline and 0.969 for upgraded v1. the baseline's offline fold-1 macro f0.5 is 0.9755015568, a 0.0115015568 difference from its reported public score. these figures use different evaluation populations; the difference is observed, not causally attributed. [entity-resolution research](reports/overnight-er-research.md) · [tree research](reports/overnight-tree-research.md)
+the team-reported public scores remain 0.964 for the original baseline and 0.969 for upgraded v1. the baseline's offline fold-1 source1 macro f0.5 is 0.9755015568. these figures use different evaluation populations; the difference is observed, not causally attributed. no new public score is available for the overnight logistic selection. [entity-resolution research](reports/overnight-er-research.md) · [tree research](reports/overnight-tree-research.md)
 
-the cached fold-0 screen tested 13 tree and fixed-ensemble variants on selected lexical-only candidates. none improved the production-safe teammate gate's recall at 0.995 precision. the gap diagnostic found 487 candidate misses among 13,827 linked targets; its blank-address slice had 69 candidate misses among 580 targets, 61 top-3 losses, and 162 cutoff misses at 0.80. these are selected-sample diagnostics, not a hybrid full-pool candidate ceiling or full-pool macro score. [tuning summary](reports/overnight-tune.md) · [tuning data](reports/overnight-tune.json) · [gap summary](reports/overnight-gap.md) · [gap data](reports/overnight-gap.json)
+the cached fold-0 screen tested 17 gate variants across the first 13 and extended 4 variants on selected lexical-only candidates. the existing safe lightgbm remained best at recall for pair precision ≥0.995; longer catboost fits got closer but did not surpass it. the gap diagnostic found 487 candidate misses among 13,827 linked targets; its blank-address slice had 69 candidate misses among 580 targets, 61 top-3 losses, and 162 cutoff misses at 0.80. these are selected-pair diagnostics, not source1 macro f0.5 or a hybrid full-pool candidate ceiling. [tuning summary](reports/overnight-tune.md) · [tuning data](reports/overnight-tune.json) · [extended summary](reports/overnight-tune-extended.md) · [gap summary](reports/overnight-gap.md) · [gap data](reports/overnight-gap.json)
 
-the extended 12-thread screen raised catboost to 1400 rounds and tested hard-negative and missing-address weighting. depth-6 catboost improved diagnostic neural-blend recall at 0.995 precision from 0.9275 to 0.9323; the existing safe gate remained at 0.9332. none of the four extended fits displaced it. depth-4 hit the cap and depth-6 peaked near it, so full convergence is not established. [extended summary](reports/overnight-tune-extended.md) · [extended data](reports/overnight-tune-extended.json)
+the blank10 width policy increased selected-lexical candidate pairs by 7.6% and true-candidate retention by 0.32 percentage points over k3, with no gain in recall at pair precision ≥0.995. this does not represent the production hybrid pool. [width diagnostic](reports/overnight-width.md) · [width data](reports/overnight-width.json)
 
-upgraded full-pool output, calibration, and locked audit remain pending. the cached diagnostics do not replace them. `src/fullgap.py` verifies the complete saved score pool, compares fixed logit blends and a disjoint-group logistic stack, freezes fold-0 selection, and audits the finalist once on fold 1.
+## completed overnight full-pool audit
+
+the saved score pool covers all 10,320,219 train targets; hashes and target coverage were verified before replay. eight full-pool variants were compared: six weighted-logit blends, a logistic stack, and a nonlinear lightgbm model. fold0 selection used held-out anchors; the logistic fit's full-pool tune negatives reuse fit-side target groups, so selection is transductive rather than target-group-independent. fold1 remained untouched until the one-time audit. base models were not retrained and raw features were not regenerated. see the [full-pool report](reports/overnight-fullpool.md) and [exact results](reports/overnight-fullpool.json).
+
+the logistic stack, using gate and neural logits, was selected at cutoff 0.8649235367774963. it scored 0.9784026779294054 held-out fold0 source1 macro f0.5, then 0.9786888883553567 on the locked fold1 audit. frozen v1 at cutoff 0.8 scored 0.9758741644794233 on that same audit. cutoff recalibration accounts for most of the full-fold0 gain: unchanged w=0.6 scored 0.9782766540469559 with its selected cutoff versus frozen v1's 0.9756860071259694 at 0.8; the logistic stack reached 0.9785152900449455 on that same full-fold0 population. the existing `infer._fixed` scorer independently reproduced both locked audit results exactly.
+
+the fold0 postgate perfect-matcher oracle scored 0.9955514140602323, below 0.998, and is constrained to the saved postgate candidate pairs. it is not a global ceiling: changing retrieval or gate candidates can change this oracle. the json field `gate_lost` is a pre-matcher count of linked targets absent from saved final pairs; it combines initial retrieval misses and gate pruning, which the saved final-pair artifact cannot separate. of 763,741 linked targets, 33,646 (4.4%) have blank addresses. blank targets account for 8,081 of 11,080 pre-matcher missing targets (72.9%) and 3,664 of 4,373 wrong-top1 outcomes (83.8%). the ambiguity audit found zero exact raw-input groups with multiple owners; the blank-address errors are not thereby shown to be intrinsically irresolvable.
+
+the full-pool metrics are offline source1 macro f0.5, not selected-query pair precision/recall and not a public score. cached gate and width diagnostics use selected lexical pairs only. there is no new public submission score for the overnight logistic selection.

@@ -12,9 +12,10 @@
 | --- | --- | --- | --- | --- |
 | original baseline | lexical + e5-base + qwen | native lightgbm/catboost mean | fine-tuned e5 pair classifier | **0.964** team-reported public; **0.9755015568** locked offline source1 macro f0.5 |
 | upgraded v1 | lexical + e5-base + qwen + e5-large | 54-feature teammate lightgbm | same fine-tuned e5 pair classifier | **0.969** team-reported public leaderboard f0.5 |
+| overnight logistic selection | same saved hybrid pool as upgraded v1 | same 54-feature teammate lightgbm | logistic stack over gate and neural logits | **0.9786888883553567** locked offline source1 macro f0.5 |
 
 the baseline offline/public difference is **0.0115015568** across different evaluation populations; it is descriptive and does not identify a cause
-the upgraded full-pool calibration and locked audit remain pending
+the overnight logistic result is an offline train-pool result, not a new public submission score; the team-reported public scores remain 0.964 for the baseline and 0.969 for upgraded v1
 the first upgraded upload uses the documented provisional cutoff of 0.8
 the baseline comparison export is complete and uses its full-pool selected cutoff of 0.5527569055557251
 both baseline output files passed the strict validator and the supplied validator with id checking
@@ -58,20 +59,33 @@ the long candidate tail is reported explicitly; three candidates per target does
 - missing-batch recovery checked with exact pair identity and zero probability difference
 - cpu-only aggregation and final tsv generation
 
+## completed overnight full-pool audit
+
+all 10,320,219 train targets passed saved-score hash and coverage verification. eight variants were evaluated without retraining base models or regenerating raw features: six weighted-logit blends, a logistic stack, and a nonlinear lightgbm model. fold0 held-out anchors selected the logistic stack at cutoff `0.8649235367774963`; its tune source1 macro f0.5 was `0.9784026779294054`. selection was transductive because full-pool tune negatives reused fit-side target groups. fold1 remained locked until the one-time audit.
+
+| result | source1 macro f0.5 | cutoff | scope |
+| --- | ---: | ---: | --- |
+| frozen v1 | 0.9758741644794233 | 0.8 | locked fold1 audit |
+| selected logistic stack | 0.9786888883553567 | 0.8649235367774963 | locked fold1 audit |
+| postgate perfect-matcher oracle | 0.9955514140602323 | — | fold0 saved postgate pairs |
+
+the oracle remains below 0.998 for the saved postgate candidate set. it is not a global ceiling because changed retrieval or gate candidates can change the set. the json `gate_lost` value is a pre-matcher missing count that combines retrieval misses and gate pruning; the saved final-pair artifact cannot separate those causes. among 763,741 linked targets, 33,646 (4.4%) have blank addresses. those targets account for 8,081/11,080 (72.9%) of pre-matcher missing targets and 3,664/4,373 (83.8%) of wrong-top1 outcomes. the ambiguity audit found zero exact raw-input groups with multiple owners, which does not prove that missing-address cases are intrinsically irresolvable.
+
+the logistic stack's gain was largely present in the simple weighted-logit blend: w=0.6 scored `0.9781291446144351` on fold0 tune, compared with `0.9784026779294054` for the selected stack. these source1 macro results must not be conflated with cached selected-lexical pair diagnostics.
+
 ## interpreting the evidence
 
 sampled pair precision, retrieval recall, offline source1 macro f0.5, and public leaderboard f0.5 are distinct measurements
-the selected-query diagnostic helped choose a provisional operating point; it did not establish test accuracy
+the selected-query cached diagnostics helped compare gates but did not establish test accuracy or source1 macro f0.5
 the public result is recorded as reported, without attributing the entire difference to one changed component
 the baseline comparison changes retrieval, gate, and selected cutoff together
 
 ## remaining evaluation
 
-- complete upgraded full-pool calibration and locked audit
 - keep the selected-query overnight cpu results separate from full-pool evidence
 - use validation and leaderboard feedback for the remaining submissions
-- finalize selected-model methodology and reproducibility archive
+- finalize selected-model methodology and reproducibility archive, including whether the offline logistic selection is used for a later submission
 
-the overnight cached screen tested 13 tree and fixed-ensemble variants; none improved recall at 0.995 precision over the production-safe teammate gate. the related candidate-gap results are selected-fold lexical diagnostics, not a hybrid full-pool ceiling. see [overnight tuning](../reports/overnight-tune.md), [gap diagnostic](../reports/overnight-gap.md), and the [research plan](../plan.md).
+the cached gate screen covered 17 variants: 13 first-sweep and four extended fits. the safe lightgbm remained best at recall for pair precision ≥0.995. widening blank-address lexical candidates by 7.6% improved retention by 0.32 percentage points but did not improve high-precision recall. these selected-pair results are not full-pool source1 macro scores. see [overnight tuning](../reports/overnight-tune.md), [extended tuning](../reports/overnight-tune-extended.md), [width diagnostic](../reports/overnight-width.md), [full-pool audit](../reports/overnight-fullpool.md), and the [research plan](../plan.md).
 
 see [arch](arch.md), [training](training.md), [reproduction commands](ops.md), and [evidence](../reports/README.md)
