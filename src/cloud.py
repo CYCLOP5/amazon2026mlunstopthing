@@ -237,7 +237,7 @@ def location(uri):
     return m[1], uq(m[2]).rstrip("/") + "/"
 
 
-def download(ml, uri, dest):
+def download(ml, uri, dest, recursive=True):
     from azure.core.credentials import AzureNamedKeyCredential, AzureSasCredential
     from azure.identity import AzureCliCredential
     from azure.storage.blob import BlobServiceClient
@@ -253,9 +253,12 @@ def download(ml, uri, dest):
     dest = dest.resolve()
     dest.mkdir(parents=True, exist_ok=True)
     n = 0
-    for obj in cc.list_blobs(name_starts_with=pre):
+    for obj in cc.list_blobs(name_starts_with=pre, include=["metadata"]):
         rel = obj.name[len(pre):]
-        if not rel or rel.endswith("/"):
+        md = obj.metadata or {}
+        if not rel or rel.endswith("/") or md.get("hdi_isfolder", "").lower() == "true":
+            continue
+        if not recursive and "/" in rel:
             continue
         p = (dest / rel).resolve()
         if not p.is_relative_to(dest):
@@ -424,6 +427,17 @@ def check():
     a.output_mode = "rw_mount"
     _, mounted = entities(spec(a, "aml26-gpu-check", {"train": path("/tmp")}), path("."))
     assert mounted.component.outputs["out"]["mode"] == "rw_mount"
+    from unittest.mock import patch
+    from types import SimpleNamespace as obj
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        cc = obj(list_blobs=lambda **kw: [obj(name="p/model", metadata={"hdi_isfolder": "true"}),
+                                        obj(name="p/model/config.json", metadata=None)],
+                 download_blob=lambda *a, **kw: obj(readinto=lambda f: f.write(b"{}")))
+        ml = obj(datastores=obj(get=lambda *a, **kw: obj(account_name="a", container_name="c", credentials=obj(sas_token="test"))))
+        with patch("azure.storage.blob.BlobServiceClient", return_value=obj(get_container_client=lambda x: cc)):
+            assert download(ml, "azureml://datastores/s/paths/p/", path(tmp)) == 1
+        assert (path(tmp) / "model/config.json").read_text() == "{}"
     print("checks passed")
 
 

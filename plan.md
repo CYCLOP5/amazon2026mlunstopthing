@@ -631,3 +631,25 @@ the azure ml sdk returned sas credentials where its artifact helpers expected ac
 this caused log signature and incorrect padding failures
 the runner now waits on normalized job status enum values and downloads from an explicit task output uri using the actual credential type
 this path passed a real 12 file download check without modifying the workspace credentials
+
+### first supervised multilingual matcher
+
+the a100 80 gib spot node completed training with persistent checkpoints
+502635 pair examples contain 34785 positives and supplied data hard negatives
+the encoder is initialized from the pinned mit licensed multilingual e5 base model
+its new binary classification head is trained with bce rather than a regression objective
+the trained checkpoint has 278044417 parameters
+
+two epochs completed in about 1516 seconds including validation
+complete candidate pair validation contains 1508516 pairs
+the last validation pass processed about 6356 pairs per second on the a100
+these are stage timings rather than end to end inference guarantees
+
+with at most one predicted owner per target the selected query diagnostic reaches about 0.916 link recall at 0.995 precision
+at a fixed 0.98 probability cutoff it has 12522 true links and 49 false links
+false links into unsampled references are counted
+this remains a selected query diagnostic and final thresholds still require complete target pool calibration
+
+directory markers in mounted azure output use `hdi_isfolder` metadata
+the downloader now ignores those markers instead of treating a directory as an empty file
+the training job completed and its compute was deleted even when this extraction issue was encountered
