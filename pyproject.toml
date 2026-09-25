@@ -21,6 +21,7 @@ dependencies = [
 [dependency-groups]
 cloud = ["azure-ai-ml>=1.30", "azure-identity>=1.24", "azure-storage-blob>=12.20"]
 neural = [
+    "accelerate>=0.26",
     "huggingface-hub>=0.34,<1",
     "sentence-transformers>=5.1,<6",
     "torch==2.8.0",

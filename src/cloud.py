@@ -74,6 +74,9 @@ def spec(a, run, ins):
         die(str(e))
     if hrs > dc("6"):
         die("hours must be at most 6")
+    om = getattr(a, "output_mode", "upload")
+    if om not in {"upload", "rw_mount"}:
+        die("invalid output mode")
     size, tier, gpu = pf[a.profile]
     neural = gpu or a.neural
     timeout = int((hrs * 3600).to_integral_value(rounding=rc))
@@ -94,7 +97,7 @@ def spec(a, run, ins):
         "max": 1,
         "idle": 120,
         "input_mode": "download",
-        "output_mode": "upload",
+        "output_mode": om,
         "inputs": ins,
         "command": a.command,
         "tags": tag(run),
@@ -418,6 +421,9 @@ def check():
     got = wait_job(ns(jobs=ns(get=lambda _: next(seq))), "check", time.monotonic() + 1, 0)
     assert state(got.status) == "completed"
     assert location("azureml://datastores/store/paths/project/run/out/") == ("store", "project/run/out/")
+    a.output_mode = "rw_mount"
+    _, mounted = entities(spec(a, "aml26-gpu-check", {"train": path("/tmp")}), path("."))
+    assert mounted.component.outputs["out"]["mode"] == "rw_mount"
     print("checks passed")
 
 
@@ -445,6 +451,7 @@ def main():
     r.add_argument("--command", required=True, help="shell template using azure inputs and outputs.out")
     r.add_argument("--out", type=path, required=True)
     r.add_argument("--neural", action="store_true")
+    r.add_argument("--output-mode", choices=["upload", "rw_mount"], default="upload")
     x = su.add_parser("recover")
     common(x)
     z = su.add_parser("status")

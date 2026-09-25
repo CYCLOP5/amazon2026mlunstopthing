@@ -4,5 +4,19 @@
     "revision": "d128750597153bb5987e10b1c3493a34e5a4502a",
     "license": "mit",
     "source": "https://huggingface.co/intfloat/multilingual-e5-base"
+  },
+  {
+    "model": "Qwen/Qwen3-Embedding-0.6B",
+    "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "license": "apache-2.0",
+    "parameters": 595776512,
+    "source": "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B"
+  },
+  {
+    "model": "BAAI/bge-reranker-v2-m3",
+    "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e",
+    "license": "apache-2.0",
+    "parameters": 567755777,
+    "source": "https://huggingface.co/BAAI/bge-reranker-v2-m3"
   }
 ]

@@ -259,26 +259,27 @@ def source(p, model, rev):
 
 
 class pairs:
-    def __init__(self, d, tok, maxlen):
-        self.d, self.tok, self.maxlen = d, tok, maxlen
+    def __init__(self, d):
+        self.a = d["text_a"].to_list()
+        self.b = d["text_b"].to_list()
+        self.y = d["label"].to_numpy()
 
     def __len__(self):
-        return len(self.d)
+        return len(self.y)
 
     def __getitem__(self, i):
-        x = self.tok(self.d["text_a"][i], self.d["text_b"][i], truncation=True, max_length=self.maxlen)
-        x["labels"] = float(self.d["label"][i])
-        return x
+        return {"text_a": self.a[i], "text_b": self.b[i], "labels": float(self.y[i])}
 
 
 class collate:
-    def __init__(self, tok):
-        self.tok = tok
+    def __init__(self, tok, maxlen=384):
+        self.tok, self.maxlen = tok, maxlen
 
     def __call__(self, xs):
         import torch
-        ys = [x.pop("labels") for x in xs]
-        z = self.tok.pad(xs, padding=True, return_tensors="pt")
+        ys = [x["labels"] for x in xs]
+        z = self.tok([x["text_a"] for x in xs], [x["text_b"] for x in xs],
+                     truncation=True, max_length=self.maxlen, padding=True, return_tensors="pt")
         z["labels"] = torch.tensor(ys, dtype=torch.float32).unsqueeze(1)
         return z
 
@@ -309,6 +310,8 @@ def train(trains, vals, out, model=mod0, revision=rev0, sources=src0, batch=8, e
         raise ValueError("invalid training options")
     if not trains or not vals:
         raise ValueError("fold2 training and fold0 validation files are required")
+    if resume and not all((path(resume) / x).is_file() for x in ("trainer_state.json", "optimizer.pt", "scheduler.pt")):
+        raise ValueError("resume requires a complete trainer checkpoint including optimizer and scheduler")
     tx = [_prepared(x, 2) for x in trains]
     vx = [_prepared(x, 0) for x in vals]
     td, vd = [x[0] for x in tx], [x[0] for x in vx]
@@ -336,13 +339,14 @@ def train(trains, vals, out, model=mod0, revision=rev0, sources=src0, batch=8, e
     kw = {"output_dir": str(out), "per_device_train_batch_size": batch, "per_device_eval_batch_size": batch,
           "num_train_epochs": epochs, "learning_rate": lr, "warmup_ratio": 0.1, "weight_decay": 0.01,
           "seed": seed, "data_seed": seed, "save_strategy": "steps", "save_steps": 500, "save_total_limit": 2,
-          "eval_strategy": "steps", "eval_steps": 500, "logging_steps": 50, "report_to": [],
-          "remove_unused_columns": False, "fp16": fp16, "bf16": bf16, "save_safetensors": True}
+          "eval_strategy": "epoch", "logging_steps": 50, "report_to": [],
+          "remove_unused_columns": False, "fp16": fp16, "bf16": bf16, "save_safetensors": True,
+          "dataloader_num_workers": 2 if dev == "cuda" else 0, "dataloader_pin_memory": dev == "cuda"}
     if dev == "cpu":
         kw["use_cpu"] = True
     ta = args(**kw)
-    ds, ev = pairs(tr, tok, maxlen), pairs(va, tok, maxlen)
-    t = Trainer(model=net, args=ta, train_dataset=ds, eval_dataset=ev, data_collator=collate(tok))
+    ds, ev = pairs(tr), pairs(va)
+    t = Trainer(model=net, args=ta, train_dataset=ds, eval_dataset=ev, data_collator=collate(tok, maxlen))
     t.train(resume_from_checkpoint=str(resume) if resume else None)
     t.save_model()
     t.save_state()
@@ -355,7 +359,7 @@ def train(trains, vals, out, model=mod0, revision=rev0, sources=src0, batch=8, e
                            "torch": torch.__version__, "transformers": tfver, "sources_sha256": _sha(sources)},
           "inputs": {"train": [{"path": _relative(x[2], out), "pairs_sha256": x[1]["pairs_sha256"]} for x in tx],
                      "validation": [{"path": _relative(x[2], out), "pairs_sha256": x[1]["pairs_sha256"]} for x in vx]},
-         "validation": {"label": "bounded pair validation, not official macro f0.5", "pairs": len(ev),
+          "validation": {"label": "candidate pair validation, not official macro f0.5", "pairs": len(ev),
                         "total_pairs": len(va)}}
     _write(out / "neural_metadata.json", m)
     return m
@@ -381,13 +385,14 @@ def predict(bundle, d, batch=32):
     import torch
     out = []
     net, tok, dev, maxlen = (bundle[x] for x in ("model", "tokenizer", "device", "maxlen"))
-    with torch.inference_mode():
+    dt = torch.bfloat16 if dev == "cuda" and torch.cuda.is_bf16_supported() else torch.float16
+    with torch.inference_mode(), torch.autocast("cuda", dtype=dt, enabled=dev == "cuda"):
         for lo in range(0, len(d), batch):
             x = d.slice(lo, batch)
             z = tok(x["text_a"].to_list(), x["text_b"].to_list(), truncation=True, max_length=maxlen,
                     padding=True, return_tensors="pt")
             z = {k: v.to(dev) for k, v in z.items()}
-            out.append(torch.sigmoid(net(**z).logits[:, 0]).float().cpu().numpy())
+            out.append(torch.sigmoid(net(**z).logits[:, 0].float()).cpu().numpy())
     return np.concatenate(out).astype(np.float32, copy=False) if out else np.empty(0, np.float32)
 
 
@@ -462,6 +467,19 @@ def check():
             pass
         else:
             raise AssertionError("audit fold accepted for training")
+        sp = p / "sources.json"
+        _write(sp, [{"model": str(p / "model"), "revision": "local", "license": "mit"}])
+        trained = train([out], [p / "val"], p / "trained", model=str(p / "model"), revision="local",
+                        sources=sp, batch=2, epochs=1, maxlen=32, device="cpu")
+        assert trained["loss"] == "bce_with_logits" and trained["validation"]["pairs"] == 1
+        assert (p / "trained/trainer_state.json").is_file()
+        try:
+            train([out], [p / "val"], p / "resume", model=str(p / "model"), revision="local",
+                  sources=sp, device="cpu", resume=p / "trained")
+        except ValueError as e:
+            assert "complete trainer checkpoint" in str(e)
+        else:
+            raise AssertionError("weights only resume accepted")
     print("checks passed")
 
 
