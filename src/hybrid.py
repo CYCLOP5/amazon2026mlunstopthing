@@ -15,6 +15,7 @@ import embed
 mx = 8_000_000_000
 ln = 256
 pc = 20_000
+qc = 512
 
 
 def atom(p, x):
@@ -73,50 +74,77 @@ def enc(m, txt, batch):
     return embed.norm(z)
 
 
-def core(data, d, refs, txt, dim, co, sp):
+def core(data, d, refs, txt, dim, co, pars):
     mp = data / "meta.json"
-    return {"v": 1, "model": d["model"], "revision": d["revision"], "role": "passage",
-            "format": embed.fmt if embed.family(d["model"]) == "e5" else embed.rawfmt,
-            "maxlen": ln, "dtype": "float16", "normalize": True, "dim": dim,
-            "country": co, "split": sp, "inputs": embed.fprint(refs, txt),
-            "prefixes": {"reference": "passage"},
-            "data_meta_sha256": hh.sha256(mp.read_bytes()).hexdigest() if mp.exists() else None}
+    f = embed.family(d["model"])
+    out = {"v": 1, "model": d["model"], "revision": d["revision"], "params": pars,
+           "role": "passage", "format": embed.fmt, "maxlen": ln, "dtype": "float16",
+           "normalize": True, "dim": dim, "country": co,
+           "inputs": {"references": embed.fprint(refs, txt)}, "prefixes": {"reference": "passage"},
+           "data_meta_sha256": hh.sha256(mp.read_bytes()).hexdigest() if mp.exists() else None}
+    if f != "e5":
+        out["serialization"] = {"family": f, "reference": embed.rawfmt}
+        out["encoding"] = {"normalize": True, "precision": "float32"}
+        out["padding_side"] = "left" if f == "qwen3" else None
+    return out
 
 
 def oldok(p, c):
     mp = p / "meta.json"
     rp = p / "references.npy"
     pp = p / "references.progress.json"
-    if not (mp.exists() and rp.exists() and pp.exists()):
+    if not (mp.exists() or rp.exists() or pp.exists()):
         return None
+    if not (mp.exists() and rp.exists() and pp.exists()):
+        raise ValueError("orphaned embedding reference cache")
     try:
         o = json.loads(mp.read_text(encoding="utf-8")).get("core", {})
         pr = json.loads(pp.read_text(encoding="utf-8"))
-        a = np.load(rp, mmap_mode="r")
     except (OSError, ValueError, json.JSONDecodeError):
-        return None
-    ks = ("model", "revision", "maxlen", "dtype", "dim", "country", "format",
+        raise ValueError("invalid embedding reference cache")
+    ks = ("model", "revision", "params", "maxlen", "dtype", "dim", "country", "format",
           "data_meta_sha256")
     if (any(o.get(k) != c.get(k) for k in ks) or
             o.get("prefixes", {}).get("reference") != c["prefixes"]["reference"] or
-            o.get("inputs", {}).get("references") != c["inputs"]):
+            o.get("inputs", {}).get("references") != c["inputs"]["references"]):
+        raise ValueError("stale embedding reference cache")
+    if c.get("serialization") and any(o.get("serialization", {}).get(k) != v
+                                        for k, v in c["serialization"].items()):
+        raise ValueError("stale embedding serialization metadata")
+    if c.get("padding_side") != o.get("padding_side"):
+        raise ValueError("stale embedding padding metadata")
+    if c.get("encoding") and any(o.get("encoding", {}).get(k) != v for k, v in c["encoding"].items()):
+        raise ValueError("stale embedding encoding metadata")
+    done, rows = int(pr.get("done", -1)), int(pr.get("rows", -1))
+    if rows != c["inputs"]["references"]["rows"] or not 0 <= done <= rows:
+        raise ValueError("invalid embedding reference progress")
+    if done != rows:
         return None
-    if int(pr.get("done", -1)) != len(a) or a.shape != (c["inputs"]["rows"], c["dim"]) or a.dtype != np.float16:
-        return None
+    try:
+        a = np.load(rp, mmap_mode="r")
+    except (OSError, ValueError):
+        raise ValueError("invalid embedding reference array")
+    if a.shape != (rows, c["dim"]) or a.dtype != np.float16:
+        raise ValueError("stale embedding reference shape")
     return a
 
 
-def dirs(cache, d, co, sp, fold):
-    pool = "fold2" if sp == "train" and fold == 2 else "all"
-    x = f"{embed.family(d['model'])}_{tag(d['revision'])}_{sp}_{pool}_{tag(co)}"
+def dirs(cache, d, co, sp):
+    x = f"{embed.family(d['model'])}_{tag(d['revision'])}_{sp}_all_{tag(co)}"
     return cache / "hybrid" / x, [cache / "embed-local", cache]
 
 
-def refs(data, cache, d, m, batch, r, co, sp, fold):
+def embp(root, d, co):
+    if embed.family(d["model"]) == "e5":
+        return root / f"e5_{co}_f0"
+    return embed.cache_base(root, d["model"], d["revision"], co, 0)
+
+
+def refs(data, cache, d, m, batch, r, co, sp, pars):
     txt = embed.serial(r, "passage", d["model"])
     dim = int(m.get_embedding_dimension())
-    c = core(data, d, r, txt, dim, co, sp)
-    dst, roots = dirs(cache, d, co, sp, fold)
+    c = core(data, d, r, txt, dim, co, pars)
+    dst, roots = dirs(cache, d, co, sp)
     mp = dst / "references.meta.json"
     rp = dst / "references.npy"
     pp = dst / "references.progress.json"
@@ -134,9 +162,9 @@ def refs(data, cache, d, m, batch, r, co, sp, fold):
         if rp.exists() or pp.exists():
             raise ValueError("orphaned hybrid reference cache")
         for root in roots:
-            old = oldok(root / f"e5_{co}_f0", c) if embed.family(d["model"]) == "e5" and sp == "train" else None
+            old = oldok(embp(root, d, co), c) if sp == "train" else None
             if old is not None:
-                return old, root / f"e5_{co}_f0", "embed"
+                return old, embp(root, d, co), "embed", c
         dst.mkdir(parents=True, exist_ok=True)
         atom(mp, {"core": c})
         a = np.lib.format.open_memmap(rp, mode="w+", dtype=np.float16, shape=(len(r), dim))
@@ -148,7 +176,15 @@ def refs(data, cache, d, m, batch, r, co, sp, fold):
         a[lo:hi] = enc(m, txt[lo:hi], batch).astype(np.float16)
         a.flush()
         atom(pp, {"done": hi, "rows": len(r)})
-    return np.load(rp, mmap_mode="r"), dst, "hybrid"
+    return np.load(rp, mmap_mode="r"), dst, "hybrid", c
+
+
+def ridfp(r):
+    h = hh.sha256()
+    for i in r["rid"].to_list():
+        h.update(str(i).encode())
+        h.update(b"\0")
+    return h.hexdigest()
 
 
 def setup(data, cache, country, split="train", fold=0, models=None, device="cuda", batch=64):
@@ -157,6 +193,10 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
         raise ValueError("invalid batch or fold")
     r, ix, eq = block.setup(data, cache / "block", country, split, fold=fold)
     r = r.sort("rid")
+    allr = pl.read_parquet(data / split / "ref.parquet").filter(pl.col("co") == country).sort("rid")
+    if allr["rid"].n_unique() != len(allr):
+        raise ValueError("duplicate full reference ids")
+    ri = pos(allr["rid"].to_numpy(), r["rid"].to_numpy(), "reference")
     ms = specs(models)
     es, total = [], 0
     for d in ms:
@@ -164,14 +204,18 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
         total += n
         if total > mx:
             raise ValueError("active retrieval models exceed 8b parameters")
-        a, cp, kind = refs(data, cache, d, m, batch, r, country, split, fold)
+        a, cp, kind, c = refs(data, cache, d, m, batch, allr, country, split, n)
         fi = None
         if dev == "cpu":
             import faiss
             fi = faiss.IndexFlatIP(a.shape[1])
-            fi.add(np.asarray(a, dtype=np.float32))
-        es.append({"spec": d, "model": m, "device": dev, "params": n, "source": src, "refs": a, "index": fi,
-                   "cache": str(cp), "cache_kind": kind, "feature": feat(d)})
+            z = np.empty((len(ri), a.shape[1]), dtype=np.float32)
+            for lo in range(0, len(ri), pc):
+                hi = min(lo + pc, len(ri))
+                z[lo:hi] = a[ri[lo:hi]]
+            fi.add(z)
+        es.append({"spec": d, "model": m, "device": dev, "params": n, "source": src, "refs": a, "rows": ri,
+                   "index": fi, "cache": str(cp), "cache_kind": kind, "core": c, "feature": feat(d)})
     fs = [x["feature"] for x in es]
     if len(set(fs)) != len(fs):
         raise ValueError("dense feature names collide")
@@ -179,16 +223,20 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
             "refs": r, "idx": ix, "eq": eq, "encoders": es, "batch": batch,
             "dense_features": fs, "config": {"models": [{"model": x["spec"]["model"],
             "revision": x["spec"]["revision"], "params": x["params"], "source": x["source"], "feature": x["feature"], "device": x["device"],
-            "reference_cache": x["cache"], "cache_kind": x["cache_kind"]} for x in es],
-            "total_params": total, "reference_rows": len(r), "maxlen": ln, "pair_chunk": pc}}
+            "reference_cache": x["cache"], "cache_kind": x["cache_kind"],
+            "encoding_corpus": x["core"]["inputs"]["references"],
+            "search_pool": {"rows": len(r), "rid_sha256": ridfp(r)}} for x in es],
+            "total_params": total, "reference_rows": len(r), "encoding_reference_rows": len(allr),
+            "search_reference_rows": len(r), "maxlen": ln, "pair_chunk": pc}}
 
 
-def near(q, r, k, dev, ix=None):
+def near(q, r, k, dev, ix=None, rows=None):
+    nr = len(r) if rows is None else len(rows)
     if dev != "cuda":
         if ix is None:
             import faiss
             ix = faiss.IndexFlatIP(r.shape[1])
-            ix.add(np.asarray(r, dtype=np.float32))
+            ix.add(np.asarray(r if rows is None else r[rows], dtype=np.float32))
         s, i = ix.search(np.asarray(q, dtype=np.float32), k)
         return i, s
     import torch
@@ -203,8 +251,9 @@ def near(q, r, k, dev, ix=None):
         raise RuntimeError("gpu cannot hold a bounded reference block; use cpu or reduce batch")
     qb = torch.tensor(q, device="cuda", dtype=torch.float16)
     bs = bi = None
-    for lo in range(0, len(r), int(rb)):
-        z = torch.tensor(np.asarray(r[lo:lo + rb]), device="cuda", dtype=torch.float16)
+    for lo in range(0, nr, int(rb)):
+        z = torch.tensor(np.asarray(r[lo:lo + rb] if rows is None else r[rows[lo:lo + rb]]),
+                         device="cuda", dtype=torch.float16)
         s, i = torch.topk(qb @ z.T, min(k, len(z)), dim=1)
         if bs is None:
             bs, bi = s, i + lo
@@ -227,20 +276,20 @@ def pos(ids, want, what):
     return o[j]
 
 
-def cos(p, ids, qv, refs, r, fld):
+def cos(p, ids, qv, refs, r, rows, fld):
     qi = pos(ids, p["tid"].to_numpy(), "query")
     ri = pos(refs["rid"].to_numpy(), p["qid"].to_numpy(), "reference")
     out = np.empty(len(p), dtype=np.float32)
     for lo in range(0, len(p), pc):
         hi = min(lo + pc, len(p))
         a = qv[qi[lo:hi]]
-        b = np.asarray(r[ri[lo:hi]], dtype=np.float32)
+        b = np.asarray(r[ri[lo:hi] if rows is None else rows[ri[lo:hi]]], dtype=np.float32)
         out[lo:hi] = np.sum(a * b, axis=1) / np.linalg.norm(b, axis=1)
     return p.with_columns(pl.Series(fld, np.clip(out, -1, 1)))
 
 
-def search(state, queries, k_lex=10, k_dense=50):
-    if k_lex < 1 or k_dense < 1:
+def search(state, queries, k_lex=10, k_dense=50, threads=8):
+    if k_lex < 1 or k_dense < 1 or threads < 1:
         raise ValueError("positive candidate counts required")
     q = queries.sort("rid")
     need = {"rid", "nm", "ad", "nn", "an", "co", "own", "sr"}
@@ -249,14 +298,14 @@ def search(state, queries, k_lex=10, k_dense=50):
     if q["rid"].n_unique() != len(q):
         raise ValueError("duplicate query ids")
     fs = []
-    for qb in q.iter_slices(state["batch"]):
-        lx = block.search(qb, state["idx"], state["eq"], k_lex, 1)
+    for qb in q.iter_slices(qc):
+        lx = block.search(qb, state["idx"], state["eq"], k_lex, threads)
         xs = [lx.select("tid", "qid", "ns", "ads", "en", "ea")]
         qv = {}
         for e in state["encoders"]:
             z = enc(e["model"], embed.serial(qb, "query", e["spec"]["model"]), state["batch"])
             qv[e["feature"]] = z
-            ii, _ = near(z, e["refs"], min(k_dense, len(state["refs"])), e["device"], e["index"])
+            ii, _ = near(z, e["refs"], min(k_dense, len(state["refs"])), e["device"], e["index"], e["rows"])
             xs.append(pl.DataFrame({"tid": np.repeat(qb["rid"].to_numpy(), ii.shape[1]),
                                     "qid": state["refs"]["rid"].to_numpy()[ii].reshape(-1),
                                     "ns": np.zeros(ii.size, np.float32), "ads": np.zeros(ii.size, np.float32),
@@ -267,7 +316,7 @@ def search(state, queries, k_lex=10, k_dense=50):
         p = p.with_columns((pl.col("qid").cast(pl.Int64) == pl.col("own")).cast(pl.UInt8).alias("y"))
         p = block.rescore(qb, p, state["idx"])
         for e in state["encoders"]:
-            p = cos(p, qb["rid"].to_numpy(), qv[e["feature"]], state["refs"], e["refs"], e["feature"])
+            p = cos(p, qb["rid"].to_numpy(), qv[e["feature"]], state["refs"], e["refs"], e["rows"], e["feature"])
         fs.append(p.sort("tid", "qid"))
     if not fs:
         return pl.DataFrame({"tid": [], "qid": [], "ns": [], "ads": [], "en": [], "ea": [],
@@ -285,7 +334,7 @@ def score(a, p):
             "oracle_macro_f05": float(np.mean(vals)) if vals else 1.0}
 
 
-def probe(data, cache, src, out, models=None, device="cuda", batch=64, k_lex=10, k_dense=50):
+def probe(data, cache, src, out, models=None, device="cuda", batch=64, k_lex=10, k_dense=50, threads=8):
     src, out = path(src), path(out)
     if out.exists() or src.resolve() == out.resolve():
         raise ValueError("output run directory must be new")
@@ -298,8 +347,8 @@ def probe(data, cache, src, out, models=None, device="cuda", batch=64, k_lex=10,
     for n in ("anchors.parquet", "queries.parquet"):
         sh.copyfile(src / n, out / n)
     parts, allp = [], []
-    for i, qb in enumerate(q.iter_slices(batch)):
-        p = search(s, qb, k_lex, k_dense)
+    for i, qb in enumerate(q.iter_slices(qc)):
+        p = search(s, qb, k_lex, k_dense, threads)
         n = f"pairs_{i:05d}.parquet"
         p.write_parquet(out / n, compression="zstd")
         parts.append(n)
@@ -317,11 +366,13 @@ def probe(data, cache, src, out, models=None, device="cuda", batch=64, k_lex=10,
 class fake:
     def __init__(self, v):
         self.v = v
+        self.n = 0
 
     def get_embedding_dimension(self):
         return 2
 
     def encode(self, txt, **kw):
+        self.n += len(txt)
         return np.asarray([[.6, .8] if "query:" in s.lower() else self.v[s.split("name: ", 1)[1].split("\n", 1)[0]]
                            for s in txt], np.float32)
 
@@ -341,28 +392,45 @@ def check():
         r.write_parquet(d / "train/ref.parquet")
         v = {"lex coffee": [1, 0], "coffee shop": [0, 1], "gold hidden": [-1, 0]}
         qrev = next(x["revision"] for x in json.loads(embed.src0.read_text(encoding="utf-8")) if x["model"] == embed.qwen0)
-        ms = [{"model": embed.mod0, "revision": embed.rev0, "encoder": fake(v), "params": 2},
-              {"model": embed.qwen0, "revision": qrev, "encoder": fake(v), "params": 3}]
-        s = setup(d, p / "cache", "us", fold=2, models=ms, device="cpu", batch=1)
+        reuse = p / "reuse"
+        legacy = reuse / "e5_us_f0"
+        qcache = embed.cache_base(reuse, embed.qwen0, qrev, "us", 0)
+        for base, model, rev, pars in ((legacy, embed.mod0, embed.rev0, 2),
+                                       (qcache, embed.qwen0, qrev, 3)):
+            base.mkdir(parents=True)
+            rt = embed.serial(r, "passage", model)
+            mc = embed.meta_core(d, model, rev, pars, ln, 2, "us", 0, (r, rt),
+                                 (q, embed.serial(q, "query", model)), embed.source(embed.src0, model, rev), 1)
+            atom(base / "meta.json", {"core": mc})
+            np.save(base / "references.npy", np.asarray([[1, 0], [0, 1], [-1, 0], [1, 0]], np.float16))
+            atom(base / "references.progress.json", {"done": len(r), "rows": len(r)})
+        e5, qw = fake(v), fake(v)
+        ms = [{"model": embed.mod0, "revision": embed.rev0, "encoder": e5, "params": 2},
+              {"model": embed.qwen0, "revision": qrev, "encoder": qw, "params": 3}]
+        s = setup(d, reuse, "us", fold=2, models=ms, device="cpu", batch=1)
+        assert e5.n == qw.n == 0
         x = search(s, q, 1, 1)
-        y = search(s, q, 1, 1)
         assert s["refs"]["rid"].to_list() == [1]
+        assert all(set(e["rows"].tolist()) <= {0} for e in s["encoders"])
         assert len({e["cache"] for e in s["encoders"]}) == 2
+        assert {e["cache_kind"] for e in s["encoders"]} == {"embed"}
         assert x["qid"].to_list() == [1]
         assert x.filter(pl.col("qid") == 1)["ds_e5"][0] > 0
         assert x.filter(pl.col("qid") == 1)["ns"][0] > 0
         assert x.filter(pl.col("y") == 1).is_empty()
-        assert x.equals(y) and x.select("tid", "qid").n_unique() == len(x)
-        legacy = p / "reuse" / "e5_us_f0"
-        legacy.mkdir(parents=True)
-        rt = embed.serial(r, "passage")
-        lc = embed.meta_core(d, embed.mod0, embed.rev0, 2, ln, 2, "us", 0, (r, rt),
-                             (q, embed.serial(q, "query")), embed.source(embed.src0, embed.mod0, embed.rev0), 1)
-        atom(legacy / "meta.json", {"core": lc})
-        np.save(legacy / "references.npy", np.asarray([[1, 0], [0, 1], [-1, 0], [1, 0]], np.float16))
-        atom(legacy / "references.progress.json", {"done": len(r), "rows": len(r)})
-        reused = setup(d, p / "reuse", "us", fold=0, models=ms[:1], device="cpu", batch=1)
-        assert reused["encoders"][0]["cache_kind"] == "embed"
+        s2 = setup(d, reuse, "us", fold=2, models=ms, device="cpu", batch=2)
+        assert x.equals(search(s2, q, 1, 1)) and x.select("tid", "qid").n_unique() == len(x)
+        bad = p / "bad"
+        qbad = embed.cache_base(bad, embed.qwen0, qrev, "us", 0)
+        qbad.mkdir(parents=True)
+        sh.copyfile(qcache / "meta.json", qbad / "meta.json")
+        np.save(qbad / "references.npy", np.zeros((len(r), 2), np.float16))
+        atom(qbad / "references.progress.json", {"done": len(r) - 1, "rows": len(r)})
+        badq = fake(v)
+        bads = setup(d, bad, "us", fold=2, models=[{"model": embed.qwen0, "revision": qrev,
+                      "encoder": badq, "params": 3}], device="cpu", batch=1)
+        assert bads["encoders"][0]["cache_kind"] == "hybrid" and badq.n == len(r)
+        assert pos(np.array([1, 3]), np.array([3]), "reference").tolist() == [1]
         src, out = p / "run", p / "out"
         src.mkdir()
         r.filter(pl.col("rid") == 3).write_parquet(src / "anchors.parquet")
@@ -385,13 +453,14 @@ def main():
     a.add_argument("--batch", type=int, default=64)
     a.add_argument("--k-lex", type=int, default=10)
     a.add_argument("--k-dense", type=int, default=50)
+    a.add_argument("--threads", type=int, default=8)
     a.add_argument("--check", action="store_true")
     x = a.parse_args()
     if x.check:
         check()
     elif x.run and x.out:
         print(json.dumps(probe(x.data, x.cache, x.run, x.out, device=x.device, batch=x.batch,
-                               k_lex=x.k_lex, k_dense=x.k_dense), indent=2))
+                               k_lex=x.k_lex, k_dense=x.k_dense, threads=x.threads), indent=2))
     else:
         raise ValueError("use --check or --run and --out")
 
