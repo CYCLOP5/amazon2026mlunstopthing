@@ -22,6 +22,8 @@ ff = [
     "en", "ea", "sr", "nrk", "ark", "nsg", "asg", "cn",
 ]
 
+df = ("ds_e5", "ds_qwen3", "ds_bge_m3")
+
 rr = re.compile(r"\d+")
 
 
@@ -160,13 +162,18 @@ def prep(ref):
             "a": np.log1p(d["af"].to_numpy()).astype(np.float32), "f": list(ff)}
 
 
-def make(st, queries, pairs, threads=1):
+def make(st, queries, pairs, threads=1, dense_features=()):
     if not isinstance(threads, int) or isinstance(threads, bool) or threads < 1:
         raise ValueError("positive thread count required")
+    if not isinstance(dense_features, (list, tuple)) or len(set(dense_features)) != len(dense_features) or any(
+            not isinstance(c, str) or c not in df for c in dense_features):
+        raise ValueError("invalid dense feature names")
+    names = list(ff) + list(dense_features)
     _need(queries, {"rid", "eid", "nm", "ad", "nn", "an", "co", "sr"})
     _need(pairs, {"qid", "tid", "ns", "ads", "en", "ea", "sr"})
+    _need(pairs, set(dense_features))
     if pairs.is_empty():
-        return np.empty((0, len(ff)), dtype=np.float32), list(ff)
+        return np.empty((0, len(names)), dtype=np.float32), names
     q = queries.select("rid", "nm", "ad", "nn", "an").sort("rid")
     qi = _ids(q["rid"], "rid")
     if len(np.unique(qi)) != len(qi):
@@ -205,10 +212,15 @@ def make(st, queries, pairs, threads=1):
     nr, ng, cn = _rk(_ids(pairs["tid"], "tid"), ns)
     ar, ag, _ = _rk(_ids(pairs["tid"], "tid"), ads)
     z.extend([st["n"][ri], st["a"][ri], ns, ads, en, ea, sr, nr, ar, ng, ag, cn])
+    for c in dense_features:
+        v = _num(pairs, c)
+        if (v < -1).any() or (v > 1).any():
+            raise ValueError(f"out of range {c}")
+        z.append(v)
     x = np.column_stack(z).astype(np.float32, copy=False)
-    if x.shape[1] != len(ff) or not np.isfinite(x).all():
+    if x.shape[1] != len(names) or not np.isfinite(x).all():
         raise ValueError("invalid feature output")
-    return x, list(ff)
+    return x, names
 
 
 def check():
@@ -234,6 +246,24 @@ def check():
     assert x.shape == (3, len(n)) and x.dtype == np.float32 and np.isfinite(x).all() and n == ff
     assert x[0, n.index("nue")] == 1 and x[0, n.index("nae")] == 1
     assert x[1, n.index("nfw")] == 1
+    dp = p.with_columns(pl.Series("ds_e5", [-.25, .5, .75]), pl.Series("ds_qwen3", [.1, -.2, .3]))
+    dx, dn = make(s, q, dp, threads=2, dense_features=["ds_qwen3", "ds_e5"])
+    assert dn == ff + ["ds_qwen3", "ds_e5"] and np.allclose(dx[0, -2:], [.1, -.25])
+    for bad in (["qid"], ["tid"], ["own"], ["y"], ["co"], ["ds_e5", "ds_e5"]):
+        try:
+            make(s, q, dp, threads=2, dense_features=bad)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"invalid dense features accepted {bad}")
+    for bad in (dp.drop("ds_e5"), dp.with_columns(pl.lit(float("nan")).alias("ds_e5")),
+                dp.with_columns(pl.lit(1.1).alias("ds_e5"))):
+        try:
+            make(s, q, bad, threads=2, dense_features=["ds_e5"])
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("invalid dense values accepted")
     r2 = r.with_columns(pl.lit(99).alias("deg"), pl.lit(0).alias("uni"), pl.lit(0).alias("blank"), pl.lit(1).alias("fold"))
     q2 = q.with_columns(pl.lit(-1).alias("own"))
     p2 = p.with_columns(pl.lit(-1).alias("own"), pl.lit(1).alias("y"))
