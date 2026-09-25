@@ -96,14 +96,14 @@ def spec(a, run, ins):
 
 
 def shell(s):
-    groups = "--group cloud" + (" --group neural" if s["neural"] else "")
-    # keep uv and dependency selection identical for sync and any user uv run.
+    groups = " --group neural" if s["neural"] else ""
+    # Install uv and synchronize the selected worker dependencies in one shell.
     return " ; ".join((
         "set -eu",
         "curl --fail --location --silent --show-error https://astral.sh/uv/0.12.18/install.sh -o /tmp/uv-install.sh",
         "sh /tmp/uv-install.sh",
         'export PATH="$HOME/.local/bin:$PATH"',
-        "uv sync --frozen --no-default-groups " + groups,
+        "uv sync --frozen --no-default-groups" + groups,
         "sh -lc " + shlex.quote(s["command"]),
     ))
 
@@ -194,7 +194,7 @@ def entities(s, code):
     comp = AmlCompute(
         name=s["compute"], size=s["size"], tier=s["tier"], tags=s["tags"],
         min_instances=s["min"], max_instances=s["max"], idle_time_before_scale_down=s["idle"],
-        ssh_public_access_enabled=False, enable_node_public_ip=False,
+        ssh_public_access_enabled=False,
     )
     ins = {n: Input(type="uri_folder", path=str(p), mode=s["input_mode"]) for n, p in s["inputs"].items()}
     job = command(
@@ -252,7 +252,7 @@ def run(a):
     jp = root / "artifacts/cloud" / (run + ".json")
     j = {
         "project": pr, "run": run, "compute": s["compute"], "job": s["job"],
-        "group": a.group, "workspace": a.workspace, "state": "new",
+        "subscription": a.subscription, "group": a.group, "workspace": a.workspace, "state": "new",
         "ledger": str(a.ledger), "out": str(a.out),
     }
     write(jp, j)
@@ -300,8 +300,9 @@ def run(a):
 def recover(a):
     jp = a.journal
     j = read(jp)
-    if j.get("group") != a.group or j.get("workspace") != a.workspace:
-        die("workspace does not match journal")
+    if (j.get("subscription") != a.subscription or j.get("group") != a.group
+            or j.get("workspace") != a.workspace):
+        die("Azure scope does not match journal")
     try:
         cleanup(client(a), j)
         close(a, j)
@@ -321,8 +322,10 @@ def check():
     assert (s["min"], s["max"], s["idle"], s["input_mode"], s["output_mode"]) == (0, 1, 120, "download", "upload")
     c, j = entities(s, path("."))
     assert (c.min_instances, c.max_instances, c.idle_time_before_scale_down) == (0, 1, 120)
+    assert c.enable_node_public_ip and not c.ssh_public_access_enabled
     assert j.component.inputs["train"]["mode"] == "download"
     assert j.component.outputs["out"]["mode"] == "upload" and j.limits.timeout == 7200
+    assert "--group cloud" not in shell(s) and "--group neural" in shell(s)
     assert s["hours"] + dc("1") == dc("3") and im.startswith("mcr.microsoft.com/")
     ld = bd.new("500")
     try:
