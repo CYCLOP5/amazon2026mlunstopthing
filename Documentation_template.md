@@ -1,7 +1,7 @@
 # ml challenge 2026 business entity resolution
 
-**team name:** not provided  
-**team members:** not provided  
+**team name:** not provided
+**team members:** not provided
 **submission date:** not provided
 
 ## 1. executive summary
@@ -22,7 +22,7 @@ the score is macro per anchor f0.5 including empty sets and singletons. a pairwi
 
 ### 2.2 solution strategy
 
-**approach type:** hybrid retrieval tree gate and cross encoder  
+**approach type:** hybrid retrieval tree gate and cross encoder
 **core innovation:** independent unicode lexical and multilingual dense candidate views followed by bounded learned filtering and calibrated set decoding
 
 the data stage preserves raw unicode name and address text. it creates a separate nfkc casefold punctuation-normalized offline transliterated view using `anyascii`. transliteration is comparison support not replacement text and no translation api is used
@@ -55,7 +55,7 @@ the final matcher input is the last post-gate candidate set. the selected config
 - address features: character and token similarity digit agreement disagreement missingness and retrieval evidence
 - other: country source channel ranks score gaps frequency and dense similarities
 
-**model type:** boosted tree gate plus e5 binary cross encoder  
+**model type:** boosted tree gate plus e5 binary cross encoder
 **threshold selection method:** choose the decoder and cutoff only from complete full-training-pool calibration using exact coverage and configuration fingerprints
 
 the cross encoder starts from `intfloat/multilingual-e5-base` and uses field-labeled pair text. its binary classification head is trained with bce-with-logits loss at batch 128 for two epochs with maximum length 384
