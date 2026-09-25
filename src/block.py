@@ -107,23 +107,36 @@ def search(q, idx, eq, k=10, threads=4):
     return rescore(q, p, idx)
 
 
+def global_scope(ref, co):
+    return not co or ref.filter(pl.col("co") == co).is_empty()
+
+
 def setup(data, cache, co, sp="train", fold=0):
-    ref = pl.read_parquet(data / sp / "ref.parquet").filter(pl.col("co") == co)
+    allref = pl.read_parquet(data / sp / "ref.parquet")
+    fallback = global_scope(allref, co)
+    ref = allref if fallback else allref.filter(pl.col("co") == co)
     tr = pl.read_parquet(data / "train/ref.parquet")
     if sp == "train":
-        fit = tr.filter((pl.col("co") == co) & (pl.col("fold") == 2))
-        if fit.is_empty():
+        if fallback:
             fit = tr.filter(pl.col("fold") == 2)
+        else:
+            fit = tr.filter((pl.col("co") == co) & (pl.col("fold") == 2))
+            if fit.is_empty():
+                fit = tr.filter(pl.col("fold") == 2)
         if fold == 2:
             ref = ref.filter(pl.col("fold") == 2)
     else:
-        fit = tr.filter(pl.col("co") == co)
-        if fit.is_empty():
+        if fallback:
             fit = tr
+        else:
+            fit = tr.filter(pl.col("co") == co)
+            if fit.is_empty():
+                fit = tr
     if ref.is_empty() or fit.is_empty():
         raise ValueError(f"no references or fit rows for {co}")
-    cfg = {"data": json.loads((data / "meta.json").read_text()), "country": co,
-           "split": sp, "pool": "fit" if sp == "train" and fold == 2 else "all", "v": 1}
+    cfg = {"data": json.loads((data / "meta.json").read_text()), "country": None if fallback else co,
+           "scope": "global" if fallback else "country", "split": sp,
+           "pool": "fit" if sp == "train" and fold == 2 else "all", "v": 1}
     key = hh.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()[:20]
     idx, eq = indexes(ref, fit, cache / key)
     return ref, idx, eq
