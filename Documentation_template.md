@@ -55,24 +55,24 @@ the final matcher input is the last post-gate candidate set. the selected config
 - address features: character and token similarity digit agreement disagreement missingness and retrieval evidence
 - other: country source channel ranks score gaps frequency and dense similarities
 
-**model type:** boosted tree gate plus e5 binary cross encoder
+**model type:** baseline boosted tree gate plus e5 binary cross encoder
 **threshold selection method:** choose the decoder and cutoff only from complete full-training-pool calibration using exact coverage and configuration fingerprints
 
 the cross encoder starts from `intfloat/multilingual-e5-base` and uses field-labeled pair text. its binary classification head is trained with bce-with-logits loss at batch 128 for two epochs with maximum length 384
 
-the trained neural model has 278044417 parameters. selected retrieval plus neural parameters total about 1.152b. all deployed source licenses are mit or apache 2.0 and the stack remains below 8b parameters. provided local checkpoints are used offline when present and can be regenerated only from the pinned artifacts
+the trained neural model is initialized from e5. the e5 model-source parameter field is the conservative safetensors-element bound `278044162`. selected retrieval plus neural parameters total about 1.152b. all deployed source licenses are mit or apache 2.0 and the stack remains below 8b parameters. provided local checkpoints are used offline when present and can be regenerated only from the pinned artifacts
 
-the selected inference blend is weighted log odds with neural weight `0.6`. the tree gate artifact is `models/gate` and the neural artifact is `models/neural`
+the selected inference blend is weighted-logit with neural weight `0.6`. the tree gate artifact is `models/gate` and the neural artifact is `models/neural`
 
 cuda precision must be identical in calibration and test inference. `src/run.py` records this and rejects incompatible resumed output
 
 ## 5. results and error analysis
 
-- **f0.5 score macro:** pending full-pool calibration and locked audit
+- **f0.5 score macro:** pending full-corpus calibration, test export, and locked audit
 - **common false positives wrong merges:** repeated generic names shared addresses and close lexical competitors
 - **common false negatives missed matches:** script or transliteration changes shortened aliases weak address text and blank addresses
 
-the neural training stage used 502635 pairs including 34785 positives and completed in about 25 minutes including validation on the a100 stage. selected-query diagnostics reached `0.93397` link recall at `0.995` precision with neural weight `0.6`. the tree top 3 filter reduced neural calls from about 1.5 million to 53481. these are diagnostics not an official score and do not establish full-pool performance
+the neural training stage used 502635 pairs including 34785 positives and completed in about 25 minutes including validation on the a100 stage. selected-query diagnostics reached `0.934` link recall at `0.995` precision with neural weight `0.6`. the tree top 3 filter reduced neural calls from about 1.5 million to 53481. a real local cli run completed 38 queries and scored 114 neural pairs. these are diagnostics not an official score and do not establish full-pool performance
 
 the full training calibration test export and locked audit have not completed. no sampled threshold is reused for submission
 
@@ -88,9 +88,9 @@ the workflow favors complementary retrieval and hard negatives over a larger mod
 
 `src/run.py` is the final entry point. it launches one country run per worker validates exact coverage calibrates only complete training coverage and exports only complete test coverage
 
-the required final outputs are `output/matching_results.tsv` and `output/candidate_pairs.tsv`. `src/package.py` requires both outputs `models/gate` `models/neural` `models/calibration.json` this README this methodology document the source lock and model provenance
+the required final outputs are `output/matching_results.tsv` and `output/candidate_pairs.tsv`. `src/package.py` requires both outputs `models/gate` `models/neural` and the final full-corpus `models/calibration.json`, as well as this README, this methodology document, the source lock, and model provenance. it rejects sampled or partial calibration
 
-`src/package.py` accepts the committed uv files instead of a separate requirements file. with `--hf-cache` it includes safe pinned retriever snapshots for offline inference
+`src/package.py` accepts the committed uv files instead of a separate requirements file. it packages only calibration-selected retrievers with their sourced provenance; with `--hf-cache` it includes their safe pinned snapshots for offline inference
 
 ### b. compute and reproducibility
 
@@ -109,6 +109,6 @@ remote artifacts can be supplied as `azureml://datastores/<datastore>/paths/<pro
 | india e5 qwen lexical retrieval recall | 0.99538 | selected query diagnostic at dense width 100 each |
 | neural candidate validation pairs | 1508516 | candidate pair validation |
 | neural validation throughput | about 6356 pairs per second | a100 final validation pass |
-| full pool calibration and locked audit | pending | no optimistic completion claim |
+| full-corpus calibration, test outputs, and locked audit | pending | no optimistic completion claim |
 
 the relevant primary sources are `https://huggingface.co/intfloat/multilingual-e5-base` `https://huggingface.co/Qwen/Qwen3-Embedding-0.6B` and `https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-optimize-cost?view=azureml-api-2`

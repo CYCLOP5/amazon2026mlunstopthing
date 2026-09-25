@@ -2,9 +2,9 @@
 
 this repository matches provided business records using only the supplied tsv files and eligible pretrained models
 
-the selected stack is lexical retrieval plus `intfloat/multilingual-e5-base` and `Qwen/Qwen3-Embedding-0.6B` retrieval then a tree gate and an e5 cross encoder
+the selected stack is lexical retrieval plus `intfloat/multilingual-e5-base` and `Qwen/Qwen3-Embedding-0.6B` retrieval then a baseline tree gate and an e5 cross encoder
 
-full corpus calibration and final test export are pending. no official score or completed submission is claimed here
+full corpus calibration, final test export, and locked audit are pending. no official score or completed submission is claimed here
 
 ## boundaries
 
@@ -39,9 +39,11 @@ uv run python src/package.py --check
 
 these checks use temporary data. they do not download a corpus or make paid calls
 
+run the pipeline commands below from the repository root. after extracting a final package, run them from `code/business_entity_resolution`; the same `src/...` paths work there, but the supplied raw dataset must be provided separately with `--data`
+
 ## prepare the supplied data
 
-place the supplied files under `student_resource/dataset` or pass their parent directory with `--data`
+place the supplied files under `student_resource/dataset` in this repository, or pass the supplied dataset directory explicitly with `--data`. the final package does not include raw records
 
 ```sh
 uv run python src/data.py \
@@ -139,7 +141,7 @@ uv run --group neural python src/neural.py train \
   --batch 128 --epochs 2 --maxlen 384 --device cuda
 ```
 
-the trained model is a 278044417 parameter e5 initialized cross encoder with a binary classification head and bce-with-logits loss. the measured training set had 502635 pairs including 34785 positives. two epochs took about 25 minutes including validation on the a100 stage
+the trained model is an e5 initialized cross encoder with a binary classification head and bce-with-logits loss. the e5 model-source parameter field is the conservative safetensors-element bound `278044162`. the measured training set had 502635 pairs including 34785 positives. two epochs took about 25 minutes including validation on the a100 stage
 
 the final neural artifact is `models/neural` with `neural_metadata.json` tokenizer config and inference weights. use the provided local checkpoint for offline scoring when available. regenerate it only from the pinned data artifacts and command above. preserve its precision metadata
 
@@ -157,9 +159,9 @@ use this configuration unchanged for full training calibration and final test in
 | tree artifact | `models/gate` |
 | neural artifact | `models/neural` |
 
-the two dense retrievers plus the neural encoder total about 1.152b neural parameters. source revisions and licenses are in `reports/model_sources.json`
+the two dense retrievers plus the neural encoder total about 1.152b neural parameters. source revisions, licenses, and conservative parameter bounds are in `reports/model_sources.json`
 
-run the full country-parallel train prediction first. on the verified a100 worker use three country workers with eight threads each. this occupies at most 24 cpu threads rather than all available workspace quota
+`src/run.py` defaults to one worker, one thread, and query batches of 4096. run the full country-parallel train prediction first. on the verified a100 worker use three country workers with eight threads each. this occupies at most 24 cpu threads rather than all available workspace quota
 
 ```sh
 uv run --group neural python src/run.py \
@@ -170,12 +172,12 @@ uv run --group neural python src/run.py \
   --retrievers e5 qwen3 --device cuda \
   --encoder-batch 64 --neural-batch 128 --query-batch 4096 \
   --neural-weight 0.6 \
-  --calibration-out models/calibration.json
+  --calibration-out models/calibration.json --audit
 ```
 
 `src/run.py` refuses calibration unless every training country and target is covered. it writes country manifests source hashes coverage arrays timing and model configuration. use a lower encoder or neural batch if the selected device cannot hold the model and batches. do not change precision between calibration and test because the configuration fingerprint records it
 
-after reviewing the complete calibration and optional locked audit use the resulting calibration file for the complete test export
+after reviewing the complete calibration and required locked audit use the resulting calibration file for the complete test export
 
 ```sh
 uv run --group neural python src/run.py \
@@ -229,10 +231,10 @@ azure references
 verify the final outputs before packaging
 
 ```sh
-uv run python student_resource/utils/validate_submission.py \
+python <challenge-resource-root>/utils/validate_submission.py \
   --matching output/final/matching_results.tsv \
   --candidate output/final/candidate_pairs.tsv \
-  --test-dir student_resource/dataset/test \
+  --test-dir <supplied-dataset>/test \
   --check-ids
 
 uv run python src/package.py \
@@ -246,7 +248,21 @@ uv run python src/package.py \
   --output-zip output/submission.zip
 ```
 
-`src/package.py` validates ids candidate subset membership model provenance calibration completeness and selected source versions. append `--hf-cache <safe-huggingface-cache>` to include the pinned retriever snapshots for offline inference
+`src/package.py` requires the final full-corpus `models/calibration.json`; it rejects sampled or partial calibration. it validates ids, candidate subset membership, model provenance, calibration completeness, and the selected source versions. it packages only the retrievers selected by that calibration and their sourced provenance. append `--hf-cache <safe-huggingface-cache>` to include their pinned retriever snapshots for offline inference
+
+the validation helper belongs to the supplied challenge resources, not the final archive. the package command above runs from the source checkout. to repackage an extracted archive, run this from `code/business_entity_resolution`:
+
+```sh
+uv run python src/package.py \
+  --matching ../../output/matching_results.tsv \
+  --candidate ../../output/candidate_pairs.tsv \
+  --test-dir <supplied-dataset>/test \
+  --repo-root . --code-root . \
+  --readme README.md --methodology ../../Documentation_template.md \
+  --gate-model-dir models/gate --neural-model-dir models/neural \
+  --calibration models/calibration.json \
+  --output-zip ../../repacked_submission.zip
+```
 
 ## current evidence
 
@@ -254,7 +270,8 @@ uv run python src/package.py \
 - france is about 15 percent of test anchors and has no labeled training equivalent
 - the metric is macro per anchor f0.5 with correct empty sets and singleton anchors included
 - india e5 qwen lexical union recall is `0.99538` at dense width 100 each on the selected query diagnostic
-- selected query neural diagnostics reached `0.93397` link recall at `0.995` precision with neural weight `0.6`
+- selected query neural diagnostics reached `0.934` link recall at `0.995` precision with weighted-logit neural weight `0.6`
 - the tree top 3 filter reduced neural calls from about 1.5 million to 53481 in that selected query diagnostic
+- a real local cli run completed 38 queries and scored 114 neural pairs; this is not a full-corpus result
 - these precision recall and filter figures are not official or full-pool results
-- full pool calibration and locked audit: **pending**
+- full-pool calibration, test outputs, and locked audit: **pending**
