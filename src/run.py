@@ -5,6 +5,7 @@ import json
 import math
 import os
 import queue
+import shutil as sh
 import subprocess as sp
 import sys
 import tempfile as tf
@@ -90,17 +91,39 @@ def _cache_only(data, cache, split, co, retrievers, device, encoder_batch):
     hybrid.setup(data, cache, co, split, 0, [allx[x] for x in retrievers], device, encoder_batch)
 
 
-def _owner(data, cache, gate, neural, split, countries, lo, hi, klex, kdense, kgate, retrievers, device, threads,
-           encoder_batch, neural_batch, query_batch, neural_weight, shard_size=None, gpu_ids=None):
-    z = {"data": str(path(data).resolve()), "cache": str(path(cache).resolve()), "gate": str(path(gate).resolve()),
-         "neural": str(path(neural).resolve()), "split": split, "countries": countries, "rid_start": lo,
+def _tree(p):
+    p = path(p)
+    if not p.is_dir():
+        raise ValueError(f"missing model directory {p}")
+    h = hh.sha256()
+    files = 0
+    for q in sorted(p.rglob("*")):
+        if q.is_symlink():
+            raise ValueError(f"invalid model artifact {q}")
+        if q.is_dir():
+            continue
+        if not q.is_file():
+            raise ValueError(f"invalid model artifact {q}")
+        h.update(q.relative_to(p).as_posix().encode("utf-8"))
+        h.update(b"\0")
+        files += 1
+        with q.open("rb") as f:
+            for b in iter(lambda: f.read(1 << 20), b""):
+                h.update(b)
+    if not files:
+        raise ValueError(f"empty model directory {p}")
+    return h.hexdigest()
+
+
+def _owner(data, gate, neural, split, countries, lo, hi, klex, kdense, kgate, retrievers, device, threads,
+           encoder_batch, neural_batch, query_batch, neural_weight, shard_size=None):
+    z = {"data_meta_sha256": infer._sha(path(data) / "meta.json"), "gate_sha256": _tree(gate),
+         "neural_sha256": _tree(neural), "split": split, "countries": countries, "rid_start": lo,
          "rid_stop": hi, "k_lex": klex, "k_dense": kdense, "k_gate": kgate, "retrievers": list(retrievers),
          "device": device, "threads": threads, "encoder_batch": encoder_batch, "neural_batch": neural_batch,
          "query_batch": query_batch, "neural_weight": neural_weight}
     if shard_size is not None:
         z["shard_size"] = shard_size
-    if gpu_ids:
-        z["gpu_ids"] = list(gpu_ids)
     return z
 
 
@@ -128,14 +151,29 @@ def _index(out, owner, full):
     if not p.exists():
         if any(out.iterdir()):
             raise ValueError("run output exists without runs.json")
-        return {"version": 1, "owner": owner, "owner_sha256": _hash(owner), "full": full, "complete": False,
+        return {"version": 2, "owner": owner, "owner_sha256": _hash(owner), "full": full, "complete": False,
                 "runs": []}
     z = _json(p)
-    if z.get("version") != 1 or z.get("owner") != owner or z.get("owner_sha256") != _hash(owner):
+    if z.get("version") != 2 or z.get("owner") != owner or z.get("owner_sha256") != _hash(owner):
         raise ValueError("existing run index ownership/configuration mismatch")
     if z.get("full") != full or not isinstance(z.get("runs"), list):
         raise ValueError("invalid existing run index")
     return z
+
+
+def _runrel(name):
+    return (path("countries") / name).as_posix()
+
+
+def _prior(old, units, shard_size):
+    names = {_key(co, lo, hi): _dir(co, lo, hi) if shard_size is not None else _dir(co) for co, lo, hi in units}
+    if set(old) - set(names):
+        raise ValueError("invalid existing country ownership")
+    for k, x in old.items():
+        if (x.get("country"), x.get("rid_start"), x.get("rid_stop")) != k or x.get("runpath") != _runrel(names[k]):
+            raise ValueError("invalid existing country run path")
+        if not isinstance(x.get("command"), list) or not all(isinstance(a, str) for a in x["command"]):
+            raise ValueError("invalid existing country command")
 
 
 def _check_args(countries, workers, threads, lo, hi, klex, kdense, kgate, encoder_batch, neural_batch, query_batch,
@@ -178,21 +216,24 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
         raise ValueError("test export requires both --calibration and --export-out")
     if calibration is not None and (split != "test" or not full):
         raise ValueError("export requires complete full test coverage")
-    owner = _owner(data, cache, gate, neural, split, countries, rid_start, rid_stop, k_lex, k_dense, k_gate, retrievers,
-                   device, threads, encoder_batch, neural_batch, query_batch, neural_weight, shard_size, gpu_ids)
+    owner = _owner(data, gate, neural, split, countries, rid_start, rid_stop, k_lex, k_dense, k_gate, retrievers,
+                   device, threads, encoder_batch, neural_batch, query_batch, neural_weight, shard_size)
     out.mkdir(parents=True, exist_ok=True)
     z = _index(out, owner, full)
     old = {}
     for x in z["runs"]:
         if not isinstance(x, dict):
             raise ValueError("invalid existing country ownership")
-        k = _key(x.get("country"), x.get("rid_start"), x.get("rid_stop"))
+        co, lo, hi = x.get("country"), x.get("rid_start"), x.get("rid_stop")
+        if (not isinstance(co, str) or (lo is not None and (not isinstance(lo, int) or isinstance(lo, bool))) or
+                (hi is not None and (not isinstance(hi, int) or isinstance(hi, bool)))):
+            raise ValueError("invalid existing country ownership")
+        k = _key(co, lo, hi)
         if k in old:
             raise ValueError("invalid existing country ownership")
         old[k] = x
     units = _work(data, split, countries, rid_start, rid_stop, shard_size)
-    if set(old) - {_key(*x) for x in units}:
-        raise ValueError("invalid existing country ownership")
+    _prior(old, units, shard_size)
     runroot, logroot = out / "countries", out / "logs"
     runroot.mkdir(exist_ok=True)
     logroot.mkdir(exist_ok=True)
@@ -204,17 +245,17 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
             raise ValueError("unsafe country directory")
         cmd = _command(data, cache, gate, neural, rd, split, co, lo, hi, k_lex, k_dense, k_gate, retrievers,
                        device, threads, encoder_batch, neural_batch, query_batch, neural_weight)
-        rec = {"country": co, "rid_start": lo, "rid_stop": hi, "runpath": str(rd), "childstatus": "pending",
+        rec = {"country": co, "rid_start": lo, "rid_stop": hi, "runpath": _runrel(name), "childstatus": "pending",
                "config": owner, "command": cmd}
         if _key(co, lo, hi) in old:
             prior = old[_key(co, lo, hi)]
-            if prior.get("runpath") != rec["runpath"] or prior.get("config") != owner or prior.get("command") != cmd:
+            if prior.get("config") != owner:
                 raise ValueError("existing country run ownership/configuration mismatch")
-            rec.update(prior)
         jobs.append((co, lo, hi, rd, logroot / f"{name}.log", cmd, rec))
     z["runs"] = [x[-1] for x in jobs]
     z["complete"] = False
     z.pop("verification", None)
+    z.pop("warmups", None)
     _write(out / "runs.json", z)
     runner = _child if runner is None else runner
 
@@ -289,7 +330,7 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
         _write(out / "runs.json", z)
         raise RuntimeError(f"matching children failed for {failed}")
     expected = _ids(data, split, countries, rid_start, rid_stop)
-    paths = [path(x["runpath"]) for x in z["runs"]]
+    paths = [x[3] for x in jobs]
     try:
         infer._runs(data, paths, split, expected)
     except Exception as e:
@@ -299,7 +340,7 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
     z["complete"] = True
     z["verification"] = {"status": "exact_coverage", "targets": len(expected), "full": full}
     _write(out / "runs.json", z)
-    _write(out / "runpaths.json", {"runs": [str(x) for x in paths], "split": split, "full": full})
+    _write(out / "runpaths.json", {"runs": [x["runpath"] for x in z["runs"]], "split": split, "full": full})
     result = {"runs": [str(x) for x in paths], "targets": len(expected), "full": full}
     if calibration_out is not None:
         result["calibration"] = infer.calibrate(data, paths, calibration_out, audit=audit)
@@ -344,6 +385,10 @@ def check():
     with tf.TemporaryDirectory() as tmp:
         root = path(tmp)
         data = infer._check_data(root)
+        gate, neural = root / "gate", root / "neural"
+        gate.mkdir(); neural.mkdir()
+        (gate / "weights.bin").write_bytes(b"gate")
+        (neural / "weights.bin").write_bytes(b"neural")
         q = infer.pl.read_parquet(data / "test/s3.parquet").with_columns(infer.pl.lit("neverland").alias("co"))
         q.write_parquet(data / "test/s3.parquet")
         assert _countries(data, "test", None) == ["france", "neverland", "us"]
@@ -351,12 +396,12 @@ def check():
         model = ["first"]
         runner, calls = fake(data, model=model)
         out = root / "out"
-        z = run(data, root / "cache", root / "gate", root / "neural", out, workers=2, threads=1, k_lex=3,
+        z = run(data, root / "cache", gate, neural, out, workers=2, threads=1, k_lex=3,
                 k_dense=4, k_gate=5, retrievers=("e5", "qwen3"), device="cpu", encoder_batch=7, neural_batch=5,
                 query_batch=123, neural_weight=.6, runner=runner)
         assert z["full"] and len(calls) == 3 and _json(out / "runs.json")["complete"]
         first = {tuple(x) for x, _ in calls}
-        run(data, root / "cache", root / "gate", root / "neural", out, workers=2, threads=1, k_lex=3, k_dense=4,
+        run(data, root / "cache", gate, neural, out, workers=2, threads=1, k_lex=3, k_dense=4,
             k_gate=5, retrievers=("e5", "qwen3"), device="cpu", encoder_batch=7, neural_batch=5, query_batch=123,
             neural_weight=.6, runner=runner)
         assert len(calls) == 6 and {tuple(x) for x, _ in calls[3:]} == first
@@ -368,38 +413,38 @@ def check():
         assert {x[x.index("--cache") + 1] for x, _ in calls[:3]} == {str((root / "cache").resolve())}
         model[0] = "changed-at-same-path"
         try:
-            run(data, root / "cache", root / "gate", root / "neural", out, workers=2, threads=1, k_lex=3,
+            run(data, root / "cache", gate, neural, out, workers=2, threads=1, k_lex=3,
                 k_dense=4, k_gate=5, retrievers=("e5", "qwen3"), device="cpu", encoder_batch=7, neural_batch=5,
                 query_batch=123, neural_weight=.6, runner=runner)
         except RuntimeError as e:
             assert "matching children failed" in str(e) and len(calls) == 9
         else:
             raise AssertionError("resumed model guard bypassed")
-        injected = _command(data, root / "cache", root / "gate", root / "neural", root / "x", "test", "x; touch bad",
+        injected = _command(data, root / "cache", gate, neural, root / "x", "test", "x; touch bad",
                             None, None, 1, 1, 1, ("e5",), "cpu", 1, 1, 1, 1, 1.)
         assert injected[injected.index("--country") + 1] == "x; touch bad"
         try:
-            run(data, root / "cache", root / "gate", root / "neural", root / "shard", countries=["us"],
+            run(data, root / "cache", gate, neural, root / "shard", countries=["us"],
                 calibration_out=root / "calibration.json", runner=runner)
         except ValueError as e:
             assert "complete full" in str(e)
         else:
             raise AssertionError("shard calibration accepted")
         try:
-            run(data, root / "cache", root / "gate", root / "neural", root / "shard-export", countries=["us"],
+            run(data, root / "cache", gate, neural, root / "shard-export", countries=["us"],
                 calibration=root / "calibration.json", export_out=root / "export", runner=runner)
         except ValueError as e:
             assert "complete full" in str(e)
         else:
             raise AssertionError("shard export accepted")
         hi = int(_ids(data, "test", _countries(data, "test", None), None, None)[-1]) + 2
-        empty = run(data, root / "cache", root / "gate", root / "neural", root / "empty", countries=["us"],
+        empty = run(data, root / "cache", gate, neural, root / "empty", countries=["us"],
                     rid_start=hi, rid_stop=hi + 1, shard_size=1, runner=runner)
         assert not empty["full"] and empty["targets"] == 0
         old_cuda = os.environ.get("CUDA_VISIBLE_DEVICES")
         sharded, seen = fake(data, "france")
         try:
-            run(data, root / "cache", root / "gate", root / "neural", root / "failed", workers=1, threads=1,
+            run(data, root / "cache", gate, neural, root / "failed", workers=1, threads=1,
                 shard_size=1, gpu_ids=(0,), device="cuda", runner=sharded)
         except RuntimeError as e:
             assert "france" in str(e)
@@ -411,7 +456,7 @@ def check():
         assert os.environ.get("CUDA_VISIBLE_DEVICES") == old_cuda
         assert all(env["CUDA_VISIBLE_DEVICES"] == "0" for _, env in seen)
         runner, shard_calls = fake(data)
-        shard = run(data, root / "cache", root / "gate", root / "neural", root / "sharded", workers=2, threads=1,
+        shard = run(data, root / "cache", gate, neural, root / "sharded", workers=2, threads=1,
                     shard_size=1, gpu_ids=(0, 1), device="cuda", runner=runner)
         index = _json(root / "sharded/runs.json")
         match_calls = [(x, env) for x, env in shard_calls if "--cache-only" not in x]
@@ -424,12 +469,55 @@ def check():
         assert all("--rid-start" in x and "--rid-stop" in x for x, _ in match_calls)
         runner, _ = fake(data)
         cal = root / "calibration.json"
-        train = run(data, root / "cache", root / "gate", root / "neural", root / "sharded-train", split="train",
+        train = run(data, root / "cache", gate, neural, root / "sharded-train", split="train",
                     workers=2, threads=1, shard_size=1, calibration_out=cal, runner=runner)
-        test = run(data, root / "cache", root / "gate", root / "neural", root / "sharded-test", workers=2,
+        test = run(data, root / "cache", gate, neural, root / "sharded-test", workers=2,
                    threads=1, shard_size=1, calibration=cal, export_out=root / "export", runner=runner)
         assert train["full"] and test["full"] and len(train["runs"]) > len(_countries(data, "train", None))
         assert len(test["runs"]) > len(_countries(data, "test", None))
+        moved = root / "moved"
+        moved.mkdir()
+        sh.copytree(data, moved / "data")
+        sh.copytree(gate, moved / "gate")
+        sh.copytree(neural, moved / "neural")
+        sh.copytree(root / "sharded", moved / "out")
+        runner, moved_calls = fake(moved / "data")
+        resumed = run(moved / "data", moved / "new-cache", moved / "gate", moved / "neural", moved / "out",
+                      workers=2, threads=1, shard_size=1, gpu_ids=(6, 7), device="cuda", runner=runner)
+        moved_index = _json(moved / "out/runs.json")
+        moved_paths = _json(moved / "out/runpaths.json")["runs"]
+        assert resumed["targets"] == shard["targets"] and moved_index["complete"]
+        assert all(not path(x).is_absolute() and (moved / "out" / x).is_dir() for x in moved_paths)
+        assert str(root / "sharded") not in json.dumps(moved_index)
+        assert {x[x.index("--cache") + 1] for x, _ in moved_calls if "--cache-only" not in x} == {
+            str((moved / "new-cache").resolve())}
+        (moved / "gate/weights.bin").write_bytes(b"changed-gate")
+        try:
+            run(moved / "data", moved / "new-cache", moved / "gate", moved / "neural", moved / "out",
+                workers=2, threads=1, shard_size=1, gpu_ids=(6, 7), device="cuda", runner=runner)
+        except ValueError as e:
+            assert "ownership/configuration mismatch" in str(e)
+        else:
+            raise AssertionError("changed gate accepted")
+        (moved / "gate/weights.bin").write_bytes(b"gate")
+        (moved / "neural/weights.bin").write_bytes(b"changed-neural")
+        try:
+            run(moved / "data", moved / "new-cache", moved / "gate", moved / "neural", moved / "out",
+                workers=2, threads=1, shard_size=1, gpu_ids=(6, 7), device="cuda", runner=runner)
+        except ValueError as e:
+            assert "ownership/configuration mismatch" in str(e)
+        else:
+            raise AssertionError("changed neural accepted")
+        partial = root / "moved-partial"
+        partial.mkdir()
+        sh.copytree(data, partial / "data")
+        sh.copytree(gate, partial / "gate")
+        sh.copytree(neural, partial / "neural")
+        sh.copytree(root / "failed", partial / "out")
+        runner, _ = fake(partial / "data")
+        resumed = run(partial / "data", partial / "new-cache", partial / "gate", partial / "neural", partial / "out",
+                      workers=1, threads=1, shard_size=1, gpu_ids=(9,), device="cuda", runner=runner)
+        assert resumed["full"] and _json(partial / "out/runs.json")["complete"]
     print("checks passed")
 
 
