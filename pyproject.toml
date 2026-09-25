@@ -7,6 +7,7 @@ dependencies = [
     "catboost>=1.2.7",
     "faiss-cpu>=1.8",
     "huggingface-hub>=0.34,<1",
+    "joblib>=1.4",
     "lightgbm>=4.5",
     "numpy>=2",
     "polars>=1",

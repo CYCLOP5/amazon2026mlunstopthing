@@ -303,6 +303,12 @@ start with modest per channel top k and measure marginal recovered truth
 preserve source specific candidate coverage and add reverse retrieval candidates where useful
 increase budget for weak fields and ambiguous common names rather than applying one tight cutoff
 
+the first implementation will also test reverse retrieval as the primary direction
+each target has at most one labeled reference and the reference index is roughly five times smaller
+retrieve several reference candidates for each target then regroup pairs by reference for the required outputs
+retain all exact name and address collisions as candidates instead of dropping tied identities at a small top k
+compare recall and runtime with forward retrieval before choosing the final union
+
 use [sparse dot topn](https://github.com/ing-bank/sparse_dot_topn) for bounded sparse products or an equivalent bounded inverted index
 never materialize the full dense pair matrix
 use [faiss](https://github.com/facebookresearch/faiss/wiki/Faiss-indexes) for dense retrieval
@@ -519,3 +525,19 @@ verify cloud cleanup and the spend ledger before declaring the goal complete
 
 these facts must not be guessed
 the implementation can progress with the conservative model and data policy above
+
+## execution updates
+
+- uv now uses python 3.11.16 with a committed lock and a verified fp16 cuda operation on the local gpu
+- research commit `2366c31` is pushed to main
+- budget and strict validation utilities are pushed on the implementation branch with self checks passing
+- implementation is tracked in [draft pr 1](https://github.com/CYCLOP5/amazon2026mlunstopthing/pull/1)
+- the data preparation stage preserves original text creates ascii comparison views and stratifies whole entities by country degree script and address quality
+- full preparation completed in about 2 minutes 35 seconds and verified every supplied positive link
+- azure compute network storage and quota providers are registered
+- eastus has 65 dedicated vcpus available but initially zero dedicated gpu family quota and only 3 spot vcpus
+- the a100 quota request returned `ContactSupport` and the t4 request returned `QuotaNotAvailableForResource`
+- the spot quota request was throttled with an explicit one hour retry delay
+- quoted eastus a100 linux rates were 3.673 usd per hour on demand and 0.67877 usd per hour spot before storage
+- no project vm has been created yet and project compute spend remains zero
+- gpu quota failure is a compute constraint while cpu modeling and local gpu experiments continue
