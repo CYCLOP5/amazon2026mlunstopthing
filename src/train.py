@@ -10,12 +10,12 @@ import numpy as np
 import polars as pl
 
 try:
-    from feat import ff, make, prep
+    from feat import df, ff, make, prep
 except ImportError:
-    from src.feat import ff, make, prep
+    from src.feat import df, ff, make, prep
 
 
-ver = 1
+ver = 2
 
 
 def _need(d, cs):
@@ -82,6 +82,9 @@ def _run(data, run, fold):
     co = met.get("country")
     if not isinstance(co, str) or not co:
         raise ValueError(f"invalid country {run}")
+    ds = met.get("dense_features", [])
+    if not isinstance(ds, list) or len(set(ds)) != len(ds) or any(not isinstance(x, str) or x not in df for x in ds):
+        raise ValueError(f"invalid dense features {run}")
     ps = _part_paths(run, met)
     a = pl.read_parquet(run / "anchors.parquet")
     q = pl.read_parquet(run / "queries.parquet")
@@ -112,7 +115,10 @@ def _run(data, run, fold):
     chk = a.select("rid", "deg").join(deg, on="rid", how="left").with_columns(pl.col("n").fill_null(0))
     if chk.filter(pl.col("deg") != pl.col("n")).height:
         raise ValueError(f"queries do not contain every selected anchor alias {run}")
-    return {"dir": run, "met": met, "co": co, "parts": ps, "anchors": a, "queries": q, "pool": pool}
+    src = {"metrics": _sha(run / "metrics.json"), "anchors": _sha(run / "anchors.parquet"),
+           "queries": _sha(run / "queries.parquet"), "parts": {str(p.relative_to(run)): _sha(p) for p in ps}}
+    return {"dir": run, "met": met, "co": co, "dense_features": ds, "parts": ps, "anchors": a,
+            "queries": q, "pool": pool, "source_hashes": src}
 
 
 def _pair(run, p, seen):
@@ -134,33 +140,33 @@ def _pair(run, p, seen):
     return d.drop("sr_query", "own_query")
 
 
-def _key(data, run, p):
-    z = {"v": ver, "features": ff, "data": _sha(data / "meta.json"), "metrics": _sha(run["dir"] / "metrics.json"),
-         "anchors": _sha(run["dir"] / "anchors.parquet"), "queries": _sha(run["dir"] / "queries.parquet"), "part": _sha(p),
-         "pool": run["pool"]["rid"].to_list()}
+def _key(data, run, p, fs):
+    z = {"v": ver, "feature_contract": fs, "data": _sha(data / "meta.json"), "source_hashes": run["source_hashes"],
+         "part": str(p.relative_to(run["dir"])), "pool": run["pool"]["rid"].to_list()}
     return hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
 
 
-def _features(data, out, run, threads):
+def _features(data, out, run, threads, fs):
     st = prep(run["pool"])
     seen, xs, ys, ts, qs = set(), [], [], [], []
     for p in run["parts"]:
-        k = _key(data, run, p)
+        k = _key(data, run, p, fs)
         cp = out / "features" / f"{k}.npz"
         d = _pair(run, p, seen)
         if cp.exists():
-            z = np.load(cp)
+            z = np.load(cp, allow_pickle=False)
             x, y, tid, qid = z["x"], z["y"], z["tid"], z["qid"]
         else:
-            x, names = make(st, run["queries"], d, threads)
-            if names != ff:
+            x, got = make(st, run["queries"], d, threads, run["dense_features"])
+            if got != fs:
                 raise ValueError("unexpected feature names")
             y = d["y"].to_numpy().astype(np.uint8, copy=False)
             tid = d["tid"].to_numpy().astype(np.uint32, copy=False)
             qid = d["qid"].to_numpy().astype(np.uint32, copy=False)
             cp.parent.mkdir(parents=True, exist_ok=True)
             np.savez(cp, x=x, y=y, tid=tid, qid=qid)
-        if x.ndim != 2 or x.shape != (len(y), len(ff)) or not np.isfinite(x).all():
+        if (x.ndim != 2 or x.shape != (len(y), len(fs)) or len(tid) != len(y) or len(qid) != len(y) or
+                not np.isfinite(x).all()):
             raise ValueError(f"invalid cached features {cp}")
         xs.append(x.astype(np.float32, copy=False))
         ys.append(y.astype(np.uint8, copy=False))
@@ -228,6 +234,47 @@ def evaluate(anchors, qid, tid, y, prob):
     return out
 
 
+def _blocking_one(q, qid, tid, prob):
+    ids = q["rid"].to_numpy().astype(np.uint32, copy=False)
+    own = q["own"].to_numpy().astype(np.int64, copy=False)
+    oi = np.argsort(ids)
+    si = ids[oi]
+    ci = np.searchsorted(si, tid)
+    if len(qid) != len(tid) or len(tid) != len(prob) or (ci >= len(si)).any() or not np.array_equal(si[ci], tid):
+        raise ValueError("invalid blocking candidates")
+    counts = np.zeros(len(q), dtype=np.int64)
+    ui, ct = np.unique(tid, return_counts=True)
+    counts[oi[np.searchsorted(si, ui)]] = ct
+    o = np.lexsort((qid, -prob, tid))
+    ts = tid[o]
+    st = np.r_[0, np.flatnonzero(ts[1:] != ts[:-1]) + 1]
+    rk = np.arange(len(o), dtype=np.int64) - np.repeat(st, np.diff(np.r_[st, len(o)])) + 1
+    hit = qid[o].astype(np.int64, copy=False) == own[oi[ci[o]]]
+    hr = np.zeros(len(q), dtype=np.int64)
+    hr[oi[ci[o][hit]]] = rk[hit]
+    pos = own >= 0
+    den = int(pos.sum())
+    ks = (1, 3, 5, 10, 20, 50)
+    return {"positive_query_owners": den,
+            "candidate_counts": {"queries": len(q), "pairs": len(tid), "mean_per_query": float(counts.mean()) if len(q) else 0.0},
+            "mean_retained": {f"top{k}": float(np.minimum(counts, k).mean()) if len(q) else 0.0 for k in ks},
+            "actual_true_link_recall": {f"top{k}": 1.0 if not den else float(((hr > 0) & (hr <= k) & pos).sum() / den) for k in ks}}
+
+
+def blocking(q, qid, tid, prob):
+    _need(q, {"rid", "own", "co"})
+    if q["rid"].n_unique() != len(q) or not np.isfinite(prob).all():
+        raise ValueError("invalid blocking queries")
+    z = _blocking_one(q, qid, tid, prob)
+    z["scope"] = "candidate-filter recall on selected queries, not official full-pool macro_f05"
+    z["per_country"] = {}
+    for co in sorted(q["co"].unique().to_list()):
+        d = q.filter(pl.col("co") == co)
+        keep = np.isin(tid, d["rid"].to_numpy())
+        z["per_country"][co] = _blocking_one(d, qid[keep], tid[keep], prob[keep])
+    return z
+
+
 def _fit_lgb(x, y, xv, yv, trees, threads):
     import lightgbm as lgb
 
@@ -252,11 +299,32 @@ def predict(m, x):
     return np.asarray(m.predict_proba(x)[:, 1], dtype=np.float64)
 
 
+def _contract(met):
+    names = met.get("feature_names")
+    ds = met.get("dense_features")
+    if ds is None:
+        ds = []
+    if (not isinstance(names, list) or not isinstance(ds, list) or names[:len(ff)] != ff or names[len(ff):] != ds or
+            len(set(ds)) != len(ds) or any(not isinstance(x, str) or x not in df for x in ds)):
+        raise ValueError("model feature order mismatch")
+    return names, ds
+
+
+def _width(m):
+    v = getattr(m, "feature_names_", None)
+    if isinstance(v, (list, tuple)) and v:
+        return len(v)
+    for n in ("n_features_in_", "feature_count_"):
+        v = getattr(m, n, None)
+        if isinstance(v, (int, np.integer)):
+            return int(v)
+    raise ValueError("model feature width unavailable")
+
+
 def load_models(out):
     out = path(out)
     met = _json(out / "metadata.json")
-    if met.get("feature_names") != ff:
-        raise ValueError("model feature order mismatch")
+    names, _ = _contract(met)
     z = {}
     for name in met["models"]:
         p = out / met["model_files"][name]
@@ -269,6 +337,8 @@ def load_models(out):
             z[name] = m
         else:
             raise ValueError(f"unknown model {name}")
+        if _width(z[name]) != len(names):
+            raise ValueError(f"model feature width mismatch {name}")
     return z, met
 
 
@@ -282,19 +352,24 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800):
         raise ValueError("training and validation runs required")
     tr = [_run(data, p, 2) for p in trs]
     va = [_run(data, p, 0) for p in vals]
+    ds = tr[0]["dense_features"]
+    if any(r["dense_features"] != ds for r in tr + va):
+        raise ValueError("mixed dense feature schemas")
+    fs = list(ff) + ds
     svs = {r["met"].get("score_version", 1) for r in tr + va}
     if len(svs) != 1:
         raise ValueError("mixed candidate score versions")
     sv = svs.pop()
     if len({r["dir"] for r in tr + va}) != len(tr) + len(va):
         raise ValueError("run cannot be both training and validation")
-    xa = [_features(data, out, r, threads) for r in tr]
-    xv = [_features(data, out, r, threads) for r in va]
+    xa = [_features(data, out, r, threads, fs) for r in tr]
+    xv = [_features(data, out, r, threads, fs) for r in va]
     x, y = np.concatenate([z[0] for z in xa]), np.concatenate([z[1] for z in xa])
     vx, vy = np.concatenate([z[0] for z in xv]), np.concatenate([z[1] for z in xv])
     tid, qid = np.concatenate([z[2] for z in xv]), np.concatenate([z[3] for z in xv])
     anchors = pl.concat([r["anchors"].select("rid", "deg") for r in va])
     vtid = np.concatenate([r["queries"]["rid"].to_numpy() for r in va])
+    vq = pl.concat([r["queries"].select("rid", "own", "co") for r in va])
     if anchors["rid"].n_unique() != len(anchors) or len(np.unique(vtid)) != len(vtid):
         raise ValueError("validation runs overlap anchors or queries")
     if not (y.min() == 0 and y.max() == 1):
@@ -309,6 +384,7 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800):
         m = fitters[name](x, y, vx, vy, trees, threads)
         prob = predict(m, vx)
         met = evaluate(anchors, qid, tid, vy, prob)
+        met["blocking_filter"] = blocking(vq, qid, tid, prob)
         res[name] = met
         raw.append(pl.DataFrame({"model": [name] * len(prob), "tid": tid, "qid": qid, "y": vy, "prob": prob,
                                  "plain_selected": prob >= met["plain_threshold"]["threshold"],
@@ -326,7 +402,7 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800):
         files[name] = p
     pl.concat(raw).write_parquet(out / "validation_predictions.parquet", compression="zstd")
     pl.concat(per).write_parquet(out / "validation_anchors.parquet", compression="zstd")
-    met = {"version": ver, "seed": 42, "score_version": sv, "feature_names": ff, "models": names, "model_files": files,
+    met = {"version": ver, "seed": 42, "score_version": sv, "feature_names": fs, "dense_features": ds, "models": names, "model_files": files,
            "configuration": {"data": str(data), "data_meta_sha256": _sha(data / "meta.json"), "threads": threads, "trees": trees, "class_weights": None,
                              "augmentation": False, "train_runs": [str(r["dir"]) for r in tr],
                              "validation_runs": [str(r["dir"]) for r in va]},
@@ -382,14 +458,49 @@ def check():
             _save_json(d / "metrics.json", {"country": "us", "fold": fold, "parts": ["pairs_00000.parquet"]})
         met = train(data, [runs / "tr"], [runs / "va"], out, model="both", trees=10, threads=1)
         ms, got = load_models(out)
-        assert got["feature_names"] == ff and set(ms) == {"lgb", "cat"}
+        assert got["feature_names"] == ff and got["dense_features"] == [] and set(ms) == {"lgb", "cat"}
         assert predict(ms["lgb"], np.zeros((1, len(ff)), np.float32)).shape == (1,)
         assert predict(ms["cat"], np.zeros((1, len(ff)), np.float32)).shape == (1,)
+        old = dict(got)
+        old.pop("dense_features")
+        _save_json(out / "metadata.json", old)
+        assert set(load_models(out)[0]) == {"lgb", "cat"}
+        _save_json(out / "metadata.json", got)
+        bad = dict(got)
+        bad["feature_names"] = ff + ["qid"]
+        bad["dense_features"] = ["qid"]
+        _save_json(out / "metadata.json", bad)
+        try:
+            load_models(out)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("unsafe model feature accepted")
+        _save_json(out / "metadata.json", got)
+        rr = _run(data, runs / "tr", 2)
+        assert _key(data, rr, rr["parts"][0], ff) != _key(data, rr, rr["parts"][0], ff + ["ds_e5"])
         z = evaluate(_frame([[20, 1]], ["rid", "deg"]), np.array([20, 10]), np.array([200, 201]),
-                     np.array([1, 0], np.uint8), np.array([0.9, 0.1]))
+                      np.array([1, 0], np.uint8), np.array([0.9, 0.1]))
         assert z["plain_threshold"]["macro_f05"] == 1.0
         assert z["target_top1_then_threshold"]["macro_f05"] == 1.0
-        bad = _json(runs / "va" / "metrics.json")
+        bq = _frame([[1, 1, "us"], [2, -1, "us"], [3, 9, "france"], [4, 4, "france"]], ["rid", "own", "co"])
+        bz = blocking(bq, np.array([2, 1, 3, 8]), np.array([1, 1, 3, 4]), np.array([.8, .8, .9, .1]))
+        assert bz["positive_query_owners"] == 3 and bz["actual_true_link_recall"]["top1"] == 1 / 3
+        assert bz["mean_retained"]["top1"] == .75 and bz["per_country"]["us"]["actual_true_link_recall"]["top1"] == 1.0
+        z0 = blocking(bq.filter(pl.col("own") < 0), np.empty(0, np.uint32), np.empty(0, np.uint32), np.empty(0))
+        assert z0["positive_query_owners"] == 0 and z0["actual_true_link_recall"]["top50"] == 1.0
+        good = _json(runs / "va" / "metrics.json")
+        bad = dict(good)
+        bad["dense_features"] = ["ds_e5"]
+        _save_json(runs / "va" / "metrics.json", bad)
+        try:
+            train(data, [runs / "tr"], [runs / "va"], out, trees=10, threads=1)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("mixed dense schemas accepted")
+        _save_json(runs / "va" / "metrics.json", good)
+        bad = dict(good)
         bad["fold"] = 1
         _save_json(runs / "va" / "metrics.json", bad)
         try:
