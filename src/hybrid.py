@@ -74,7 +74,7 @@ def enc(m, txt, batch):
     return embed.norm(z)
 
 
-def core(data, d, refs, txt, dim, co, pars):
+def core(data, d, refs, txt, dim, co, pars, fallback=False):
     mp = data / "meta.json"
     f = embed.family(d["model"])
     out = {"v": 1, "model": d["model"], "revision": d["revision"], "params": pars,
@@ -82,6 +82,8 @@ def core(data, d, refs, txt, dim, co, pars):
            "normalize": True, "dim": dim, "country": co,
            "inputs": {"references": embed.fprint(refs, txt)}, "prefixes": {"reference": "passage"},
            "data_meta_sha256": hh.sha256(mp.read_bytes()).hexdigest() if mp.exists() else None}
+    if fallback:
+        out["scope"] = "global"
     if f != "e5":
         out["serialization"] = {"family": f, "reference": embed.rawfmt}
         out["encoding"] = {"normalize": True, "precision": "float32"}
@@ -108,6 +110,8 @@ def oldok(p, c):
             o.get("prefixes", {}).get("reference") != c["prefixes"]["reference"] or
             o.get("inputs", {}).get("references") != c["inputs"]["references"]):
         raise ValueError("stale embedding reference cache")
+    if c.get("scope") and o.get("scope") != c["scope"]:
+        raise ValueError("stale embedding reference cache")
     if c.get("serialization") and any(o.get("serialization", {}).get(k) != v
                                         for k, v in c["serialization"].items()):
         raise ValueError("stale embedding serialization metadata")
@@ -129,8 +133,8 @@ def oldok(p, c):
     return a
 
 
-def dirs(cache, d, co, sp):
-    x = f"{embed.family(d['model'])}_{tag(d['revision'])}_{sp}_all_{tag(co)}"
+def dirs(cache, d, co, sp, fallback=False):
+    x = f"{embed.family(d['model'])}_{tag(d['revision'])}_{sp}_{'global_' if fallback else 'all_'}{tag(co)}"
     return cache / "hybrid" / x, [cache / "embed-local", cache]
 
 
@@ -140,11 +144,11 @@ def embp(root, d, co):
     return embed.cache_base(root, d["model"], d["revision"], co, 0)
 
 
-def refs(data, cache, d, m, batch, r, co, sp, pars):
+def refs(data, cache, d, m, batch, r, co, sp, pars, fallback=False):
     txt = embed.serial(r, "passage", d["model"])
     dim = int(m.get_embedding_dimension())
-    c = core(data, d, r, txt, dim, co, pars)
-    dst, roots = dirs(cache, d, co, sp)
+    c = core(data, d, r, txt, dim, co, pars, fallback)
+    dst, roots = dirs(cache, d, co, sp, fallback)
     mp = dst / "references.meta.json"
     rp = dst / "references.npy"
     pp = dst / "references.progress.json"
@@ -162,7 +166,7 @@ def refs(data, cache, d, m, batch, r, co, sp, pars):
         if rp.exists() or pp.exists():
             raise ValueError("orphaned hybrid reference cache")
         for root in roots:
-            old = oldok(embp(root, d, co), c) if sp == "train" else None
+            old = oldok(embp(root, d, co), c) if sp == "train" and not fallback else None
             if old is not None:
                 return old, embp(root, d, co), "embed", c
         dst.mkdir(parents=True, exist_ok=True)
@@ -193,10 +197,14 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
         raise ValueError("invalid batch or fold")
     r, ix, eq = block.setup(data, cache / "block", country, split, fold=fold)
     r = r.sort("rid")
-    allr = pl.read_parquet(data / split / "ref.parquet").filter(pl.col("co") == country).sort("rid")
+    allr = pl.read_parquet(data / split / "ref.parquet").sort("rid")
+    fallback = block.global_scope(allr, country)
+    if not fallback:
+        allr = allr.filter(pl.col("co") == country)
     if allr["rid"].n_unique() != len(allr):
         raise ValueError("duplicate full reference ids")
     ri = pos(allr["rid"].to_numpy(), r["rid"].to_numpy(), "reference")
+    cache_country = "all" if fallback else country
     ms = specs(models)
     es, total = [], 0
     for d in ms:
@@ -204,7 +212,7 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
         total += n
         if total > mx:
             raise ValueError("active retrieval models exceed 8b parameters")
-        a, cp, kind, c = refs(data, cache, d, m, batch, allr, country, split, n)
+        a, cp, kind, c = refs(data, cache, d, m, batch, allr, cache_country, split, n, fallback)
         fi = None
         if dev == "cpu":
             import faiss
@@ -219,14 +227,14 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
     fs = [x["feature"] for x in es]
     if len(set(fs)) != len(fs):
         raise ValueError("dense feature names collide")
-    return {"data": data, "cache": cache, "country": country, "split": split, "fold": fold,
+    return {"data": data, "cache": cache, "country": country, "fallback": fallback, "split": split, "fold": fold,
             "refs": r, "idx": ix, "eq": eq, "encoders": es, "batch": batch,
             "dense_features": fs, "config": {"models": [{"model": x["spec"]["model"],
             "revision": x["spec"]["revision"], "params": x["params"], "source": x["source"], "feature": x["feature"], "device": x["device"],
             "reference_cache": x["cache"], "cache_kind": x["cache_kind"],
             "encoding_corpus": x["core"]["inputs"]["references"],
             "search_pool": {"rows": len(r), "rid_sha256": ridfp(r)}} for x in es],
-            "total_params": total, "reference_rows": len(r), "encoding_reference_rows": len(allr),
+            "total_params": total, "reference_rows": len(r), "encoding_reference_rows": len(allr), "fallback": fallback,
             "search_reference_rows": len(r), "maxlen": ln, "pair_chunk": pc}}
 
 

@@ -22,27 +22,14 @@ except ImportError:
     from src import block, embed, feat, hybrid, infer, neural, train
 
 
+_sha = infer._sha
+_json = infer._json
+_write = infer._write
+_pq = infer._pq
+_npy = infer._npy
+
+
 ver = 1
-
-
-def _sha(p):
-    return infer._sha(p)
-
-
-def _json(p):
-    return infer._json(p)
-
-
-def _write(p, z):
-    infer._write(p, z)
-
-
-def _pq(d, p):
-    infer._pq(d, p)
-
-
-def _npy(p, x):
-    infer._npy(p, x)
 
 
 def _pairs(d):
@@ -146,12 +133,12 @@ def _top(d, k):
         "tid", maintain_order=True).head(k).sort("tid", "qid")
 
 
-def _text(ref, q, d):
+def _text(ref, q, d, fallback=False):
     x = d.select("tid", "qid").join(ref.select(pl.col("rid").alias("qid"), pl.col("nm").alias("rnm"),
         pl.col("ad").alias("rad"), pl.col("co").alias("rco")), on="qid", how="left", validate="m:1").join(
         q.select(pl.col("rid").alias("tid"), pl.col("nm").alias("tnm"), pl.col("ad").alias("tad"),
                  pl.col("co").alias("tco")), on="tid", how="left", validate="m:1")
-    if x["rnm"].null_count() or x["tnm"].null_count() or x.filter(pl.col("rco") != pl.col("tco")).height:
+    if x["rnm"].null_count() or x["tnm"].null_count() or (not fallback and x.filter(pl.col("rco") != pl.col("tco")).height):
         raise ValueError("unknown or cross-country neural pair")
     return pl.DataFrame({"text_a": neural.text(x.select(pl.col("rnm").alias("nm"), pl.col("rad").alias("ad"),
                                                        pl.col("rco").alias("co"))),
@@ -269,7 +256,8 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
     for co in infer._countries(data, split, country):
         cr = refs.filter(pl.col("co") == co)
         state = None
-        if len(cr):
+        allowed = cr
+        if len(refs):
             t1 = time.perf_counter()
             state = hybrid.setup(data, cache, co, split, 0, rs, device, encoder_batch)
             if state["config"]["total_params"] + ni["parameters"] > hybrid.mx:
@@ -277,8 +265,9 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
             if set(dense) - set(state["dense_features"]):
                 raise ValueError("gate needs unavailable dense features")
             man["provenance"]["countries"][co] = {"status": "ready", "retrieval": state["config"],
-                                                      "references": state["config"]["reference_rows"]}
+                                                       "references": state["config"]["reference_rows"]}
             fst = feat.prep(state["refs"])
+            allowed = state["refs"]
             tm["setup"] += time.perf_counter() - t1
         else:
             man["provenance"]["countries"][co] = {"status": "no_references"}
@@ -290,7 +279,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                 ids = q["rid"].to_numpy().astype(np.uint32, copy=False)
                 old = done.get(name)
                 if old is not None:
-                    _old(out, old, ids, split, q, cr)
+                    _old(out, old, ids, split, q, allowed)
                     nq, npair = nq + len(ids), npair + old["pairs"]
                     seen.add(name)
                     continue
@@ -313,7 +302,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                             raise ValueError("gate feature contract mismatch")
                         gp = _prob(np.mean([train.predict(m, x) for m in gate_models.values()], axis=0, dtype=np.float64), "gate")
                         post = _top(p.with_columns(pl.Series("gate", gp)), k_gate)
-                        tx = _text(state["refs"], q, post)
+                        tx = _text(state["refs"], q, post, state["fallback"])
                         tm["features"] += time.perf_counter() - t1
                         t1 = time.perf_counter()
                         npb = neural_predictor(tx) if neural_predictor is not None else neural.predict(neural_bundle, tx, neural_batch)
@@ -321,7 +310,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                         npb = _blend(npb, post["gate"].to_numpy(), neural_weight)
                         scored = post.select("qid", "tid", "sr", *(["y"] if split == "train" else [])).with_columns(
                             pl.Series("prob", npb)).select("qid", "tid", "prob", "sr", *(["y"] if split == "train" else [])).sort("tid", "qid")
-                _valid(scored, q, cr, split, sr)
+                _valid(scored, q, allowed, split, sr)
                 _pq(scored, pp)
                 _npy(cp, ids)
                 z = {"name": name, "coverage": cov, "queries": len(ids), "pairs": len(scored),
@@ -352,13 +341,15 @@ def _data(root):
     ref = pl.DataFrame({"rid": [1, 2, 3, 4], "eid": ["S1-us", "S1-empty", "S1-fr", "S1-fit"],
                         "nm": ["alpha", "empty", "ecole", "fit"], "ad": ["1 main", "2 main", "3 rue", "4 road"],
                         "nn": ["alpha", "empty", "ecole", "fit"], "an": ["1 main", "2 main", "3 rue", "4 road"],
-                        "co": ["us", "us", "france", "us"], "sr": [1, 1, 1, 1], "deg": [2, 0, 1, 0],
+                        "co": ["us", "us", "france", "us"], "sr": [1, 1, 1, 1], "deg": [2, 2, 1, 0],
                         "uni": [0, 0, 0, 0], "blank": [0, 0, 0, 0], "fold": [0, 0, 1, 2]}).with_columns(
         pl.col("rid").cast(pl.UInt32), pl.col("sr").cast(pl.UInt8), pl.col("deg").cast(pl.UInt32), pl.col("fold").cast(pl.UInt8))
     rows = {2: [[10, "S2-us", "alpha", "1 main", "alpha", "1 main", "us", 2, 1],
-                [11, "S2-fr", "ecole", "3 rue", "ecole", "3 rue", "france", 2, 3]],
+                [11, "S2-fr", "ecole", "3 rue", "ecole", "3 rue", "france", 2, 3],
+                [12, "S2-empty", "empty", "2 main", "empty", "2 main", "", 2, 2]],
             3: [[20, "S3-us", "alpha", "1 main", "alpha", "1 main", "us", 3, 1],
-                [21, "S3-none", "none", "9 lane", "none", "9 lane", "void", 3, -1]]}
+                [21, "S3-none", "none", "9 lane", "none", "9 lane", "void", 3, -1],
+                [22, "S3-empty", "empty", "2 main", "empty", "2 main", "unknown", 3, 2]]}
     for x in ("train", "test"):
         ref.write_parquet(d / x / "ref.parquet")
         for sr, rs in rows.items():
@@ -416,6 +407,25 @@ def check():
         assert _blend(nn, gp, 1).tobytes() == nn.tobytes()
 
         rs = [{"model": embed.mod0, "revision": embed.rev0, "encoder": enc(), "params": 2}]
+        allref = pl.read_parquet(data / "test/ref.parquet")
+        normal = hybrid.setup(data, root / "normal", "france", "test", models=rs, device="cpu", batch=2)
+        fallback = hybrid.setup(data, root / "fallback", "", "test", models=rs, device="cpu", batch=2)
+        assert not normal["fallback"] and normal["refs"]["rid"].to_list() == [3]
+        assert fallback["fallback"] and fallback["refs"]["rid"].to_list() == [1, 2, 3, 4]
+        assert fallback["encoders"][0]["core"]["scope"] == "global"
+        assert any("country: us" in x for x in embed.serial(fallback["refs"], "passage", embed.mod0))
+        _, fit, _ = block.setup(data, root / "lex", "unknown", "train")
+        fold2, _, _ = block.setup(data, root / "lex", "unknown", "train", fold=2)
+        assert fit["nn"][0].transform(["ecole"]).nnz == 0 and fold2["rid"].to_list() == [4]
+        q_us = pl.read_parquet(data / "test/s2.parquet").filter(pl.col("rid") == 10)
+        cross = pl.DataFrame({"tid": [10], "qid": [3]})
+        try:
+            _text(allref, q_us, cross)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("normal cross-country candidate accepted")
+        assert len(_text(allref, q_us, cross, True)) == 1
         tr, te = root / "run-tr", root / "run-te"
         match(data, root / "cache", gd, nd, tr, "train", k_lex=2, k_dense=2, k_gate=1, device="cpu", threads=1,
               encoder_batch=2, neural_batch=2, query_batch=1, retrievers=rs, gate_models={"fake": gate()}, neural_predictor=pred)
@@ -426,8 +436,10 @@ def check():
         outp = pl.concat(ps)
         assert len(calls) == train_calls + len(outp) and set(outp["tid"]) >= {20} and set(outp["sr"]) == {2, 3} and all(
             x.sort("tid", "qid").equals(x) for x in ps)
+        assert {(11, 3), (12, 2), (22, 2)} <= set(outp.select("tid", "qid").iter_rows())
         man = _json(te / "manifest.json")
         assert any(x["retrieved_pairs"] > x["neural_pairs"] for x in man["parts"]) and all(x["pairs"] == x["neural_pairs"] for x in man["parts"])
+        assert np.array_equal(infer._run(data, te, "test")["coverage"], infer._ids(data, "test"))
         cal = infer.calibrate(data, [tr], root / "cal.json")
         ex = infer.export(data, [te], root / "cal.json", root / "out")
         assert "S1-empty\t" in (root / "out/matching_results.tsv").read_text() and ex["source1"] == 4
@@ -439,8 +451,8 @@ def check():
         else:
             raise AssertionError("weight mismatch resume accepted")
         raw = root / "raw"; raw.mkdir()
-        for n, rows in (("test_source1.tsv", ["S1-us", "S1-empty", "S1-fr", "S1-fit"]), ("test_source2.tsv", ["S2-us", "S2-fr"]),
-                        ("test_source3.tsv", ["S3-us", "S3-none"])):
+        for n, rows in (("test_source1.tsv", ["S1-us", "S1-empty", "S1-fr", "S1-fit"]), ("test_source2.tsv", ["S2-us", "S2-fr", "S2-empty"]),
+                        ("test_source3.tsv", ["S3-us", "S3-none", "S3-empty"])):
             (raw / n).write_text("entity_id\n" + "\n".join(rows) + "\n", encoding="utf-8")
         v = path(__file__).resolve().parents[1] / "student_resource/utils/validate_submission.py"
         assert sp.run([os.sys.executable, v, "--matching", root / "out/matching_results.tsv", "--candidate",
