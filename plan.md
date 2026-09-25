@@ -1,6 +1,6 @@
 # amazon ml 2026 research and execution plan
 
-research date 2026-09-25
+research date 2026-09-26
 
 ## decision
 
@@ -790,12 +790,21 @@ an ann replacement remains a measured future scaling change rather than an imple
 
 quota is distinct from regional physical gpu availability
 
-full labeled-pool calibration locked audit complete test export strict validation and archive checks remain required
-the current priority is an upgraded first upload, then two refinements informed by validation and leaderboard feedback
-complete full-pool validation is not a prerequisite for the explicitly provisional first export
+the upgraded configuration's full-pool calibration and locked audit remain pending
+upgraded v1 was submitted with provisional cutoff 0.8 and received a team-reported public leaderboard f0.5 of 0.969
+the original baseline's team-reported public score is 0.964; its offline locked-audit macro f0.5 is 0.9755015568, an observed difference of 0.0115015568 across different evaluation populations
+these results do not establish a cause for the baseline's observed difference
 complete test coverage correct file format and exact candidate membership remain mandatory
-upgraded v1 was submitted with provisional cutoff 0.8 and received a reported public leaderboard f0.5 of 0.969
-the original baseline offline locked-audit macro f0.5 is 0.9755015568; these results use different evaluation populations
 
 current operator documentation is in [arch](docs/arch.md), [ops](docs/ops.md), [training](docs/training.md), and [status](docs/status.md)
 the [evidence index](reports/README.md) maps every main result to its scope
+
+## overnight cpu screening and score update
+
+the team-reported public scores are 0.964 for the original baseline and 0.969 for upgraded v1. the baseline's offline fold-1 macro f0.5 is 0.9755015568, a 0.0115015568 difference from its reported public score. these figures use different evaluation populations; the difference is observed, not causally attributed. [entity-resolution research](reports/overnight-er-research.md) · [tree research](reports/overnight-tree-research.md)
+
+the cached fold-0 screen tested 13 tree and fixed-ensemble variants on selected lexical-only candidates. none improved the production-safe teammate gate's recall at 0.995 precision. the gap diagnostic found 487 candidate misses among 13,827 linked targets; its blank-address slice had 69 candidate misses among 580 targets, 61 top-3 losses, and 162 cutoff misses at 0.80. these are selected-sample diagnostics, not a hybrid full-pool candidate ceiling or full-pool macro score. [tuning summary](reports/overnight-tune.md) · [tuning data](reports/overnight-tune.json) · [gap summary](reports/overnight-gap.md) · [gap data](reports/overnight-gap.json)
+
+the extended 12-thread screen raised catboost to 1400 rounds and tested hard-negative and missing-address weighting. depth-6 catboost improved diagnostic neural-blend recall at 0.995 precision from 0.9275 to 0.9323; the existing safe gate remained at 0.9332. none of the four extended fits displaced it. depth-4 hit the cap and depth-6 peaked near it, so full convergence is not established. [extended summary](reports/overnight-tune-extended.md) · [extended data](reports/overnight-tune-extended.json)
+
+upgraded full-pool output, calibration, and locked audit remain pending. the cached diagnostics do not replace them. `src/fullgap.py` verifies the complete saved score pool, compares fixed logit blends and a disjoint-group logistic stack, freezes fold-0 selection, and audits the finalist once on fold 1.

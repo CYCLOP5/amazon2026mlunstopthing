@@ -1,6 +1,7 @@
 {
   "variant": "original-baseline",
-  "public_leaderboard_f05": null,
+  "public_leaderboard_f05": 0.964,
+  "public_leaderboard_f05_provenance": "team-reported",
   "cutoff": 0.5527569055557251,
   "decoder": "target_top1_then_threshold",
   "calibration": "complete labeled target pool",

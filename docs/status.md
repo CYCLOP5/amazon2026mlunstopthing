@@ -1,21 +1,20 @@
 # evaluation and submission evidence
 
-> updated: 2026-09-25
+> updated: 2026-09-26
 >
 > deadline: sunday 2026-09-27 08:00 ist / 02:30 utc
 >
-> upgraded v1 submitted; reported public leaderboard f0.5: **0.969**
+> team-reported public leaderboard f0.5: baseline **0.964**; upgraded v1 **0.969**
 
 ## model comparison
 
 | variant | retrieval | gate | matcher | measured result |
 | --- | --- | --- | --- | --- |
-| original baseline | lexical + e5-base + qwen | native lightgbm/catboost mean | fine-tuned e5 pair classifier | **0.97550** locked offline source1 macro f0.5 |
-| upgraded v1 | lexical + e5-base + qwen + e5-large | 54-feature teammate lightgbm | same fine-tuned e5 pair classifier | **0.969** reported public leaderboard f0.5 |
+| original baseline | lexical + e5-base + qwen | native lightgbm/catboost mean | fine-tuned e5 pair classifier | **0.964** team-reported public; **0.9755015568** locked offline source1 macro f0.5 |
+| upgraded v1 | lexical + e5-base + qwen + e5-large | 54-feature teammate lightgbm | same fine-tuned e5 pair classifier | **0.969** team-reported public leaderboard f0.5 |
 
-the metrics above use different evaluation populations
-the baseline figure is an offline audit; it is not a public leaderboard result
-upgraded full-pool calibration remains a separate evaluation
+the baseline offline/public difference is **0.0115015568** across different evaluation populations; it is descriptive and does not identify a cause
+the upgraded full-pool calibration and locked audit remain pending
 the first upgraded upload uses the documented provisional cutoff of 0.8
 the baseline comparison export is complete and uses its full-pool selected cutoff of 0.5527569055557251
 both baseline output files passed the strict validator and the supplied validator with id checking
@@ -69,8 +68,10 @@ the baseline comparison changes retrieval, gate, and selected cutoff together
 ## remaining evaluation
 
 - complete upgraded full-pool calibration and locked audit
-- compare the original baseline submission with upgraded v1
+- keep the selected-query overnight cpu results separate from full-pool evidence
 - use validation and leaderboard feedback for the remaining submissions
 - finalize selected-model methodology and reproducibility archive
+
+the overnight cached screen tested 13 tree and fixed-ensemble variants; none improved recall at 0.995 precision over the production-safe teammate gate. the related candidate-gap results are selected-fold lexical diagnostics, not a hybrid full-pool ceiling. see [overnight tuning](../reports/overnight-tune.md), [gap diagnostic](../reports/overnight-gap.md), and the [research plan](../plan.md).
 
 see [arch](arch.md), [training](training.md), [reproduction commands](ops.md), and [evidence](../reports/README.md)

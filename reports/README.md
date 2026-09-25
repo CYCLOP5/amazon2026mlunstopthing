@@ -4,12 +4,15 @@
 > only complete full-pool calibration supports a final cutoff claim
 > team-reported leaderboard results are labeled separately from offline metrics
 
-## submitted upgraded v1
+## reported results and upgraded v1
 
-upgraded v1 received a reported public leaderboard f0.5 of **0.969**
+upgraded v1 received a **team-reported** public leaderboard f0.5 of **0.969**
 it used the three-retriever pipeline, teammate lightgbm gate, fine-tuned e5 matcher, and provisional cutoff 0.8
 both complete output files passed strict validation and the supplied validator with id checking
 see [v1 result and output evidence](submission_v1.json)
+
+the original baseline public score is **0.964**, also team-reported
+its locked offline audit scored **0.9755015568**, an observed offline/public difference of **0.0115015568** across different evaluation populations; this does not identify a cause
 
 the requested baseline comparison uses its original gate/retrievers and full-pool selected cutoff
 that comparison changes multiple pipeline components and cannot isolate a single feature set's causal effect
@@ -60,7 +63,7 @@ the combined runtime is now implemented and undergoing complete scoring
 
 the teammate diagnostics reported 0.9688 validation f0.5
 the supplied improvement note referenced an earlier 0.958 leaderboard result
-the files did not verify a new 0.97 leaderboard submission for the uploaded ensemble code
+neither is the provenance for the current team-reported 0.969 public score
 
 ## full-pool baseline result
 
@@ -68,8 +71,8 @@ the original two-retriever native-gate baseline completed scoring all 10,320,219
 fold 0 selected target-top1 decoding with cutoff 0.5527569055557251
 the unchanged fold 1 audit achieved **0.9755015568 source1 macro f0.5**, pair precision 0.9875047126, and pair recall 0.9568847221
 
-this is an offline result for the original baseline
-it is neither an upgraded-model result nor a public leaderboard score
+this is an offline result for the original baseline, not an upgraded-model result
+the baseline's separate team-reported public score is 0.964; the observed offline/public difference is 0.0115015568, with no causal attribution
 
 - [complete baseline calibration and audit](full_pool_baseline.json)
 - [provisional upgraded selection rationale](provisional_selection.json)
@@ -77,6 +80,14 @@ it is neither an upgraded-model result nor a public leaderboard score
 the provisional 0.8 cutoff has the highest measured pair f0.5 among the recorded diagnostic operating points
 the diagnostic population and metric differ from full source1 macro f0.5
 complete upgraded calibration continues separately
+
+## overnight cpu diagnostics
+
+the 13-variant cached lexical-only screen did not improve the production-safe teammate gate's recall at 0.995 precision. its 487/13,827 candidate misses and blank-address slice are selected fold-0 diagnostics, not a hybrid full-pool ceiling. [tuning summary](overnight-tune.md) · [tuning data](overnight-tune.json) · [gap summary](overnight-gap.md) · [gap data](overnight-gap.json) · [cpu tree research](overnight-tree-research.md) · [entity-resolution research](overnight-er-research.md)
+
+the [extended screen](overnight-tune-extended.md) tested two longer catboost fits and two weighted lightgbm fits with 12 cpu threads. depth-6 catboost improved with training length but did not displace the safe gate. [extended data](overnight-tune-extended.json)
+
+upgraded full-pool output, calibration, and locked audit remain pending.
 
 ## implementation and eligibility
 
