@@ -309,7 +309,8 @@ def probe(data, cache, src, out, models=None, device="cuda", batch=64, k_lex=10,
     z = dict(met)
     z.update(score(a, p), country=co, fold=fold, score_version=block.sv, parts=parts,
              derived_from=str(src), dense_features=s["dense_features"], retrieval=s["config"],
-             k_lex=k_lex, k_dense=k_dense, queries=len(q), anchors=len(a), pairs=len(p))
+             k_lex=k_lex, k_dense=k_dense, reference_pool=s["config"]["reference_rows"],
+             queries=len(q), anchors=len(a), pairs=len(p))
     atom(out / "metrics.json", z)
     return z
 
