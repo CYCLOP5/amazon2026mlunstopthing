@@ -1,8 +1,8 @@
 # ml challenge 2026 business entity resolution
 
-**team name:** not provided
-**team members:** not provided
-**submission date:** not provided
+**team name:** Amazites
+**team members:** Varun Jhaveri, Shivsharan Sanjawad, Raj Mathuria, Aastha Singh
+**submission date:** 2026-09-25
 
 ## 1. executive summary
 

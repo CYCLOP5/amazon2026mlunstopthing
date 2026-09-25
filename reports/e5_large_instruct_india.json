@@ -1,0 +1,124 @@
+{
+  "candidate_file": "out/dense_candidates_k200.parquet",
+  "candidate_union_coverage_at_or_below_existing_source_width": {
+    "available_sources": [
+      "e5_base",
+      "lexical",
+      "qwen"
+    ],
+    "e5_large": {
+      "all_heldout_query_hit_rate": 0.7626890756302521,
+      "correct_positive_queries": 6807,
+      "positive_query_recall": 0.9829602888086643
+    },
+    "e5_large_plus_lexical": {
+      "all_heldout_query_hit_rate": 0.7717647058823529,
+      "correct_positive_queries": 6888,
+      "positive_query_recall": 0.9946570397111913
+    },
+    "e5_large_plus_lexical_plus_e5_base": {
+      "all_heldout_query_hit_rate": 0.7729971988795519,
+      "correct_positive_queries": 6899,
+      "positive_query_recall": 0.9962454873646209
+    },
+    "e5_large_plus_lexical_plus_e5_base_plus_qwen": {
+      "all_heldout_query_hit_rate": 0.7734453781512605,
+      "correct_positive_queries": 6903,
+      "positive_query_recall": 0.9968231046931408
+    }
+  },
+  "fingerprints": {
+    "queries": {
+      "rows": 8925,
+      "sha256": "cda8f3193cb999efca42df071553716b6fbeb9837f67b0f4299889031d7752c7"
+    },
+    "references": {
+      "rows": 883188,
+      "sha256": "67335f8ee7a7e4ee42df83cb948900dd58eaa4c7c5a406a0e85649cda3bb1830"
+    }
+  },
+  "model": {
+    "embedding_dimension": 1024,
+    "id": "intfloat/multilingual-e5-large-instruct",
+    "parameter_eligibility": {
+      "eligible": true,
+      "limit": 8000000000
+    },
+    "params": 559890432,
+    "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439"
+  },
+  "recall_at": {
+    "1": {
+      "all_heldout_query_hit_rate": 0.7024089635854341,
+      "correct_positive_queries": 6269,
+      "positive_query_recall": 0.9052707581227437
+    },
+    "10": {
+      "all_heldout_query_hit_rate": 0.7427450980392157,
+      "correct_positive_queries": 6629,
+      "positive_query_recall": 0.9572563176895307
+    },
+    "100": {
+      "all_heldout_query_hit_rate": 0.76,
+      "correct_positive_queries": 6783,
+      "positive_query_recall": 0.9794945848375451
+    },
+    "20": {
+      "all_heldout_query_hit_rate": 0.7499159663865547,
+      "correct_positive_queries": 6693,
+      "positive_query_recall": 0.9664981949458483
+    },
+    "200": {
+      "all_heldout_query_hit_rate": 0.7626890756302521,
+      "correct_positive_queries": 6807,
+      "positive_query_recall": 0.9829602888086643
+    },
+    "5": {
+      "all_heldout_query_hit_rate": 0.7335574229691877,
+      "correct_positive_queries": 6547,
+      "positive_query_recall": 0.9454151624548737
+    },
+    "50": {
+      "all_heldout_query_hit_rate": 0.7557422969187675,
+      "correct_positive_queries": 6745,
+      "positive_query_recall": 0.9740072202166065
+    }
+  },
+  "runtime": {
+    "batch": 16,
+    "device": "cuda",
+    "maxlen": 512,
+    "query_encoding_seconds": 0.00045070300984662026,
+    "reference_encoding_seconds": 0.0006307250005193055,
+    "retrieval_seconds": 9.141345256997738,
+    "reused_complete_embedding_cache": {
+      "queries": true,
+      "references": true
+    },
+    "search": "exact_gpu_fp16",
+    "search_batch": 16,
+    "total_seconds": 9.992955099995015
+  },
+  "scope": {
+    "anchors": 2000,
+    "country": "india",
+    "evaluation": "all 8,925 held-out India queries against the full 883,188-reference India S1 pool",
+    "fold": 0,
+    "positive_queries": 6925,
+    "queries": 8925,
+    "references": 883188
+  },
+  "truncation": {
+    "queries": {
+      "max_tokens_before_truncation": 124,
+      "rows": 8925,
+      "truncated": 0
+    },
+    "references": {
+      "max_tokens_before_truncation": 107,
+      "rows": 883188,
+      "truncated": 0
+    }
+  },
+  "warning": "selected-query retrieval experiment against the full country reference pool, not full-target macro f0.5; encoding caches were reused for the final export"
+}

@@ -743,3 +743,24 @@ geocoding apis are explicitly prohibited by the challenge
 an offline external gazetteer would still add external reference data
 address cues must instead come from the supplied strings and training labels
 numeric evidence remains soft because genuine matching pairs can contain edited or missing numbers
+
+### completed large-instruct comparison
+
+the local large-instruct run completed against all 883188 india references and the same 8925 tuning queries
+none of these records were truncated at 512 tokens; the longest query was 124 tokens and reference 107
+the original export failed because its output directory was absent
+that was fixed and both fully encoded caches were reused for the final retrieval result
+the reported cache-reload times are not fresh encoding throughput measurements
+
+at equal dense width 100 the current lexical plus base plus qwen union recalls 0.995379
+replacing base with large-instruct recalls 0.995090
+replacing qwen with large-instruct recalls 0.995235
+adding large-instruct as a third dense encoder recalls 0.996101 and recovers 5 additional positive queries
+at width 200 the third encoder recovers only 3 additional positive queries
+large-instruct performs better at some narrow widths but is not a better two-encoder replacement at the selected production width
+this does not justify changing the active production configuration or claiming a higher final matching score
+
+full same-width comparisons and scope are recorded in `reports/e5_large_same_width_india.json`
+the individual model result is in `reports/e5_large_instruct_india.json`
+
+the user confirmed no fixed deadline and team Amazites with Varun Jhaveri Shivsharan Sanjawad Raj Mathuria and Aastha Singh

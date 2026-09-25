@@ -1,0 +1,76 @@
+{
+  "scope": "same 8925 India tuning queries and full 883188-reference pool, lexical width fixed at20",
+  "positive_queries": 6925,
+  "rows": [
+    {
+      "k": 1,
+      "base": 0.9029602888086643,
+      "large": 0.9052707581227437,
+      "lex_base_qwen": 0.9703971119133574,
+      "lex_large_qwen": 0.9747292418772563,
+      "lex_base_large": 0.9768953068592058,
+      "all_four": 0.9789169675090252,
+      "large_additional_correct_queries": 59
+    },
+    {
+      "k": 5,
+      "base": 0.9426714801444044,
+      "large": 0.9454151624548737,
+      "lex_base_qwen": 0.9812274368231046,
+      "lex_large_qwen": 0.9867148014440433,
+      "lex_base_large": 0.9872924187725631,
+      "all_four": 0.9883032490974729,
+      "large_additional_correct_queries": 49
+    },
+    {
+      "k": 10,
+      "base": 0.9543682310469314,
+      "large": 0.9572563176895307,
+      "lex_base_qwen": 0.9859927797833935,
+      "lex_large_qwen": 0.9893140794223827,
+      "lex_base_large": 0.9900361010830325,
+      "all_four": 0.9910469314079422,
+      "large_additional_correct_queries": 35
+    },
+    {
+      "k": 20,
+      "base": 0.9621660649819495,
+      "large": 0.9664981949458483,
+      "lex_base_qwen": 0.9893140794223827,
+      "lex_large_qwen": 0.991768953068592,
+      "lex_base_large": 0.9919133574007221,
+      "all_four": 0.9927797833935018,
+      "large_additional_correct_queries": 24
+    },
+    {
+      "k": 50,
+      "base": 0.972274368231047,
+      "large": 0.9740072202166065,
+      "lex_base_qwen": 0.9929241877256317,
+      "lex_large_qwen": 0.9940794223826714,
+      "lex_base_large": 0.9939350180505415,
+      "all_four": 0.9948014440433213,
+      "large_additional_correct_queries": 13
+    },
+    {
+      "k": 100,
+      "base": 0.9771841155234657,
+      "large": 0.9794945848375451,
+      "lex_base_qwen": 0.9953790613718412,
+      "lex_large_qwen": 0.9950902527075812,
+      "lex_base_large": 0.9952346570397111,
+      "all_four": 0.996101083032491,
+      "large_additional_correct_queries": 5
+    },
+    {
+      "k": 200,
+      "base": 0.9820938628158845,
+      "large": 0.9829602888086643,
+      "lex_base_qwen": 0.9963898916967509,
+      "lex_large_qwen": 0.9962454873646209,
+      "lex_base_large": 0.9962454873646209,
+      "all_four": 0.9968231046931408,
+      "large_additional_correct_queries": 3
+    }
+  ]
+}
