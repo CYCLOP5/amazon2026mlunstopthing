@@ -300,7 +300,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                         x, got = feat.make(fst, q, p, threads, dense)
                         if got != names:
                             raise ValueError("gate feature contract mismatch")
-                        gp = _prob(np.mean([train.predict(m, x) for m in gate_models.values()], axis=0, dtype=np.float64), "gate")
+                        gp = _prob(np.mean([train.predict(m, x, threads) for m in gate_models.values()], axis=0, dtype=np.float64), "gate")
                         post = _top(p.with_columns(pl.Series("gate", gp)), k_gate)
                         tx = _text(state["refs"], q, post, state["fallback"])
                         tm["features"] += time.perf_counter() - t1

@@ -158,8 +158,8 @@ def refs(data, cache, d, m, batch, r, co, sp, pars, fallback=False):
             raise ValueError("stale hybrid reference cache")
         if not (rp.exists() and pp.exists()):
             raise ValueError("orphaned hybrid reference cache")
-        a = np.load(rp, mmap_mode="r+")
         done = int(json.loads(pp.read_text(encoding="utf-8")).get("done", -1))
+        a = np.load(rp, mmap_mode="r" if done == len(r) else "r+")
         if a.shape != (len(r), dim) or a.dtype != np.float16 or not 0 <= done <= len(r):
             raise ValueError("invalid hybrid reference cache")
     else:

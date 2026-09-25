@@ -22,10 +22,12 @@ im = "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04@sha256:7481fbfbbc1c7d7a
 pf = {
     "cpu": ("Standard_E16ds_v4", "dedicated", False),
     "gpu": ("Standard_NC24ads_A100_v4", "low_priority", True),
+    "gpu2": ("Standard_NC48ads_A100_v4", "low_priority", True),
+    "gpu4": ("Standard_NC96ads_A100_v4", "low_priority", True),
 }
 end = {"completed", "failed", "canceled", "cancelled"}
 rx = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
-skip = {".venv", ".azure", "__pycache__", "artifacts", "cache", "data", "dataset", "models", "output"}
+skip = {".venv", ".azure", ".cortexkit", "__pycache__", "artifacts", "cache", "data", "dataset", "models", "output"}
 
 
 class err(Exception):
@@ -78,8 +80,8 @@ def spec(a, run, ins):
         fixed = bd.num(a.fixed)
     except bd.err as e:
         die(str(e))
-    if hrs > dc("6"):
-        die("hours must be at most 6")
+    if hrs > dc("12"):
+        die("hours must be at most 12")
     om = getattr(a, "output_mode", "upload")
     if om not in {"upload", "rw_mount"}:
         die("invalid output mode")
@@ -112,7 +114,6 @@ def spec(a, run, ins):
 
 def shell(s):
     groups = " --group neural" if s["neural"] else ""
-    # Install uv and synchronize the selected worker dependencies in one shell.
     return " ; ".join((
         "set -eu",
         "curl --fail --location --silent --show-error https://astral.sh/uv/0.12.18/install.sh -o /tmp/uv-install.sh",
@@ -176,7 +177,7 @@ def read(p):
 def reserve(a, s):
     with bd.lock(a.ledger):
         ld = bd.load(a.ledger, a.cap)
-        bd.reserve(ld, s["run"], s["rate"], s["hours"] + dc("1"), s["fixed"], False, bd.now())
+        bd.reserve(ld, s["run"], s["rate"], s["hours"] + dc("1"), s["fixed"], getattr(a, "final", False), bd.now())
         bd.save(a.ledger, ld)
 
 
@@ -420,6 +421,14 @@ def check():
     s = spec(a, "aml26-gpu-check", {"train": path("/tmp")})
     assert s["tier"] == "low_priority" and s["neural"] and s["timeout"] == 7200
     assert (s["min"], s["max"], s["idle"], s["input_mode"], s["output_mode"]) == (0, 1, 120, "download", "upload")
+    for profile, size in [("gpu2", "Standard_NC48ads_A100_v4"), ("gpu4", "Standard_NC96ads_A100_v4")]:
+        q = spec(ns(**{**vars(a), "profile": profile, "hours": "12"}), "check", {})
+        assert q["size"] == size and q["timeout"] == 43200 and q["max"] == 1
+    try:
+        spec(ns(**{**vars(a), "hours": "12.01"}), "check", {})
+        assert False
+    except err:
+        pass
     c, j = entities(s, path("."))
     assert (c.min_instances, c.max_instances, c.idle_time_before_scale_down) == (0, 1, 120)
     assert c.enable_node_public_ip and not c.ssh_public_access_enabled
@@ -481,10 +490,11 @@ def main():
     r = su.add_parser("run")
     common(r, False)
     r.add_argument("--profile", choices=tuple(pf), required=True)
-    r.add_argument("--hours", required=True, help="runtime limit, at most 6")
+    r.add_argument("--hours", required=True, help="runtime limit, at most 12")
     r.add_argument("--rate", required=True, help="current usd per hour estimate")
     r.add_argument("--fixed", default="10", help="staging/storage/egress allowance")
     r.add_argument("--cap", default="500")
+    r.add_argument("--final", action="store_true", help="allow the reserved final inference allocation within the same hard cap")
     r.add_argument("--input", action="append", default=[], help="name=local-folder")
     r.add_argument("--command", required=True, help="shell template using azure inputs and outputs.out")
     r.add_argument("--out", type=path, required=True)

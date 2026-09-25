@@ -295,8 +295,16 @@ def _fit_cat(x, y, xv, yv, trees, threads):
     return m
 
 
-def predict(m, x):
-    return np.asarray(m.predict_proba(x)[:, 1], dtype=np.float64)
+def predict(m, x, threads=None):
+    kw = {}
+    if threads is not None:
+        if threads < 1:
+            raise ValueError("threads must be positive")
+        if hasattr(m, "get_cat_feature_indices"):
+            kw["thread_count"] = threads
+        elif hasattr(m, "booster_"):
+            kw["num_threads"] = threads
+    return np.asarray(m.predict_proba(x, **kw)[:, 1], dtype=np.float64)
 
 
 def _contract(met):
@@ -461,6 +469,9 @@ def check():
         assert got["feature_names"] == ff and got["dense_features"] == [] and set(ms) == {"lgb", "cat"}
         assert predict(ms["lgb"], np.zeros((1, len(ff)), np.float32)).shape == (1,)
         assert predict(ms["cat"], np.zeros((1, len(ff)), np.float32)).shape == (1,)
+        for m in ms.values():
+            x = np.zeros((4, len(ff)), np.float32)
+            assert np.allclose(predict(m, x, 1), predict(m, x, 2), rtol=0, atol=1e-12)
         old = dict(got)
         old.pop("dense_features")
         _save_json(out / "metadata.json", old)

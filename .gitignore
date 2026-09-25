@@ -18,5 +18,6 @@ artifacts/
 *.pt
 *.bin
 .azure/
+.cortexkit/
 *.pem
 *.key

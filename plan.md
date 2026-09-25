@@ -670,3 +670,26 @@ the full width and precision comparisons are in `reports/neural_gate_diagnostics
 this motivates a learned blocking filter followed by the final neural matcher
 only the last candidate set actually scored by that final matcher is exported
 full pool calibration and the locked audit remain required before final selection
+
+## production execution and review
+
+the complete a100 pilot processed 7974 records and scored 23922 final candidates with exact coverage
+reference and model setup took 1301.85 seconds
+steady processing took 95.03 seconds comprising 52.29 retrieval 33.68 feature and gate work and 9.06 neural matching
+this is about 84 records per second on one node and motivates parallel country and row shards
+
+azure ml regional spot quota was increased to 96 vcpus and verified on 2026-09-25
+the official eastus four a100 price is 2.715082 usd per hour spot or 14.692 on demand
+production reservations use a conservative 15.5 usd hourly ceiling plus staging allowance
+jobs retain one node maximum zero minimum idle shutdown and finite timeout
+the controller now permits up to 12 hours only when the full worst case reservation fits the unchanged 500 usd cap
+
+review fixes require resumed children to revalidate current model hashes before reusing predictions
+final packages require all selected retriever snapshots and automatically use their local offline cache
+missing or unmatched country labels use an explicitly marked unpartitioned reference fallback
+normal country retrieval including france remains partitioned
+production workers receive explicit gpu affinity and bounded tree inference threads
+run indexes bind dataset and model content rather than azure mount paths so interrupted shards can resume in a new job
+root inference signatures and exact coverage are rechecked after relocation
+
+the dataset-wide validation score final cutoff test outputs and submission archive are still pending
