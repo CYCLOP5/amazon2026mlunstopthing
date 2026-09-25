@@ -1,0 +1,390 @@
+{
+  "scope": "exact (qid, tid) intersection of fixed lexical tree candidates and saved fold-0 India lexical-plus-E5 neural scores; selected-query diagnostic only, not full-target macro f0.5",
+  "neural_provenance": {
+    "manifest": "/home/cyclops/Documents/GitHub/Amazon ML/cache/neural/val_india/manifest.json",
+    "manifest_sha256": "6b43a3284c43f05cbc6e4db65fbf840001af7af992ea9c209f81e087d7b5e9db",
+    "ensemble": "/home/cyclops/Documents/GitHub/Amazon ML/cache/neural/ensemble_india.parquet",
+    "ensemble_sha256": "462f6e12b31411c73de65804dd86b959c806a51ab61940f9d1a8189060f19e4d",
+    "scores": "/home/cyclops/Documents/GitHub/Amazon ML/cache/neural/val_india_scores.parquet",
+    "scores_sha256": "c4e282c9bbe74357daa790455a1cc0d17ade54ff93e338561245867ce39ad2d5",
+    "source_pairs": 753217,
+    "source_positive_owners": 6843,
+    "source": {
+      "anchors_sha256": "f7f69f4a680f493f2d8c4577e3d2efd87ce053dfb093a317e8321d8f04fdc55b",
+      "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+      "dense": {
+        "path": "../../runs/e5_local_india/dense50.parquet",
+        "sha256": "3830f48cc5115315b84da50738b7c76c1bb1e3cf28f58df2578a3461f35be22b"
+      },
+      "parts": [
+        {
+          "name": "pairs_00000.parquet",
+          "sha256": "85777438e5c6fd9caf291763f0c094ab40a3bca174b03c7fcf06baba8a0adc3e"
+        },
+        {
+          "name": "pairs_00001.parquet",
+          "sha256": "753988d6b9198a4d0e9a2afc0142e75440f312a92d08fa5313500419309737e5"
+        },
+        {
+          "name": "pairs_00002.parquet",
+          "sha256": "d0b342efa5a75aa28e2f7f2d0ec5a6680daac5cef9cdfc2fcc19470cd51e4d6f"
+        },
+        {
+          "name": "pairs_00003.parquet",
+          "sha256": "d9514d52a0716c1bad58ba63bd49938a5188bf67f805287bf63bc39d47066201"
+        },
+        {
+          "name": "pairs_00004.parquet",
+          "sha256": "b22447db103dacb2c7aafa7db45329ed0a70f7784f985e2f549d106da5836019"
+        },
+        {
+          "name": "pairs_00005.parquet",
+          "sha256": "0ae2b0f4d4f496b01f884b70b137944a08bb5be64a717d1072c9a2cf55f44e74"
+        },
+        {
+          "name": "pairs_00006.parquet",
+          "sha256": "492a61ec6136de326f468e56bdf80df1b824ad4b5438e9a85dd375f03eeb52a3"
+        },
+        {
+          "name": "pairs_00007.parquet",
+          "sha256": "527548787688373116ef5fbaa3ec4ffeaf370021dbdf2501a946c5bd9b089d76"
+        },
+        {
+          "name": "pairs_00008.parquet",
+          "sha256": "1159dbd13091e909d580deb656e522541b537557177c72265949f99186b23e27"
+        }
+      ],
+      "queries_sha256": "a88a14a391bb28b91886bfdab8f5c6e0f1709371866fc15d159a68022d31a120",
+      "run_metrics_sha256": "da817aa95a75edf84699d5e0263bce616fe8f0eefdeea174d5cf21875fa0f457"
+    }
+  },
+  "tree_prediction_path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/indic-followup/tree_validation_predictions.parquet",
+  "model_files": {
+    "baseline": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/indic-followup/models/baseline_lgb.joblib",
+    "base_plus_indic": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/indic-followup/models/base_plus_indic_lgb.joblib"
+  },
+  "blend": "sigmoid(0.6 * logit(neural) + 0.4 * logit(tree))",
+  "results": {
+    "coverage": {
+      "tree_pairs": 351878,
+      "tree_positive_owners": 6524,
+      "neural_pairs": 753217,
+      "neural_positive_owners": 6843,
+      "intersection_pairs": 351878,
+      "intersection_positive_owners": 6524,
+      "all_selected_positive_owners": 6925,
+      "tree_pair_coverage": 1.0,
+      "neural_pair_coverage": 0.46716683240022466,
+      "intersection_owner_coverage": 0.9420938628158845,
+      "intersection_queries": 8925,
+      "tree_queries": 8925,
+      "neural_queries": 8925
+    },
+    "models": {
+      "baseline": {
+        "tree_pair_curve": {
+          "recall_at_precision_0.99": {
+            "precision": 0.9901321291185817,
+            "recall": 0.9074187614960147,
+            "recall_of_all_positive_owners": 0.8548736462093863,
+            "threshold": 0.8686906850532939,
+            "pairs": 5979,
+            "positive_owners": 5920
+          },
+          "recall_at_precision_0.995": {
+            "precision": 0.9950071326676176,
+            "recall": 0.8553034947884733,
+            "recall_of_all_positive_owners": 0.8057761732851986,
+            "threshold": 0.9573863007683072,
+            "pairs": 5608,
+            "positive_owners": 5580
+          },
+          "recall_at_precision_0.999": {
+            "precision": 0.9991891891891892,
+            "recall": 0.5666768853464133,
+            "recall_of_all_positive_owners": 0.5338628158844765,
+            "threshold": 0.9979225684121729,
+            "pairs": 3700,
+            "positive_owners": 3697
+          }
+        },
+        "blend_pair_curve": {
+          "recall_at_precision_0.99": {
+            "precision": 0.9900015622558975,
+            "recall": 0.9713366033108523,
+            "recall_of_all_positive_owners": 0.9150902527075813,
+            "threshold": 0.700902006012694,
+            "pairs": 6401,
+            "positive_owners": 6337
+          },
+          "recall_at_precision_0.995": {
+            "precision": 0.9951243295953194,
+            "recall": 0.938534641324341,
+            "recall_of_all_positive_owners": 0.884187725631769,
+            "threshold": 0.9150472053000588,
+            "pairs": 6153,
+            "positive_owners": 6123
+          },
+          "recall_at_precision_0.999": {
+            "precision": 0.9990744168826361,
+            "recall": 0.8272532188841202,
+            "recall_of_all_positive_owners": 0.7793501805054152,
+            "threshold": 0.9931285768462434,
+            "pairs": 5402,
+            "positive_owners": 5397
+          }
+        },
+        "tree_gates": {
+          "top1": {
+            "candidate_pairs": 8925,
+            "positive_owners": 6457,
+            "blocking_coverage": 0.9324187725631768,
+            "blend_pair_curve": {
+              "recall_at_precision_0.99": {
+                "precision": 0.9900512979947148,
+                "recall": 0.9863713798977853,
+                "recall_of_all_positive_owners": 0.9197111913357401,
+                "threshold": 0.5766255980968539,
+                "pairs": 6433,
+                "positive_owners": 6369
+              },
+              "recall_at_precision_0.995": {
+                "precision": 0.9950542437779196,
+                "recall": 0.9659284497444633,
+                "recall_of_all_positive_owners": 0.9006498194945849,
+                "threshold": 0.8545832877773096,
+                "pairs": 6268,
+                "positive_owners": 6237
+              },
+              "recall_at_precision_0.999": {
+                "precision": 0.9990744168826361,
+                "recall": 0.8358370760415054,
+                "recall_of_all_positive_owners": 0.7793501805054152,
+                "threshold": 0.9931285768462434,
+                "pairs": 5402,
+                "positive_owners": 5397
+              }
+            }
+          },
+          "top3": {
+            "candidate_pairs": 26775,
+            "positive_owners": 6504,
+            "blocking_coverage": 0.9392057761732852,
+            "blend_pair_curve": {
+              "recall_at_precision_0.99": {
+                "precision": 0.9900280461202867,
+                "recall": 0.9769372693726938,
+                "recall_of_all_positive_owners": 0.9175451263537906,
+                "threshold": 0.6662048193537765,
+                "pairs": 6418,
+                "positive_owners": 6354
+              },
+              "recall_at_precision_0.995": {
+                "precision": 0.9951243295953194,
+                "recall": 0.941420664206642,
+                "recall_of_all_positive_owners": 0.884187725631769,
+                "threshold": 0.9150472053000588,
+                "pairs": 6153,
+                "positive_owners": 6123
+              },
+              "recall_at_precision_0.999": {
+                "precision": 0.9990744168826361,
+                "recall": 0.8297970479704797,
+                "recall_of_all_positive_owners": 0.7793501805054152,
+                "threshold": 0.9931285768462434,
+                "pairs": 5402,
+                "positive_owners": 5397
+              }
+            }
+          },
+          "top5": {
+            "candidate_pairs": 44625,
+            "positive_owners": 6512,
+            "blocking_coverage": 0.9403610108303249,
+            "blend_pair_curve": {
+              "recall_at_precision_0.99": {
+                "precision": 0.9900062460961899,
+                "recall": 0.9735872235872236,
+                "recall_of_all_positive_owners": 0.9155234657039711,
+                "threshold": 0.6964153563998675,
+                "pairs": 6404,
+                "positive_owners": 6340
+              },
+              "recall_at_precision_0.995": {
+                "precision": 0.9951243295953194,
+                "recall": 0.9402641277641277,
+                "recall_of_all_positive_owners": 0.884187725631769,
+                "threshold": 0.9150472053000588,
+                "pairs": 6153,
+                "positive_owners": 6123
+              },
+              "recall_at_precision_0.999": {
+                "precision": 0.9990744168826361,
+                "recall": 0.8287776412776413,
+                "recall_of_all_positive_owners": 0.7793501805054152,
+                "threshold": 0.9931285768462434,
+                "pairs": 5402,
+                "positive_owners": 5397
+              }
+            }
+          }
+        }
+      },
+      "base_plus_indic": {
+        "tree_pair_curve": {
+          "recall_at_precision_0.99": {
+            "precision": 0.9900216198237153,
+            "recall": 0.9124770079705702,
+            "recall_of_all_positive_owners": 0.8596389891696751,
+            "threshold": 0.8865704174695296,
+            "pairs": 6013,
+            "positive_owners": 5953
+          },
+          "recall_at_precision_0.995": {
+            "precision": 0.9951473136915078,
+            "recall": 0.8801348865726548,
+            "recall_of_all_positive_owners": 0.8291696750902527,
+            "threshold": 0.947300945956921,
+            "pairs": 5770,
+            "positive_owners": 5742
+          },
+          "recall_at_precision_0.999": {
+            "precision": 0.9990035870864886,
+            "recall": 0.7683936235438381,
+            "recall_of_all_positive_owners": 0.7238989169675091,
+            "threshold": 0.9916388968575321,
+            "pairs": 5018,
+            "positive_owners": 5013
+          }
+        },
+        "blend_pair_curve": {
+          "recall_at_precision_0.99": {
+            "precision": 0.9900233826968043,
+            "recall": 0.9734825260576333,
+            "recall_of_all_positive_owners": 0.9171119133574007,
+            "threshold": 0.7035962951502707,
+            "pairs": 6415,
+            "positive_owners": 6351
+          },
+          "recall_at_precision_0.995": {
+            "precision": 0.995028067361668,
+            "recall": 0.9509503372164316,
+            "recall_of_all_positive_owners": 0.895884476534296,
+            "threshold": 0.8853638296429006,
+            "pairs": 6235,
+            "positive_owners": 6204
+          },
+          "recall_at_precision_0.999": {
+            "precision": 0.9990689013035382,
+            "recall": 0.8223482526057634,
+            "recall_of_all_positive_owners": 0.7747292418772563,
+            "threshold": 0.9941962540844107,
+            "pairs": 5370,
+            "positive_owners": 5365
+          }
+        },
+        "tree_gates": {
+          "top1": {
+            "candidate_pairs": 8925,
+            "positive_owners": 6465,
+            "blocking_coverage": 0.9335740072202167,
+            "blend_pair_curve": {
+              "recall_at_precision_0.99": {
+                "precision": 0.990092879256966,
+                "recall": 0.9893271461716937,
+                "recall_of_all_positive_owners": 0.9236101083032491,
+                "threshold": 0.5104906891349208,
+                "pairs": 6460,
+                "positive_owners": 6396
+              },
+              "recall_at_precision_0.995": {
+                "precision": 0.9950715421303656,
+                "recall": 0.9681361175560712,
+                "recall_of_all_positive_owners": 0.903826714801444,
+                "threshold": 0.8375519214854061,
+                "pairs": 6290,
+                "positive_owners": 6259
+              },
+              "recall_at_precision_0.999": {
+                "precision": 0.9990689013035382,
+                "recall": 0.8298530549110595,
+                "recall_of_all_positive_owners": 0.7747292418772563,
+                "threshold": 0.9941962540844107,
+                "pairs": 5370,
+                "positive_owners": 5365
+              }
+            }
+          },
+          "top3": {
+            "candidate_pairs": 26775,
+            "positive_owners": 6503,
+            "blocking_coverage": 0.9390613718411552,
+            "blend_pair_curve": {
+              "recall_at_precision_0.99": {
+                "precision": 0.990031152647975,
+                "recall": 0.9773950484391819,
+                "recall_of_all_positive_owners": 0.9178339350180506,
+                "threshold": 0.6879855056534858,
+                "pairs": 6420,
+                "positive_owners": 6356
+              },
+              "recall_at_precision_0.995": {
+                "precision": 0.99504,
+                "recall": 0.9563278486852222,
+                "recall_of_all_positive_owners": 0.8980505415162455,
+                "threshold": 0.876918040966511,
+                "pairs": 6250,
+                "positive_owners": 6219
+              },
+              "recall_at_precision_0.999": {
+                "precision": 0.9990689013035382,
+                "recall": 0.8250038443795171,
+                "recall_of_all_positive_owners": 0.7747292418772563,
+                "threshold": 0.9941962540844107,
+                "pairs": 5370,
+                "positive_owners": 5365
+              }
+            }
+          },
+          "top5": {
+            "candidate_pairs": 44625,
+            "positive_owners": 6512,
+            "blocking_coverage": 0.9403610108303249,
+            "blend_pair_curve": {
+              "recall_at_precision_0.99": {
+                "precision": 0.9900264921302789,
+                "recall": 0.975583538083538,
+                "recall_of_all_positive_owners": 0.9174007220216607,
+                "threshold": 0.6990970030524783,
+                "pairs": 6417,
+                "positive_owners": 6353
+              },
+              "recall_at_precision_0.995": {
+                "precision": 0.995028067361668,
+                "recall": 0.9527027027027027,
+                "recall_of_all_positive_owners": 0.895884476534296,
+                "threshold": 0.8853638296429006,
+                "pairs": 6235,
+                "positive_owners": 6204
+              },
+              "recall_at_precision_0.999": {
+                "precision": 0.9990689013035382,
+                "recall": 0.8238636363636364,
+                "recall_of_all_positive_owners": 0.7747292418772563,
+                "threshold": 0.9941962540844107,
+                "pairs": 5370,
+                "positive_owners": 5365
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "limitations": [
+    "the intersection excludes neural-only E5 candidates and cannot measure the neural pipeline's full candidate universe",
+    "all blend comparisons use fold 0 and do not fit weights or evaluate locked fold 1",
+    "recall_at_precision is relative to positive pairs present in each scored set; recall_of_all_positive_owners exposes the selected-query ceiling"
+  ],
+  "scope_note": "exact lexical pair intersection; conditional recall is not full-target macro f0.5"
+}

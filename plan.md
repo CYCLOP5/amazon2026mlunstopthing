@@ -693,3 +693,53 @@ run indexes bind dataset and model content rather than azure mount paths so inte
 root inference signatures and exact coverage are rechecked after relocation
 
 the dataset-wide validation score final cutoff test outputs and submission archive are still pending
+
+## follow up on indic language and address suggestions
+
+sources checked on 2026-09-25
+
+- `https://huggingface.co/intfloat/multilingual-e5-base`
+- `https://huggingface.co/intfloat/multilingual-e5-large-instruct`
+- `https://arxiv.org/html/2402.05672v1`
+- `Ml_Challenge.txt` lines 141 to 150
+
+the task includes cross-script matching from indian-language aliases to predominantly latin-script references
+the existing anyascii comparison view therefore remains important
+raw unicode is retained for neural input and within-script comparisons but a raw-unicode-only lexical index would not bridge scripts
+
+the claim that e5-base is suitable only for monolingual search is incorrect
+its official card describes multilingual training including translation pairs and support inherited from xlm-roberta for 100 languages
+the technical report evaluates cross-lingual bitext mining as well as multilingual retrieval
+language coverage does not guarantee business identity accuracy in every language
+
+large-instruct initializes from xlm-roberta-large and has 24 layers and 1024-dimensional embeddings
+it also uses different instruction-tuning data rather than being only a wider base model
+queries require `Instruct: <task>\nQuery: <record>` while reference documents have no query or passage prefix
+the cited sources do not establish that token fragmentation alone explains an indic performance gap or that every larger variant is better for this dataset
+
+existing features already include character tfidf raw unicode fuzzy comparisons token overlap transliterated ratios number-set agreement missing-address flags and mined hard negatives
+a matched isolated experiment added compact and transliterated name comparisons token containment 2/3/4-gram evidence and soft address number/locality cues
+both baselines used the same india training entities fixed lexical candidate universe 800 lightgbm trees and fold-0 tuning queries
+recall at 0.995 pair precision improved from 0.855303 to 0.880135
+top-3 candidate-owner recall changed from 0.939206 to 0.939061 so this is mainly a scoring gain rather than a retrieval gain
+the possible-pin feature had zero tree importance in this experiment
+details are in `reports/indic_feature_followup.json`
+
+an exact-pair intersection check reused existing neural scores without new inference
+it covered all 351878 lexical candidates but only 46.72 percent of the larger lexical-plus-e5 neural universe
+conditional recall at 0.995 precision improved from 0.938535 to 0.950950 with the 0.6 neural logit blend
+that denominator contains only the 6524 positive owners covered by the intersection rather than all 6925 selected positive owners
+the corresponding all-selected-positive recall is 6123/6925 versus 6204/6925
+performance at 0.999 precision was slightly worse
+these are sampled diagnostics not official full-target macro f0.5 and do not by themselves justify replacing the production configuration
+the locked fold-1 audit must not be repurposed to select a feature variant
+
+a separate pinned large-instruct experiment uses the full india reference pool and the same 8925 held-out queries
+revision `274baa43b0e13e37fafa6428dbc7938e62e5c439` has 559890432 parameters and mit metadata
+its local benchmark uses the documented instruction format and records truncation recall and runtime
+the existing production configuration continues while this experiment runs
+
+geocoding apis are explicitly prohibited by the challenge
+an offline external gazetteer would still add external reference data
+address cues must instead come from the supplied strings and training labels
+numeric evidence remains soft because genuine matching pairs can contain edited or missing numbers
