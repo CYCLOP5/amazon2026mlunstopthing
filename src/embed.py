@@ -12,7 +12,7 @@ import polars as pl
 
 mod0 = "intfloat/multilingual-e5-base"
 rev0 = "d128750597153bb5987e10b1c3493a34e5a4502a"
-src0 = path("/home/cyclops/Documents/GitHub/Amazon ML/reports/model_sources.json")
+src0 = path(__file__).resolve().parents[1] / "reports/model_sources.json"
 fmt = "{role}: name: {nm}\naddress: {ad}\ncountry: {co}"
 
 
@@ -86,8 +86,8 @@ def source(p, model, rev):
         raise FileNotFoundError(f"model source metadata not found: {p}")
     for x in json.loads(p.read_text(encoding="utf-8")):
         if x.get("model") == model and x.get("revision") == rev:
-            if x.get("license", "").lower() != "mit":
-                raise ValueError("model license is not mit")
+            if x.get("license", "").lower() not in {"mit", "apache-2.0"}:
+                raise ValueError("ineligible model license")
             return x
     raise ValueError("model revision is absent from source metadata")
 
@@ -370,6 +370,15 @@ def check():
         c = pl.DataFrame({"tid": [10], "qid": [4], "ds": [1.], "own": [4], "sr": [2]})
         met, hs = score(aa, c)
         assert hs == {10} and met["link_recall"] == 1 and met["oracle_macro_f05"] == 1
+        from importlib import util
+        moved = p / "moved/src/embed.py"
+        moved.parent.mkdir(parents=True)
+        moved.write_text(path(__file__).read_text(encoding="utf-8"), encoding="utf-8")
+        atom(p / "moved/reports/model_sources.json", [{"model": "test", "revision": "local", "license": "apache-2.0"}])
+        spec = util.spec_from_file_location("moved_embed", moved)
+        mod = util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        assert mod.source(mod.src0, "test", "local")["license"] == "apache-2.0"
     print("checks passed")
 
 
