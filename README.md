@@ -23,17 +23,18 @@ selected sources
 
 ## setup
 
-the committed `.python-version` pins python 3.11.16. use an already provisioned compatible environment; do not sync install or download while checking or packaging
+the committed `.python-version` pins python 3.11.16. `uv.lock` is the reproducibility lock and selects `torch 2.8.0+cu128` through the configured pytorch index
 
 ```sh
-python=../.venv/bin/python
-"$python" src/data.py --check
-"$python" src/block.py --check
-"$python" src/train.py --check
-"$python" src/embed.py --check
-"$python" src/neural.py check
-"$python" src/run.py --check
-"$python" src/package.py --check
+uv python install 3.11.16
+uv sync --frozen
+uv run python src/data.py --check
+uv run python src/block.py --check
+uv run python src/train.py --check
+uv run --group neural python src/embed.py --check
+uv run --group neural python src/neural.py check
+uv run python src/run.py --check
+uv run python src/package.py --check
 ```
 
 these checks use temporary data. they do not download a corpus or make paid calls
@@ -45,7 +46,7 @@ run the pipeline commands below from the repository root. after extracting a fin
 place the supplied files under `student_resource/dataset` in this repository, or pass the supplied dataset directory explicitly with `--data`. the final package does not include raw records
 
 ```sh
-"$python" src/data.py \
+uv run python src/data.py \
   --data student_resource/dataset \
   --out cache/data
 ```
@@ -59,22 +60,22 @@ the train split creates fixed seed 42 entity folds. fold 2 is fit data fold 0 is
 run each country and fold separately. these examples make sampled lexical train and tuning runs with bounded eight-thread retrieval
 
 ```sh
-"$python" src/block.py \
+uv run python src/block.py \
   --data cache/data --cache cache/block --country us --fold 2 \
   --n 5000 --neg 1000 --k 20 --threads 8 \
   --out cache/runs/lex_train_us
 
-"$python" src/block.py \
+uv run python src/block.py \
   --data cache/data --cache cache/block --country india --fold 2 \
   --n 5000 --neg 1000 --k 20 --threads 8 \
   --out cache/runs/lex_train_india
 
-"$python" src/block.py \
+uv run python src/block.py \
   --data cache/data --cache cache/block --country us --fold 0 \
   --n 2000 --neg 1000 --k 20 --threads 8 \
   --out cache/runs/lex_val_us
 
-"$python" src/block.py \
+uv run python src/block.py \
   --data cache/data --cache cache/block --country india --fold 0 \
   --n 2000 --neg 1000 --k 20 --threads 8 \
   --out cache/runs/lex_val_india
@@ -85,7 +86,7 @@ the lexical blocker keeps independent name address and exact-key candidates. it 
 train the tree only after the selected train and validation runs share the same candidate score version and dense feature schema. `src/train.py` computes complete name and address features for every retained pair rather than trusting the channel that introduced it
 
 ```sh
-"$python" src/train.py \
+uv run python src/train.py \
   --data cache/data \
   --train cache/runs/lex_train_us cache/runs/lex_train_india \
   --val cache/runs/lex_val_us cache/runs/lex_val_india \
@@ -99,7 +100,7 @@ train the tree only after the selected train and validation runs share the same 
 e5 uses its required `query:` and `passage:` prefixes. the validation command below writes `dense_candidates.parquet` beside the lexical run and records the pinned source revision
 
 ```sh
-"$python" src/embed.py \
+uv run --group neural python src/embed.py \
   --data cache/data --run cache/runs/lex_val_india --cache cache/embed \
   --model intfloat/multilingual-e5-base \
   --revision d128750597153bb5987e10b1c3493a34e5a4502a \
@@ -114,23 +115,23 @@ the observed india validation union of lexical e5 and qwen retrieval reached lin
 prepare fold 2 pairs with hard negatives. fold 2 can add a missed known positive before hard-negative selection. fold 0 validation keeps only its generated candidates and receives no gold-positive injection
 
 ```sh
-"$python" src/neural.py prepare \
+uv run --group neural python src/neural.py prepare \
   --data cache/data --run cache/runs/lex_train_us \
   --out cache/neural_pairs/train_us --hard 8 --random 2
 
-"$python" src/neural.py prepare \
+uv run --group neural python src/neural.py prepare \
   --data cache/data --run cache/runs/lex_train_india \
   --out cache/neural_pairs/train_india --hard 8 --random 2
 
-"$python" src/neural.py prepare \
+uv run --group neural python src/neural.py prepare \
   --data cache/data --run cache/runs/lex_val_us \
   --out cache/neural_pairs/val_us
 
-"$python" src/neural.py prepare \
+uv run --group neural python src/neural.py prepare \
   --data cache/data --run cache/runs/lex_val_india \
   --out cache/neural_pairs/val_india
 
-"$python" src/neural.py train \
+uv run --group neural python src/neural.py train \
   --train cache/neural_pairs/train_us cache/neural_pairs/train_india \
   --val cache/neural_pairs/val_us cache/neural_pairs/val_india \
   --out models/neural \
@@ -163,7 +164,7 @@ the two dense retrievers plus the neural encoder total about 1.152b neural param
 `src/run.py` defaults to one worker, one thread, and query batches of 4096. run the full country-parallel train prediction first. on the verified a100 worker use three country workers with eight threads each. this occupies at most 24 cpu threads rather than all available workspace quota
 
 ```sh
-"$python" src/run.py \
+uv run --group neural python src/run.py \
   --data cache/data --cache cache --gate models/gate --neural models/neural \
   --out artifacts/final_train --split train \
   --workers 3 --threads 8 \
@@ -179,7 +180,7 @@ the two dense retrievers plus the neural encoder total about 1.152b neural param
 after reviewing the complete calibration and required locked audit use the resulting calibration file for the complete test export
 
 ```sh
-"$python" src/run.py \
+uv run --group neural python src/run.py \
   --data cache/data --cache cache --gate models/gate --neural models/neural \
   --out artifacts/final_test --split test \
   --workers 3 --threads 8 \
@@ -207,14 +208,14 @@ keep workers times threads within available cores. use country sharding memory-m
 use current pricing and placeholders supplied by the account owner
 
 ```sh
-"$python" src/cloud.py run \
+uv run --group cloud python src/cloud.py run \
   --subscription '<subscription>' \
   --group '<resource-group>' \
   --workspace '<workspace>' \
   --profile gpu --hours '<hours-at-most-6>' --rate '<current-usd-per-hour>' \
   --fixed 10 --cap 500 \
   --input train=azureml://datastores/<datastore>/paths/<project>/<upstream-run>/out/ \
-  --command 'python src/neural.py train --train ${{inputs.train}}/train --val ${{inputs.train}}/val --out ${{outputs.out}}/models/neural --batch 128 --epochs 2 --maxlen 384 --device cuda' \
+  --command 'uv run --frozen --group neural python src/neural.py train --train ${{inputs.train}}/train --val ${{inputs.train}}/val --out ${{outputs.out}}/models/neural --batch 128 --epochs 2 --maxlen 384 --device cuda' \
   --out artifacts/cloud/neural --no-download
 ```
 
@@ -236,7 +237,7 @@ python <challenge-resource-root>/utils/validate_submission.py \
   --test-dir <supplied-dataset>/test \
   --check-ids
 
-"$python" src/package.py \
+uv run python src/package.py \
   --matching output/final/matching_results.tsv \
   --candidate output/final/candidate_pairs.tsv \
   --test-dir student_resource/dataset/test \
@@ -253,7 +254,7 @@ python <challenge-resource-root>/utils/validate_submission.py \
 the validation helper belongs to the supplied challenge resources, not the final archive. the package command above runs from the source checkout. to repackage an extracted archive, run this from `code/business_entity_resolution`:
 
 ```sh
-"$python" src/package.py \
+uv run python src/package.py \
   --matching ../../output/matching_results.tsv \
   --candidate ../../output/candidate_pairs.tsv \
   --test-dir <supplied-dataset>/test \
