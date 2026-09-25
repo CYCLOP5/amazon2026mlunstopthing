@@ -247,7 +247,7 @@ def run(a):
     if a.profile == "gpu":
         print("warning: spot nodes can be preempted; checkpoint survival is not guaranteed", file=sys.stderr)
     root = path(__file__).resolve().parents[1]
-    run = "aml26-" + a.profile + "-" + uuid4().hex[:10]
+    run = "aml26-" + a.profile + "-r" + uuid4().hex[:10]
     s = spec(a, run, ins)
     jp = root / "artifacts/cloud" / (run + ".json")
     j = {
