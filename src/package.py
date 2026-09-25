@@ -304,6 +304,10 @@ def build(matching, candidate, test_dir, repo_root, code_root, readme, methodolo
         hf(hf_cache, selected, out)
     if (repo / "plan.md").is_file():
         add(out, "plan.md", repo / "plan.md")
+    for name in ("readme.md", "e5-mit.txt", "qwen3-apache-2.0.txt"):
+        p = repo / "licenses" / name
+        if p.is_file():
+            add(out, "code/business_entity_resolution/licenses/" + name, p)
     add(out, "Documentation_template.md", doc(methodology, "methodology document", filled=True))
     man = manifest(out, prov, bool(selected))
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -337,6 +341,7 @@ def check():
             {"model": "org/model", "revision": "rev", "license": "mit", "parameters": 2},
         ]))
         put(c / "plan.md", "plan\n")
+        put(c / "licenses/e5-mit.txt", "test license notice\n")
         hd = "entity_id\tbusiness_name\tbusiness_address\tcountry\n"
         put(raw / "test_source1.tsv", hd + "S1-a\ta\ta\tUS\n")
         put(raw / "test_source2.tsv", hd + "S2-a\ta\ta\tUS\n")
@@ -385,6 +390,7 @@ def check():
             man = json.loads(x.read("package_manifest.json"))
             assert x.testzip() is None
             assert "code/business_entity_resolution/models/calibration.json" in ns
+            assert x.read("code/business_entity_resolution/licenses/e5-mit.txt") == b"test license notice\n"
             assert all(f"code/business_entity_resolution/models/hf/{p.parents[1].name}/snapshots/{p.name}/weights.bin" in ns
                        for p in sns)
             assert x.read(f"code/business_entity_resolution/models/hf/{sns[0].parents[1].name}/snapshots/{sns[0].name}/weights.bin") == b"weight-0"
