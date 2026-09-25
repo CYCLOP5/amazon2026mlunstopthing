@@ -58,9 +58,15 @@ def pairs(xs):
         if "=" not in x:
             die("input must be name=path")
         n, p = x.split("=", 1)
+        if not rx.fullmatch(n) or n in out or not p:
+            die("inputs must have unique valid names")
+        if p.startswith("azureml://datastores/"):
+            location(p)
+            out[n] = p
+            continue
         q = path(p).expanduser()
-        if not rx.fullmatch(n) or n in out or not p or not q.is_dir():
-            die("inputs must be unique names and existing folders")
+        if not q.is_dir():
+            die("inputs must be existing folders or azure ml datastore uris")
         out[n] = q.resolve()
     return out
 
@@ -237,7 +243,7 @@ def location(uri):
     return m[1], uq(m[2]).rstrip("/") + "/"
 
 
-def download(ml, uri, dest, recursive=True):
+def blobs(ml, uri):
     from azure.core.credentials import AzureNamedKeyCredential, AzureSasCredential
     from azure.identity import AzureCliCredential
     from azure.storage.blob import BlobServiceClient
@@ -248,8 +254,14 @@ def download(ml, uri, dest, recursive=True):
     sas = getattr(cr, "sas_token", None)
     key = getattr(cr, "account_key", None)
     cred = AzureSasCredential(sas) if sas else (AzureNamedKeyCredential(ds.account_name, key) if key else AzureCliCredential())
-    svc = BlobServiceClient("https://" + ds.account_name + ".blob.core.windows.net", credential=cred)
+    svc = BlobServiceClient("https://" + ds.account_name + ".blob.core.windows.net", credential=cred,
+                            max_single_get_size=64 * 1024**2, max_chunk_get_size=16 * 1024**2)
     cc = svc.get_container_client(ds.container_name)
+    return cc, pre
+
+
+def download(ml, uri, dest, recursive=True):
+    cc, pre = blobs(ml, uri)
     dest = dest.resolve()
     dest.mkdir(parents=True, exist_ok=True)
     n = 0
@@ -266,7 +278,7 @@ def download(ml, uri, dest, recursive=True):
         p.parent.mkdir(parents=True, exist_ok=True)
         tmp = p.with_suffix(p.suffix + ".part")
         with tmp.open("wb") as f:
-            cc.download_blob(obj.name, max_concurrency=4).readinto(f)
+            cc.download_blob(obj.name, max_concurrency=8).readinto(f)
         tmp.replace(p)
         n += 1
     if not n:
@@ -351,9 +363,16 @@ def run(a):
         j["job_status"] = state(got.status)
         if state(got.status) != "completed":
             die("job ended with " + state(got.status))
-        a.out.mkdir(parents=True, exist_ok=True)
-        download(ml, s["out_uri"], a.out)
-        j["state"] = "downloaded"
+        if not getattr(a, "no_download", False):
+            a.out.mkdir(parents=True, exist_ok=True)
+            download(ml, s["out_uri"], a.out)
+        else:
+            cc, pre = blobs(ml, s["out_uri"])
+            if not any(not x.name.endswith("/") and (x.metadata or {}).get("hdi_isfolder", "").lower() != "true"
+                       for x in cc.list_blobs(name_starts_with=pre, include=["metadata"])):
+                die("completed job has no output artifacts")
+        j["downloaded"] = not getattr(a, "no_download", False)
+        j["state"] = "downloaded" if j["downloaded"] else "outputs_remote"
         j["outcome"] = "completed"
         write(jp, j)
     except BaseException as e:
@@ -374,7 +393,8 @@ def run(a):
         die("cleanup failed; reservation remains active: " + str(clean))
     if primary:
         raise primary
-    print(json.dumps({"job": j["job"], "compute": j["compute"], "out": str(a.out)}, indent=2))
+    print(json.dumps({"job": j["job"], "compute": j["compute"], "out": str(a.out) if j["downloaded"] else None,
+                      "out_uri": j["out_uri"]}, indent=2))
 
 
 def recover(a):
@@ -427,6 +447,10 @@ def check():
     a.output_mode = "rw_mount"
     _, mounted = entities(spec(a, "aml26-gpu-check", {"train": path("/tmp")}), path("."))
     assert mounted.component.outputs["out"]["mode"] == "rw_mount"
+    u = "azureml://datastores/store/paths/project/model/"
+    assert pairs(["model=" + u]) == {"model": u}
+    _, remote = entities(spec(a, "aml26-gpu-check", {"model": u}), path("."))
+    assert remote.inputs["model"].path == u
     from unittest.mock import patch
     from types import SimpleNamespace as obj
     import tempfile
@@ -466,6 +490,7 @@ def main():
     r.add_argument("--out", type=path, required=True)
     r.add_argument("--neural", action="store_true")
     r.add_argument("--output-mode", choices=["upload", "rw_mount"], default="upload")
+    r.add_argument("--no-download", action="store_true", help="keep outputs in the recorded datastore uri for downstream jobs")
     x = su.add_parser("recover")
     common(x)
     z = su.add_parser("status")

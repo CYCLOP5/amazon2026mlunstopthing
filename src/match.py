@@ -5,6 +5,7 @@ import os
 import subprocess as sp
 import tempfile as tf
 from pathlib import Path as path
+import time
 
 import numpy as np
 import polars as pl
@@ -91,11 +92,15 @@ def _neural(d):
         raise ValueError("invalid neural model metadata")
     if str(m.get("source", {}).get("license", "")).lower() not in {"mit", "apache-2.0", "apache2", "apache 2.0"}:
         raise ValueError("neural model license is not mit or apache-2.0")
-    ws = sorted(p.relative_to(d).as_posix() for p in d.rglob("*.safetensors"))
-    ws += sorted(p.relative_to(d).as_posix() for p in d.rglob("pytorch_model*.bin"))
+    ws = sorted(p.name for p in d.glob("*.safetensors"))
+    ws += sorted(p.name for p in d.glob("pytorch_model*.bin"))
     if not ws:
         raise ValueError("neural model has no weights")
-    z = {"metadata_sha256": _sha(d / "neural_metadata.json"), "weights": _files(d, ws), "parameters": n}
+    cs = [x for x in ("config.json", "model.safetensors.index.json", "pytorch_model.bin.index.json",
+                      "tokenizer.json", "tokenizer_config.json", "special_tokens_map.json", "added_tokens.json",
+                      "sentencepiece.bpe.model", "spiece.model", "vocab.txt", "vocab.json", "merges.txt") if (d / x).is_file()]
+    z = {"metadata_sha256": _sha(d / "neural_metadata.json"), "weights": _files(d, ws),
+         "tokenization": _files(d, cs), "parameters": n}
     z["sha256"] = hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
     return m, z
 
@@ -112,19 +117,24 @@ def _retrievers(xs):
     return xs
 
 
-def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight):
+def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu"):
     dm = _json(data / "meta.json")
     ret = []
     for x in rs:
         f = embed.family(x["model"])
         ret.append({"model": x["model"], "revision": x["revision"], "feature": hybrid.feat(x),
                     "format": embed.fmt if f == "e5" else embed.rawfmt, "family": f})
+    import torch
+    precision = "bf16" if device == "cuda" and torch.cuda.is_bf16_supported() else "fp16" if device == "cuda" else "fp32"
+    src = path(__file__).resolve().parent
     z = {"version": ver, "data_meta_sha256": _sha(data / "meta.json"), "data_version": dm.get("version"),
          "normalization": dm.get("normalization", "data.norm"), "retriever_sources_sha256": _sha(embed.src0),
          "gate": gate, "neural": nn, "retrievers": ret,
-         "feature_contract": gate["feature_names"], "block_score_version": block.sv,
+          "feature_contract": gate["feature_names"], "block_score_version": block.sv,
+          "source_files": {x: _sha(src / x) for x in ("data.py", "block.py", "embed.py", "hybrid.py", "feat.py", "train.py", "neural.py", "match.py")},
          "text_format": neural.fmt, "k": {"lexical": klex, "dense": kdense, "gate": kgate},
-         "numeric": {"gate": "mean_probability", "neural": "sigmoid_probability", "topk_ties": "qid_asc",
+          "numeric": {"gate": "mean_probability", "neural": "sigmoid_probability", "topk_ties": "qid_asc",
+                      "device": device, "neural_precision": precision, "retrieval_precision": "fp16" if device == "cuda" else "fp32",
                      "blend": {"method": "weighted_logit", "neural_weight": neural_weight}}}
     z["model"] = {"sha256": hh.sha256(json.dumps(
         {"gate": gate["sha256"], "neural": nn["sha256"], "neural_weight": neural_weight}, sort_keys=True).encode()).hexdigest()}
@@ -212,17 +222,20 @@ def _old(out, x, ids, split, q, refs):
 def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, rid_start=None, rid_stop=None,
           k_lex=10, k_dense=50, k_gate=20, device="auto", threads=4, encoder_batch=64, neural_batch=32,
           query_batch=512, retrievers=None, gate_models=None, neural_bundle=None, neural_predictor=None, neural_weight=1.0):
+    t0 = time.perf_counter()
+    tm = {"setup": 0., "retrieval": 0., "features": 0., "neural": 0., "new_queries": 0}
     if split not in {"train", "test"} or min(k_lex, k_dense, k_gate, threads, encoder_batch, neural_batch, query_batch) < 1:
         raise ValueError("invalid matching options")
     if rid_start is not None and rid_stop is not None and rid_start >= rid_stop:
         raise ValueError("rid start must be below rid stop")
     data, cache, out = (path(x).resolve() for x in (data, cache, out))
     neural_weight = _weight(neural_weight)
+    device = neural._device(device)
     gm, names, dense, gi = _gate(gate_dir)
     nm, ni = _neural(neural_dir)
     rs = _retrievers(retrievers)
     cfg, ch = _cfg(data, {**gi, "feature_names": names, "dense_features": dense, "score_version": block.sv}, ni,
-                   rs, k_lex, k_dense, k_gate, neural_weight)
+                   rs, k_lex, k_dense, k_gate, neural_weight, device)
     scope = infer._scope(data, split, country, rid_start, rid_stop)
     mp = out / "manifest.json"
     if mp.exists():
@@ -257,7 +270,8 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
         cr = refs.filter(pl.col("co") == co)
         state = None
         if len(cr):
-            state = hybrid.setup(data, cache, co, split, 0, rs, "cpu" if device == "auto" else device, encoder_batch)
+            t1 = time.perf_counter()
+            state = hybrid.setup(data, cache, co, split, 0, rs, device, encoder_batch)
             if state["config"]["total_params"] + ni["parameters"] > hybrid.mx:
                 raise ValueError("active retrieval and neural models exceed 8b parameters")
             if set(dense) - set(state["dense_features"]):
@@ -265,6 +279,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
             man["provenance"]["countries"][co] = {"status": "ready", "retrieval": state["config"],
                                                       "references": state["config"]["reference_rows"]}
             fst = feat.prep(state["refs"])
+            tm["setup"] += time.perf_counter() - t1
         else:
             man["provenance"]["countries"][co] = {"status": "no_references"}
             fst = None
@@ -285,18 +300,24 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                 if state is None:
                     scored, before = _empty(split, sr), 0
                 else:
+                    t1 = time.perf_counter()
                     p = hybrid.search(state, q, k_lex, k_dense, threads)
+                    tm["retrieval"] += time.perf_counter() - t1
                     before = len(p)
                     if p.is_empty():
                         scored = _empty(split, sr)
                     else:
+                        t1 = time.perf_counter()
                         x, got = feat.make(fst, q, p, threads, dense)
                         if got != names:
                             raise ValueError("gate feature contract mismatch")
                         gp = _prob(np.mean([train.predict(m, x) for m in gate_models.values()], axis=0, dtype=np.float64), "gate")
                         post = _top(p.with_columns(pl.Series("gate", gp)), k_gate)
                         tx = _text(state["refs"], q, post)
+                        tm["features"] += time.perf_counter() - t1
+                        t1 = time.perf_counter()
                         npb = neural_predictor(tx) if neural_predictor is not None else neural.predict(neural_bundle, tx, neural_batch)
+                        tm["neural"] += time.perf_counter() - t1
                         npb = _blend(npb, post["gate"].to_numpy(), neural_weight)
                         scored = post.select("qid", "tid", "sr", *(["y"] if split == "train" else [])).with_columns(
                             pl.Series("prob", npb)).select("qid", "tid", "prob", "sr", *(["y"] if split == "train" else [])).sort("tid", "qid")
@@ -308,13 +329,17 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                      "retrieved_pairs": before, "neural_pairs": len(scored), "neural_input_sha256": _pairs(scored)}
                 man["parts"].append(z)
                 _write(mp, man)
+                tm["new_queries"] += len(ids)
                 nq, npair = nq + len(ids), npair + len(scored)
                 seen.add(name)
     if set(done) - seen:
         raise ValueError("unvisited resumed part")
     r = infer._run(data, out, split, infer._ids(data, split, country, rid_start, rid_stop))
     z = {"manifest": str(mp), "parts": len(r["parts"]), "queries": nq, "pairs": npair,
-         "coverage": len(r["coverage"]), "config_sha256": ch}
+          "coverage": len(r["coverage"]), "config_sha256": ch}
+    tm["total"] = time.perf_counter() - t0
+    _write(out / "timing.json", tm)
+    z["timing"] = tm
     print(json.dumps(z, indent=2))
     return z
 
@@ -365,7 +390,13 @@ def check():
                                          "dense_features": ["ds_e5"], "models": ["fake"], "model_files": {"fake": "fake.bin"}})
         (nd / "model.safetensors").write_bytes(b"neural")
         _write(nd / "neural_metadata.json", {"parameters": 2, "problem_type": "multi_label_classification",
-                                               "source": {"license": "mit"}, "configuration": {"maxlen": 8}})
+                                                "source": {"license": "mit"}, "configuration": {"maxlen": 8}})
+        ident = _neural(nd)[1]
+        (nd / "checkpoint-1").mkdir()
+        (nd / "checkpoint-1/model.safetensors").write_bytes(b"training checkpoint")
+        assert _neural(nd)[1] == ident
+        _write(nd / "tokenizer_config.json", {"padding_side": "left"})
+        assert _neural(nd)[1]["sha256"] != ident["sha256"]
         calls = []
 
         def pred(x):

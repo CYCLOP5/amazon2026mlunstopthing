@@ -653,3 +653,20 @@ this remains a selected query diagnostic and final thresholds still require comp
 directory markers in mounted azure output use `hdi_isfolder` metadata
 the downloader now ignores those markers instead of treating a directory as an empty file
 the training job completed and its compute was deleted even when this extraction issue was encountered
+
+### complementary retrieval and candidate filtering
+
+qwen3 embedding 0.6b is weaker than e5 alone on india but recovers different links
+lexical retrieval plus both encoders reaches 0.99292 link recall at dense width 50 each
+width 100 each reaches 0.99538 and width 200 each reaches 0.99639
+the model licenses revisions and measured parameter counts are pinned in `reports/model_sources.json`
+the width curve is in `reports/retrieval_union_india.json`
+
+the final matcher can blend neural and existing tree log odds
+on the selected query diagnostic a 0.6 neural weight raises recall at 0.995 precision from 0.91611 to 0.93397
+a top 3 upstream tree filter retains essentially the same precision focused result while reducing neural calls from about 1.5 million to 53481
+its lower candidate recall is measured explicitly rather than hidden
+the full width and precision comparisons are in `reports/neural_gate_diagnostics.json`
+this motivates a learned blocking filter followed by the final neural matcher
+only the last candidate set actually scored by that final matcher is exported
+full pool calibration and the locked audit remain required before final selection
