@@ -199,7 +199,7 @@ def entities(s, code):
     ins = {n: Input(type="uri_folder", path=str(p), mode=s["input_mode"]) for n, p in s["inputs"].items()}
     job = command(
         name=s["job"], display_name=s["run"], experiment_name=pr, tags=s["tags"],
-        code=str(code), command=shell(s), compute="azureml:" + s["compute"],
+        code=str(code), command=shell(s), compute=s["compute"],
         environment=Environment(image=im), inputs=ins,
         outputs={"out": Output(type="uri_folder", mode=s["output_mode"])}, timeout=s["timeout"],
     )
@@ -261,16 +261,19 @@ def run(a):
     reserve(a, s)
     j["state"] = "reserved"
     write(jp, j)
+    print("reserved", run, "creating", s["compute"], flush=True)
     primary = clean = None
     try:
         comp, job = entities(s, code)
         ml.compute.begin_create_or_update(comp).result()
         j["state"] = "compute_created"
         write(jp, j)
+        print("compute ready", s["compute"], "submitting job", flush=True)
         got = ml.jobs.create_or_update(job)
         j["job"] = got.name
         j["state"] = "job_submitted"
         write(jp, j)
+        print("job submitted", got.name, flush=True)
         ml.jobs.stream(got.name)
         got = ml.jobs.get(got.name)
         if str(getattr(got, "status", "")).lower() != "completed":
@@ -278,9 +281,13 @@ def run(a):
         a.out.mkdir(parents=True, exist_ok=True)
         ml.jobs.download(got.name, download_path=a.out, output_name="out")
         j["state"] = "downloaded"
+        j["outcome"] = "completed"
         write(jp, j)
-    except Exception as e:
+    except BaseException as e:
         primary = e
+        j["outcome"] = "failed"
+        j["error_type"] = type(e).__name__
+        write(jp, j)
     try:
         cleanup(ml, j)
         close(a, j)
@@ -324,6 +331,7 @@ def check():
     assert (c.min_instances, c.max_instances, c.idle_time_before_scale_down) == (0, 1, 120)
     assert c.enable_node_public_ip and not c.ssh_public_access_enabled
     assert j.component.inputs["train"]["mode"] == "download"
+    assert j.compute == s["compute"]
     assert j.component.outputs["out"]["mode"] == "upload" and j.limits.timeout == 7200
     assert "--group cloud" not in shell(s) and "--group neural" in shell(s)
     assert s["hours"] + dc("1") == dc("3") and im.startswith("mcr.microsoft.com/")
