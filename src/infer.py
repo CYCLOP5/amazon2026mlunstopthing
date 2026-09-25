@@ -143,7 +143,8 @@ def _empty(sp):
 
 def _part(run, x, sp):
     n, v = path(x["name"]), path(x.get("coverage", ""))
-    if n.is_absolute() or v.is_absolute() or ".." in n.parts or ".." in v.parts:
+    if (n.is_absolute() or v.is_absolute() or ".." in n.parts or ".." in v.parts or
+            n.parent != path("parts") or v.parent != path("parts")):
         raise ValueError("unsafe part path")
     p = run / n
     c = run / v
@@ -184,6 +185,11 @@ def _run(data, run, sp, expected=None):
         xs.append(q)
     if len(set(ps)) != len(ps):
         raise ValueError(f"repeated listed part {run}")
+    parts = run / "parts"
+    listed = {x["name"] for x in m["parts"]} | {x["coverage"] for x in m["parts"]}
+    actual = {str(p.relative_to(run)) for p in parts.rglob("*") if p.is_file()} if parts.is_dir() else set()
+    if actual != listed:
+        raise ValueError(f"unlisted inference artifacts {run}")
     got = np.sort(np.concatenate(xs)) if xs else np.empty(0, np.uint32)
     if len(got) != len(np.unique(got)):
         raise ValueError(f"overlapping target coverage {run}")
@@ -390,9 +396,9 @@ def _sink(lf, p):
 
 def _groups_tsv(p):
     cur, xs = None, []
-    for b in pq.ParquetFile(p).iter_batches(columns=["qid", "eid"]):
+    for b in pq.ParquetFile(p).iter_batches(columns=["source1_entity_id", "target_entity_id"]):
         for qid, eid in zip(b.column(0).to_pylist(), b.column(1).to_pylist()):
-            if eid is None:
+            if qid is None or eid is None:
                 raise ValueError(f"unknown export id {p}")
             if cur is not None and qid < cur:
                 raise ValueError(f"unsorted export pairs {p}")
@@ -409,7 +415,7 @@ def _groups_tsv(p):
         yield cur, xs
 
 
-def _tsv(data, cand, match, out):
+def _tsv(ref, cand, match, out):
     cg, mg = _groups_tsv(cand), _groups_tsv(match)
     c = next(cg, None)
     m = next(mg, None)
@@ -419,27 +425,27 @@ def _tsv(data, cand, match, out):
         wm, wc = csv.writer(fm, delimiter="\t", lineterminator="\n"), csv.writer(fc, delimiter="\t", lineterminator="\n")
         wm.writerow(["source1_entity_id", "matched_entity_ids"])
         wc.writerow(["source1_entity_id", "candidate_entity_ids"])
-        last, nr, nc, nm = -1, 0, 0, 0
-        for b in pq.ParquetFile(data / "test/ref.parquet").iter_batches(columns=["rid", "eid"]):
-            for qid, eid in zip(b.column(0).to_pylist(), b.column(1).to_pylist()):
-                if qid <= last:
-                    raise ValueError("test references are not sorted")
-                last, nr = qid, nr + 1
-                while c is not None and c[0] < qid:
+        last, nr, nc, nm = None, 0, 0, 0
+        for b in pq.ParquetFile(ref).iter_batches(columns=["source1_entity_id"]):
+            for eid in b.column(0).to_pylist():
+                if eid is None or (last is not None and eid <= last):
+                    raise ValueError("test reference ids are not uniquely sorted")
+                last, nr = eid, nr + 1
+                while c is not None and c[0] < eid:
                     raise ValueError("candidate has unknown reference")
-                while m is not None and m[0] < qid:
+                while m is not None and m[0] < eid:
                     raise ValueError("match has unknown reference")
-                cx = c[1] if c is not None and c[0] == qid else []
-                mx = m[1] if m is not None and m[0] == qid else []
+                cx = c[1] if c is not None and c[0] == eid else []
+                mx = m[1] if m is not None and m[0] == eid else []
                 if not set(mx).issubset(cx):
                     raise ValueError("match outside candidate set")
                 wm.writerow([eid, ",".join(mx)])
                 wc.writerow([eid, ",".join(cx)])
                 nc += len(cx)
                 nm += len(mx)
-                if c is not None and c[0] == qid:
+                if c is not None and c[0] == eid:
                     c = next(cg, None)
-                if m is not None and m[0] == qid:
+                if m is not None and m[0] == eid:
                     m = next(mg, None)
         if c is not None or m is not None:
             raise ValueError("export pairs exceed references")
@@ -467,14 +473,19 @@ def export(data, runs, calibration, out):
     else:
         mf = lf
     mf = mf.filter(pl.col("prob") >= float(sel["threshold"]))
-    ref = pl.scan_parquet(data / "test/ref.parquet").select(pl.col("rid").alias("qid"), pl.col("eid").alias("qid_eid"))
-    tar = pl.concat([pl.scan_parquet(data / "test" / f"s{sr}.parquet").select(pl.col("rid").alias("tid"), pl.col("eid").alias("eid")) for sr in (2, 3)])
+    ref = pl.scan_parquet(data / "test/ref.parquet").select(
+        pl.col("rid").alias("qid"), pl.col("eid").alias("source1_entity_id"))
+    tar = pl.concat([pl.scan_parquet(data / "test" / f"s{sr}.parquet").select(
+        pl.col("rid").alias("tid"), pl.col("eid").alias("target_entity_id")) for sr in (2, 3)])
     with tf.TemporaryDirectory(dir=out.parent) as d:
         d = path(d)
-        cp, mp = d / "candidates.parquet", d / "matches.parquet"
-        _sink(lf.join(ref, on="qid", how="left").join(tar, on="tid", how="left").select("qid", "tid", "eid").sort(["qid", "tid"]), cp)
-        _sink(mf.join(ref, on="qid", how="left").join(tar, on="tid", how="left").select("qid", "tid", "eid").sort(["qid", "tid"]), mp)
-        z = _tsv(data, cp, mp, out)
+        rp, cp, mp = d / "references.parquet", d / "candidates.parquet", d / "matches.parquet"
+        _sink(ref.select("source1_entity_id").sort("source1_entity_id"), rp)
+        _sink(lf.join(ref, on="qid", how="left").join(tar, on="tid", how="left").select(
+            "source1_entity_id", "target_entity_id").sort(["source1_entity_id", "target_entity_id"]), cp)
+        _sink(mf.join(ref, on="qid", how="left").join(tar, on="tid", how="left").select(
+            "source1_entity_id", "target_entity_id").sort(["source1_entity_id", "target_entity_id"]), mp)
+        z = _tsv(rp, cp, mp, out)
     z.update({"calibration": str(path(calibration).resolve()), "manifests": [str(r["dir"]) for r in rs]})
     print(json.dumps(z, indent=2))
     return z
@@ -534,6 +545,8 @@ def check():
         assert aud["tune"]["selected"] == cal["tune"]["selected"] and aud["audit"]["fold"] == 1
         out = export(data, [te], d / "cal.json", d / "out")
         assert out["matching_pairs"] >= 2 and "S1-fr\tS2-fr" in (d / "out/matching_results.tsv").read_text()
+        ids = [x.split("\t", 1)[0] for x in (d / "out/matching_results.tsv").read_text().splitlines()[1:]]
+        assert ids == sorted(ids)
         bad = _json(d / "cal.json")
         bad["model_sha256"] = "wrong"
         _write(d / "bad.json", bad)
@@ -543,6 +556,14 @@ def check():
             pass
         else:
             raise AssertionError("model mismatch accepted")
+        (te / "parts/stale.npy").write_bytes(b"stale")
+        try:
+            _run(data, te, "test", _ids(data, "test"))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("unlisted artifact accepted")
+        (te / "parts/stale.npy").unlink()
         _npy(te / "parts/part_0000000.npy", np.array([10, 10], np.uint32))
         try:
             _run(data, te, "test", _ids(data, "test"))
