@@ -19,6 +19,7 @@ h = dc("3600")
 fi = dc("75.00")
 co = dc("25.00")
 rv = fi + co
+mx = dc("500")
 
 
 class err(Exception):
@@ -74,13 +75,18 @@ def cost(rt, hr, fx):
 
 
 def new(cp):
-    return {"cap": str(mon(num(cp, True))), "items": []}
+    cp = mon(num(cp, True))
+    if cp > mx:
+        raise err("cap exceeds project budget")
+    return {"cap": str(cp), "items": []}
 
 
 def chk(ld):
     if not isinstance(ld, dict) or set(ld) != {"cap", "items"} or not isinstance(ld["items"], list):
         raise err("corrupt ledger")
     cp = mon(num(ld["cap"], True))
+    if cp > mx:
+        raise err("cap exceeds project budget")
     ns = set()
     for x in ld["items"]:
         if not isinstance(x, dict) or set(x) - {"name", "phase", "start", "deadline", "rate", "hours", "fixed", "reserved", "status", "closed", "elapsed_estimate", "state"}:
@@ -229,6 +235,11 @@ def close(ld, nm, sy, nw):
 def check():
     ld = new("500")
     t = dt(2026, 1, 1, tzinfo=tz.utc)
+    try:
+        new("500.01")
+        assert False
+    except err:
+        pass
     reserve(ld, "a", "10", "1", "0", False, t)
     try:
         reserve(ld, "a", "10", "1", "0", False, t)
