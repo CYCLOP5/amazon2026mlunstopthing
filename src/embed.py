@@ -14,6 +14,10 @@ mod0 = "intfloat/multilingual-e5-base"
 rev0 = "d128750597153bb5987e10b1c3493a34e5a4502a"
 src0 = path(__file__).resolve().parents[1] / "reports/model_sources.json"
 fmt = "{role}: name: {nm}\naddress: {ad}\ncountry: {co}"
+rawfmt = "name: {nm}\naddress: {ad}\ncountry: {co}"
+qwen0 = "Qwen/Qwen3-Embedding-0.6B"
+bge0 = "BAAI/bge-m3"
+inst0 = "Given a business record, retrieve records for the SAME BUSINESS identity using the business name and address."
 
 
 def sha(b):
@@ -28,11 +32,28 @@ def atom(p, obj):
     q.replace(p)
 
 
-def serial(d, role):
+def family(model):
+    if model == mod0:
+        return "e5"
+    if model == qwen0:
+        return "qwen3"
+    if model == bge0:
+        return "bge-m3"
+    raise ValueError("unsupported embedding model family")
+
+
+def serial(d, role, model=mod0):
     if role not in ("query", "passage"):
-        raise ValueError("invalid e5 role")
-    return [fmt.format(role=role, nm=str(n), ad=str(a), co=str(c))
-            for n, a, c in d.select("nm", "ad", "co").iter_rows()]
+        raise ValueError("invalid e5 role" if model == mod0 else "invalid embedding role")
+    f = family(model)
+    if f == "e5":
+        return [fmt.format(role=role, nm=str(n), ad=str(a), co=str(c))
+                for n, a, c in d.select("nm", "ad", "co").iter_rows()]
+    raw = [rawfmt.format(nm=str(n), ad=str(a), co=str(c))
+           for n, a, c in d.select("nm", "ad", "co").iter_rows()]
+    if f == "qwen3" and role == "query":
+        return [f"Instruct: {inst0}\nQuery:{x}" for x in raw]
+    return raw
 
 
 def fprint(d, txt):
@@ -92,6 +113,11 @@ def source(p, model, rev):
     raise ValueError("model revision is absent from source metadata")
 
 
+def check_params(n):
+    if n > 8_000_000_000:
+        raise ValueError("loaded model exceeds 8b parameters")
+
+
 def model_load(model, rev, dev, maxlen):
     import torch
     from sentence_transformers import SentenceTransformer
@@ -99,7 +125,12 @@ def model_load(model, rev, dev, maxlen):
     if dev == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("cuda requested but unavailable")
     use = dev
-    m = SentenceTransformer(model, revision=rev, trust_remote_code=False, device=use)
+    kw = {"model_kwargs": {"attn_implementation": "sdpa"}}
+    if family(model) == "qwen3":
+        kw["tokenizer_kwargs"] = {"padding_side": "left"}
+    m = SentenceTransformer(model, revision=rev, trust_remote_code=False, device=use, **kw)
+    if family(model) == "qwen3" and m.tokenizer.padding_side != "left":
+        raise ValueError("qwen requires left tokenizer padding")
     m.max_seq_length = maxlen
     if use == "cuda":
         m.half()
@@ -107,6 +138,7 @@ def model_load(model, rev, dev, maxlen):
         m.float()
     m.eval()
     n = sum(p.numel() for p in m.parameters())
+    check_params(n)
     return m, use, n
 
 
@@ -129,14 +161,28 @@ def norm(x):
     return x / n
 
 
-def meta_core(data, model, rev, pars, maxlen, dim, co, fold, refs, qs, src):
+def meta_core(data, model, rev, pars, maxlen, dim, co, fold, refs, qs, src, batch):
     mp = data / "meta.json"
-    return {"v": 1, "model": model, "revision": rev, "params": pars, "maxlen": maxlen,
-            "dim": dim, "dtype": "float16", "prefixes": {"reference": "passage", "target": "query"},
-            "format": fmt, "country": co, "fold": fold, "pool": "fold2" if fold == 2 else "all",
-            "data_meta_sha256": sha(mp.read_bytes()) if mp.exists() else None,
-            "inputs": {"references": fprint(refs[0], refs[1]), "queries": fprint(qs[0], qs[1])},
-            "source": src}
+    out = {"v": 1, "model": model, "revision": rev, "params": pars, "maxlen": maxlen,
+           "dim": dim, "dtype": "float16", "prefixes": {"reference": "passage", "target": "query"},
+           "format": fmt, "country": co, "fold": fold, "pool": "fold2" if fold == 2 else "all",
+           "data_meta_sha256": sha(mp.read_bytes()) if mp.exists() else None,
+           "inputs": {"references": fprint(refs[0], refs[1]), "queries": fprint(qs[0], qs[1])},
+           "source": src}
+    if family(model) != "e5":
+        out.update({"serialization": {"family": family(model), "reference": rawfmt,
+                                       "query": f"Instruct: {inst0}\nQuery:{rawfmt}" if family(model) == "qwen3" else rawfmt},
+                    "encoding": {"batch": batch, "normalize": True, "precision": "float32"},
+                    "padding_side": "left" if family(model) == "qwen3" else None})
+    return out
+
+
+def cache_base(cache, model, rev, co, fold):
+    if family(model) == "e5":
+        return cache / f"e5_{co}_f{fold}"
+    tag = "".join(x if x.isalnum() else "_" for x in model.lower()).strip("_")
+    r = "".join(x if x.isalnum() else "_" for x in rev.lower()).strip("_")
+    return cache / f"{family(model)}_{tag}_{r}_{co}_f{fold}"
 
 
 def cache_meta(p, core, tr=None):
@@ -289,16 +335,17 @@ def lexical_hits(run):
 def run(data, dest, cache, model, rev, dev, batch, k, maxlen, sources):
     if batch < 1 or k < 1 or maxlen < 8:
         raise ValueError("invalid batch k or maxlen")
+    family(model)
     a, q, r, co, fold = load_run(data, dest)
     if k > len(r):
         k = len(r)
     si = source(sources, model, rev)
     m, use, pars = model_load(model, rev, dev, maxlen)
-    rt = serial(r, "passage")
-    qt = serial(q, "query")
+    rt = serial(r, "passage", model)
+    qt = serial(q, "query", model)
     dim = m.get_embedding_dimension()
-    core = meta_core(data, model, rev, pars, maxlen, dim, co, fold, (r, rt), (q, qt), si)
-    base = cache / f"e5_{co}_f{fold}"
+    core = meta_core(data, model, rev, pars, maxlen, dim, co, fold, (r, rt), (q, qt), si, batch)
+    base = cache_base(cache, model, rev, co, fold)
     tr = trunc(m, rt, qt, maxlen)
     if not (base / "meta.json").exists() and any(base.glob("*.npy")):
         raise ValueError("cache artifacts lack metadata")
@@ -343,7 +390,7 @@ def check():
         z = p / "run"
         (d / "train").mkdir(parents=True)
         z.mkdir()
-        a = pl.DataFrame({"rid": [4, 8], "nm": ["राम", "quiet"], "ad": ["1 गली", "2 rd"],
+        a = pl.DataFrame({"rid": [4, 8], "nm": ["राम Café", "quiet"], "ad": ["1 गली", "2 rd"],
                           "co": ["india", "india"], "deg": [1, 0], "fold": [2, 2]})
         q = pl.DataFrame({"rid": [10, 11], "nm": ["राम", "orphan"], "ad": ["1 गली", "x"],
                           "co": ["india", "india"], "own": [4, -1], "sr": [2, 3]})
@@ -355,7 +402,29 @@ def check():
         aa, qq, rr, co, fold = load_run(d, z)
         assert co == "india" and fold == 2 and rr["rid"].to_list() == [4, 8]
         s = serial(aa, "passage")[0]
-        assert "राम" in s and s.startswith("passage:") and "rid" not in s and "fold" not in s and "deg" not in s
+        assert s == "passage: name: राम Café\naddress: 1 गली\ncountry: india"
+        zq = serial(aa, "query", qwen0)[0]
+        zd = serial(aa, "passage", qwen0)[0]
+        assert zq == f"Instruct: {inst0}\nQuery:name: राम Café\naddress: 1 गली\ncountry: india"
+        assert zd == "name: राम Café\naddress: 1 गली\ncountry: india" and "Instruct:" not in zd
+        assert serial(aa, "query", bge0)[0] == zd
+        assert "rid" not in zq and "fold" not in zq and "deg" not in zq and "own" not in zq
+        ec = meta_core(d, mod0, rev0, 1, 32, 2, co, fold, (rr, serial(rr, "passage")),
+                       (qq, serial(qq, "query")), {"license": "mit"}, 1)
+        assert ec["format"] == fmt and ec["prefixes"] == {"reference": "passage", "target": "query"}
+        assert "serialization" not in ec and "encoding" not in ec and "padding_side" not in ec
+        qc = meta_core(d, qwen0, "one", 1, 32, 2, co, fold, (rr, [zd] * len(rr)),
+                       (qq, serial(qq, "query", qwen0)), {"license": "apache-2.0"}, 1)
+        assert qc["serialization"]["query"] == f"Instruct: {inst0}\nQuery:{rawfmt}" and qc["padding_side"] == "left"
+        assert cache_base(p, mod0, rev0, "india", 0) == p / "e5_india_f0"
+        assert cache_base(p, qwen0, "one", "india", 0) != cache_base(p, qwen0, "two", "india", 0)
+        assert cache_base(p, qwen0, "one", "india", 0) != cache_base(p, bge0, "one", "india", 0)
+        check_params(8_000_000_000)
+        try:
+            check_params(8_000_000_001)
+            raise AssertionError("missing parameter limit")
+        except ValueError:
+            pass
         v = norm([[3, 4], [0, 2]])
         assert np.allclose(np.linalg.norm(v, axis=1), 1)
         ix, ds = topk_np([[1, 0]], [[1, 0], [0, 1], [.5, .5]], 2)
