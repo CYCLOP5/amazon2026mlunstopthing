@@ -145,10 +145,9 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
     jobs = []
     for co in countries:
         rd = (runroot / _dir(co)).resolve()
-        cc = (cache / "countries" / _dir(co)).resolve()
-        if rd.parent != runroot.resolve() or cc.parent != (cache / "countries").resolve():
+        if rd.parent != runroot.resolve():
             raise ValueError("unsafe country directory")
-        cmd = _command(data, cc, gate, neural, rd, split, co, rid_start, rid_stop, k_lex, k_dense, k_gate, retrievers,
+        cmd = _command(data, cache, gate, neural, rd, split, co, rid_start, rid_stop, k_lex, k_dense, k_gate, retrievers,
                        device, threads, encoder_batch, neural_batch, query_batch, neural_weight)
         rec = {"country": co, "runpath": str(rd), "childstatus": "pending", "config": owner, "command": cmd}
         if co in old:
@@ -156,6 +155,12 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
             if prior.get("runpath") != rec["runpath"] or prior.get("config") != owner or prior.get("command") != cmd:
                 raise ValueError("existing country run ownership/configuration mismatch")
             rec.update(prior)
+            if rec.get("childstatus") == "succeeded":
+                try:
+                    infer._run(data, rd, split, infer._ids(data, split, co, rid_start, rid_stop))
+                except (OSError, ValueError):
+                    rec["childstatus"] = "pending"
+                    rec.pop("returncode", None)
         jobs.append((co, rd, logroot / f"{_dir(co)}.log", cmd, rec))
     z["runs"] = [x[-1] for x in jobs]
     z["complete"] = False
@@ -176,6 +181,8 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
     with cf.ThreadPoolExecutor(max_workers=min(workers, len(jobs))) as pool:
         fs = []
         for co, _, log, cmd, rec in jobs:
+            if rec["childstatus"] == "succeeded":
+                continue
             rec["childstatus"] = "running"
             rec["log"] = str(log.resolve())
             fs.append(pool.submit(one, co, log, cmd))
@@ -254,13 +261,13 @@ def check():
         run(data, root / "cache", root / "gate", root / "neural", out, workers=2, threads=1, k_lex=3, k_dense=4,
             k_gate=5, retrievers=("e5", "qwen3"), device="cpu", encoder_batch=7, neural_batch=5, query_batch=123,
             neural_weight=.6, runner=runner)
-        assert len(calls) == 6 and {tuple(x) for x in calls[3:]} == first
+        assert len(calls) == 3 and {tuple(x) for x in calls} == first
         cmd = calls[0]
         for flag, value in (("--k-lex", "3"), ("--k-dense", "4"), ("--k-gate", "5"), ("--encoder-batch", "7"),
                             ("--neural-batch", "5"), ("--query-batch", "123"), ("--neural-weight", "0.6")):
             assert cmd[cmd.index(flag) + 1] == value
         assert cmd[cmd.index("--retrievers") + 1:cmd.index("--device")] == ["e5", "qwen3"]
-        assert len({x[x.index("--cache") + 1] for x in calls[:3]}) == 3
+        assert {x[x.index("--cache") + 1] for x in calls[:3]} == {str((root / "cache").resolve())}
         injected = _command(data, root / "cache", root / "gate", root / "neural", root / "x", "test", "x; touch bad",
                             None, None, 1, 1, 1, ("e5",), "cpu", 1, 1, 1, 1, 1.)
         assert injected[injected.index("--country") + 1] == "x; touch bad"
