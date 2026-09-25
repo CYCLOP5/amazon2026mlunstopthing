@@ -6,7 +6,7 @@ supplied business records → compact candidate sets → calibrated matching set
 >
 > attempts: three total, zero used at the last user confirmation
 >
-> azure authorization: $1,000 total across two disjoint $500 allocations
+> azure authorization: $1,500 total across three disjoint $500 allocations
 
 ## current state
 
@@ -21,8 +21,13 @@ both currently keep up to three candidates per target before final matching and 
 three per target is not a cap of three per s1
 the exported source1 candidate distribution is measured separately
 
-full-pool calibration final test export and locked audit are still delivery gates
+the original baseline completed full-pool calibration and locked audit with offline macro f0.5 of 0.97550
+upgraded calibration final test export and final output verification remain delivery gates
 no official score or completed submission is claimed here
+
+the first upgraded leaderboard upload may use an explicit provisional cutoff while full validation continues
+complete test coverage and strict file checks still apply
+see [leaderboard-first export](docs/ops.md#9-leaderboard-first-export)
 
 ## docs
 

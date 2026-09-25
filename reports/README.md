@@ -51,6 +51,22 @@ the teammate diagnostics reported 0.9688 validation f0.5
 the supplied improvement note referenced an earlier 0.958 leaderboard result
 the files did not verify a new 0.97 leaderboard submission for the uploaded ensemble code
 
+## full-pool baseline result
+
+the original two-retriever native-gate baseline completed scoring all 10,320,219 labeled targets
+fold 0 selected target-top1 decoding with cutoff 0.5527569055557251
+the unchanged fold 1 audit achieved **0.9755015568 source1 macro f0.5**, pair precision 0.9875047126, and pair recall 0.9568847221
+
+this is an offline result for the original baseline
+it is neither an upgraded-model result nor a public leaderboard score
+
+- [complete baseline calibration and audit](full_pool_baseline.json)
+- [provisional upgraded selection rationale](provisional_selection.json)
+
+the provisional 0.8 cutoff has the highest measured pair f0.5 among the recorded diagnostic operating points
+the diagnostic population and metric differ from full source1 macro f0.5
+complete upgraded calibration continues separately
+
 ## implementation and eligibility
 
 | artifact | what it verifies |
@@ -58,6 +74,7 @@ the files did not verify a new 0.97 leaderboard submission for the uploaded ense
 | [model sources](model_sources.json) | immutable revisions license metadata and parameter bounds |
 | [runtime parity](teammate_runtime_parity.json) | exact teammate transforms 54-feature arrays and checkpoint predictions on the parity sample |
 | [upgraded smoke](upgraded_runtime_smoke.json) | real three-retriever checkpoint execution and sharded launcher coverage |
+| [redistribution recovery](scatter_runtime_check.json) | missing checkpoint batch recomputed with exact pair/probability parity and disjoint coverage |
 | [offline runtime](offline_runtime_proof.json) | packaged-cache model loading without network access |
 | [license notices](../licenses/readme.md) | upstream notices included with packaged assets |
 

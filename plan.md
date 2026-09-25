@@ -14,8 +14,8 @@ reserve a 4b model for hard cases only if the measured improvement justifies its
 the strongest current evidence points to retrieval quality and hard negative training before model size
 the final architecture will be selected from measured experiments rather than assumed from generic model leaderboards
 
-the original azure authorization was 500 usd and was explicitly increased to 1000 usd
-the active total is enforced as two disjoint 500 usd allocations for baseline and upgraded runs
+the original azure authorization was 500 usd, then 1000 usd, and is now 1500 usd
+the active total is enforced as three disjoint 500 usd allocations for baseline upgraded and delivery runs
 the deadline is sunday 2026-09-27 at 08:00 ist or 02:30 utc
 zero of three total submissions had been used at the last user confirmation
 use uv and push code docs and compact metrics to the requested github repo at meaningful milestones
@@ -686,7 +686,7 @@ the official eastus four a100 price is 2.715082 usd per hour spot or 14.692 on d
 production reservations use a conservative 15.5 usd hourly ceiling plus staging allowance
 jobs retain one node maximum zero minimum idle shutdown and finite timeout
 at that stage the controller permitted up to 12 hours only when the full worst case reservation fit the original 500 usd allocation
-the later project authorization is 1000 usd total; see the current execution update below
+the latest project authorization is 1500 usd total; see the current execution update below
 
 review fixes require resumed children to revalidate current model hashes before reusing predictions
 final packages require all selected retriever snapshots and automatically use their local offline cache
@@ -820,12 +820,14 @@ the current dense search uses exact chunked similarity scans
 it bounds memory but does not establish billion-record approximate-search scalability
 an ann replacement remains a measured future scaling change rather than an implemented result
 
-the current hard spending authorization is 1000 usd total across the original and upgrade ledgers
+the current hard spending authorization is 1500 usd total across the original upgrade and delivery ledgers
 conservative accrual and reservations are estimates rather than a billing invoice
 quota is distinct from regional physical gpu availability
 
 full labeled-pool calibration locked audit complete test export strict validation and archive checks remain required
-the intended sequence is a validated baseline upload, an upgraded upload, and a final refinement informed by validation and leaderboard feedback
+the current priority is an upgraded first upload, then two refinements informed by validation and leaderboard feedback
+complete full-pool validation is not a prerequisite for the explicitly provisional first export
+complete test coverage correct file format and exact candidate membership remain mandatory
 no public leaderboard score is claimed before an actual upload returns a result
 
 current operator documentation is in [arch](docs/arch.md), [ops](docs/ops.md), [training](docs/training.md), and [status](docs/status.md)

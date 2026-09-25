@@ -1,0 +1,48 @@
+{
+  "kind": "full-corpus-calibration",
+  "model_sha256": "458f9a1db2d3a60ea48e7952aaf6dd443ba36d61e7e2c8558aac01aded828589",
+  "train_coverage": {
+    "complete": true,
+    "targets": 10320219
+  },
+  "tune": {
+    "decoders": {
+      "plain_threshold": {
+        "macro_f05": 0.9725164012692991,
+        "pair_precision": 0.9850813926739828,
+        "pair_recall": 0.9531830816991624,
+        "pairs": 739010,
+        "threshold": 0.6123731732368469,
+        "true_pairs": 763741
+      },
+      "target_top1_then_threshold": {
+        "macro_f05": 0.9753176969234643,
+        "pair_precision": 0.9875664129567792,
+        "pair_recall": 0.9564669174497638,
+        "pairs": 739690,
+        "threshold": 0.5527569055557251,
+        "true_pairs": 763741
+      }
+    },
+    "fold": 0,
+    "selected": {
+      "decoder": "target_top1_then_threshold",
+      "macro_f05": 0.9753176969234643,
+      "pair_precision": 0.9875664129567792,
+      "pair_recall": 0.9564669174497638,
+      "pairs": 739690,
+      "threshold": 0.5527569055557251,
+      "true_pairs": 763741
+    }
+  },
+  "audit": {
+    "decoder": "target_top1_then_threshold",
+    "fold": 1,
+    "macro_f05": 0.9755015568211566,
+    "pair_precision": 0.9875047125894716,
+    "pair_recall": 0.9568847221494788,
+    "pairs": 740039,
+    "true_pairs": 763720
+  },
+  "scope": "original two-retriever native-gate baseline; full labeled target coverage; fold 0 cutoff selection and fold 1 locked audit; not a leaderboard result"
+}

@@ -9,6 +9,13 @@
 this is a timestamped operational snapshot rather than a live dashboard
 no uploadable submission files or official leaderboard scores existed at this check
 
+### subsequent schedule update
+
+the later authorization is $1,500 total and the upgraded variant is prioritized for upload one
+unfinished upgraded test work is being redistributed into 16 explicit disjoint assignments
+full validation continues independently; the first export may use a clearly marked provisional cutoff
+the baseline eta and budget table below describe the earlier snapshot rather than the revised allocation
+
 ## completed work
 
 - full supplied-data eda and label audit

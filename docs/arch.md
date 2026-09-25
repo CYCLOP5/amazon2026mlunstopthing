@@ -356,15 +356,16 @@ flowchart lr
     cleanup --> ledger[close reservation]
 ```
 
-the authorization is $1,000 total
-two disjoint $500 ledgers preserve compatibility with already-running controllers
+the authorization is $1,500 total
+three disjoint $500 ledgers preserve compatibility with already-running controllers
 
 ```text
 artifacts/budget.json          baseline allocation
 artifacts/upgrade_budget.json  upgrade allocation
 ```
 
-their allocated caps sum to $1,000
+the delivery allocation uses `artifacts/delivery_budget.json`
+their allocated caps sum to $1,500
 reported accrual and worst-case reservations are conservative estimates rather than an azure invoice
 pre-existing workspaces and unrelated resources are preserved
 

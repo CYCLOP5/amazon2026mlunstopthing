@@ -208,11 +208,12 @@ the methodology template remains explicitly provisional until full metrics cutof
 
 ## 7. cloud budget and recovery
 
-the authorized total is $1,000 split between two $500 ledgers
+the authorized total is $1,500 split between three $500 ledgers
 
 ```sh
 uv run python src/budget.py --ledger artifacts/budget.json status
 uv run python src/budget.py --ledger artifacts/upgrade_budget.json status
+uv run python src/budget.py --ledger artifacts/delivery_budget.json status
 ```
 
 add the two reported spent/committed values for the project view
@@ -257,8 +258,8 @@ do not discard completed work or assume that `running` alone proves record throu
 
 ## 8. three-upload sequence
 
-1. finish and validate the first baseline; upload and record the returned score
-2. compare the upgraded full-pool result and candidate counts; use the next upload for the justified improvement
+1. finish upgraded test scoring and strictly validate the first provisional export; upload and record the returned score
+2. use upgraded full-pool validation and candidate-count evidence for the next justified improvement
 3. use remaining validation/leaderboard evidence for a final cutoff blend or blocking refinement
 
 the third configuration is not predetermined before the first feedback arrives
@@ -269,7 +270,48 @@ track the portal's attempt count after each upload
 the last confirmed count was zero used out of three
 all intended uploads must finish before sunday 2026-09-27 08:00 ist
 
-## 9. after scoring completes
+## 9. leaderboard-first export
+
+the live leaderboard requires `matching_results.tsv`
+the full source/model/output archive is a separate final deliverable
+full labeled-pool calibration may continue independently of an initial provisional upload
+
+```sh
+uv run python src/infer.py export-provisional \
+  --data cache/data --runs artifacts/final_test/countries/* \
+  --cutoff 0.8 --decoder target_top1_then_threshold --out output/v1
+
+uv run python src/validate.py \
+  --matching output/v1/matching_results.tsv \
+  --candidate output/v1/candidate_pairs.tsv \
+  --test-dir student_resource/dataset/test
+```
+
+`0.8` is an explicit provisional operating point, not a claim of optimal full-pool performance
+its diagnostic comparison is recorded in [selection evidence](../reports/provisional_selection.json)
+the command requires complete test coverage compatible configurations and valid scored parts
+it records `provisional-export-selection` metadata instead of claiming completed calibration
+the candidate tsv remains the full pre-neural candidate set regardless of the acceptance cutoff
+run the supplied validator as well before using an attempt
+
+## 10. redistributing unfinished units
+
+`src/scatter.py` resumes an explicit assignment of existing country/rid work units
+the plan must own every original unit exactly once across its workers
+each worker verifies the original data/model owner and copies only manifest-listed checkpoint parts
+completed targets are reused; missing targets are scored with the same runtime parameters
+all assigned target ids must be covered exactly once before a worker reports completion
+
+the real-model recovery check removed a persisted batch, recomputed it, and reproduced all 36 pair identities and probabilities with zero difference
+the larger handoff preserved 4,418,033 completed test target scores
+the revised plan uses up to 16 single-a100 workers with two 12-thread processes each
+workers with no remaining computation reuse completed artifacts without allocating a gpu
+
+the vm size is fixed while a job runs
+increasing quota or a cluster node limit does not automatically distribute its existing python processes
+checkpoint redistribution preserves useful work while making extra workers productive
+
+## 11. after scoring completes
 
 split-only scoring jobs produce score shards rather than final upload files
 combine complete manifests, calibrate, export, validate, and package the chosen variant
