@@ -1,6 +1,7 @@
 import argparse as ap
 import hashlib as hh
 import json
+import os
 import random
 import tempfile as tf
 from pathlib import Path as path
@@ -45,6 +46,10 @@ def _pq(d, p):
     t = p.with_suffix(p.suffix + ".tmp")
     d.write_parquet(t, compression="zstd")
     t.replace(p)
+
+
+def _relative(p, base):
+    return os.path.relpath(path(p).resolve(), path(base).resolve())
 
 
 def _need(d, cs, what):
@@ -219,7 +224,7 @@ def prepare(data, run, out, dense=None, hard=8, rnd=2, seed=42):
            "anchors_sha256": _sha(r["dir"] / "anchors.parquet"), "queries_sha256": _sha(r["dir"] / "queries.parquet"),
            "parts": [{"name": p.name, "sha256": _sha(p)} for p in r["parts"]]}
     if dense:
-        src["dense"] = {"path": str(path(dense).resolve()), "sha256": _sha(dense)}
+        src["dense"] = {"path": _relative(dense, out), "sha256": _sha(dense)}
     m = {"version": ver, "kind": "neural-pairs", "fold": r["fold"], "country": r["country"], "seed": seed,
          "selection": "all_candidates" if r["fold"] != 2 else {"hard": hard, "random": rnd, "missed_positive": "included"},
          "source": src, "input_pairs": original, "pairs": len(d), "positive_pairs": int(d["label"].sum()),
@@ -299,8 +304,8 @@ def _trainer():
 
 
 def train(trains, vals, out, model=mod0, revision=rev0, sources=src0, batch=8, epochs=1.0,
-          lr=2e-5, maxlen=384, seed=42, device="auto", resume=None, eval_pairs=4096):
-    if batch < 1 or epochs <= 0 or lr <= 0 or maxlen < 8 or eval_pairs < 1:
+          lr=2e-5, maxlen=384, seed=42, device="auto", resume=None):
+    if batch < 1 or epochs <= 0 or lr <= 0 or maxlen < 8:
         raise ValueError("invalid training options")
     if not trains or not vals:
         raise ValueError("fold2 training and fold0 validation files are required")
@@ -336,19 +341,20 @@ def train(trains, vals, out, model=mod0, revision=rev0, sources=src0, batch=8, e
     if dev == "cpu":
         kw["use_cpu"] = True
     ta = args(**kw)
-    ds, ev = pairs(tr, tok, maxlen), pairs(va.head(eval_pairs), tok, maxlen)
+    ds, ev = pairs(tr, tok, maxlen), pairs(va, tok, maxlen)
     t = Trainer(model=net, args=ta, train_dataset=ds, eval_dataset=ev, data_collator=collate(tok))
     t.train(resume_from_checkpoint=str(resume) if resume else None)
     t.save_model()
+    t.save_state()
     tok.save_pretrained(out)
     m = {"version": ver, "kind": "neural-cross-encoder", "model": model, "revision": revision, "source": si,
          "parameters": n, "problem_type": "multi_label_classification", "loss": "bce_with_logits",
          "configuration": {"batch": batch, "epochs": epochs, "lr": lr, "maxlen": maxlen, "seed": seed,
                            "device": dev, "precision": "bf16" if bf16 else "fp16" if fp16 else "fp32",
-                           "resume": str(resume) if resume else None, "accelerate": getattr(ac, "__version__", None),
+                           "resume": _relative(resume, out) if resume else None, "accelerate": getattr(ac, "__version__", None),
                            "torch": torch.__version__, "transformers": tfver, "sources_sha256": _sha(sources)},
-         "inputs": {"train": [{"path": str(x[2]), "pairs_sha256": x[1]["pairs_sha256"]} for x in tx],
-                    "validation": [{"path": str(x[2]), "pairs_sha256": x[1]["pairs_sha256"]} for x in vx]},
+          "inputs": {"train": [{"path": _relative(x[2], out), "pairs_sha256": x[1]["pairs_sha256"]} for x in tx],
+                     "validation": [{"path": _relative(x[2], out), "pairs_sha256": x[1]["pairs_sha256"]} for x in vx]},
          "validation": {"label": "bounded pair validation, not official macro f0.5", "pairs": len(ev),
                         "total_pairs": len(va)}}
     _write(out / "neural_metadata.json", m)
@@ -472,7 +478,7 @@ def main():
     t.add_argument("--out", type=path, required=True); t.add_argument("--model", default=mod0); t.add_argument("--revision", default=rev0)
     t.add_argument("--sources", type=path, default=src0); t.add_argument("--batch", type=int, default=8); t.add_argument("--epochs", type=float, default=1)
     t.add_argument("--lr", type=float, default=2e-5); t.add_argument("--maxlen", type=int, default=384); t.add_argument("--seed", type=int, default=42)
-    t.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto"); t.add_argument("--resume", type=path); t.add_argument("--eval-pairs", type=int, default=4096)
+    t.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto"); t.add_argument("--resume", type=path)
     s = sub.add_parser("score")
     s.add_argument("--pairs", type=path, required=True); s.add_argument("--model", type=path, required=True); s.add_argument("--out", type=path, required=True)
     s.add_argument("--batch", type=int, default=32); s.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
@@ -482,7 +488,7 @@ def main():
         print(json.dumps(prepare(a.data, a.run, a.out, a.dense, a.hard, a.random, a.seed), indent=2))
     elif a.cmd == "train":
         print(json.dumps(train(a.train, a.val, a.out, a.model, a.revision, a.sources, a.batch, a.epochs, a.lr,
-                               a.maxlen, a.seed, a.device, a.resume, a.eval_pairs), indent=2))
+                               a.maxlen, a.seed, a.device, a.resume), indent=2))
     elif a.cmd == "score":
         print(json.dumps(score(a.pairs, a.model, a.out, a.batch, a.device), indent=2))
     else:
