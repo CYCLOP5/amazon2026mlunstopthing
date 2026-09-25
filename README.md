@@ -161,16 +161,16 @@ use this configuration unchanged for full training calibration and final test in
 
 the two dense retrievers plus the neural encoder total about 1.152b neural parameters. source revisions, licenses, and conservative parameter bounds are in `reports/model_sources.json`
 
-`src/run.py` defaults to one worker, one thread, and query batches of 4096. run the full country-parallel train prediction first. on the verified a100 worker use three country workers with eight threads each. this occupies at most 24 cpu threads rather than all available workspace quota
+`src/run.py` defaults to one worker, one thread, and query batches of 4096. the production run uses a 96-core four-a100 node with eight worker processes twelve cpu threads per worker and 250000-record shards. gpu affinity distributes the workers across the four devices. use settings that fit the actual machine when reproducing on smaller hardware
 
 ```sh
 uv run --group neural python src/run.py \
   --data cache/data --cache cache --gate models/gate --neural models/neural \
   --out artifacts/final_train --split train \
-  --workers 3 --threads 8 \
+  --workers 8 --threads 12 --shard-size 250000 --gpu-ids 0 1 2 3 \
   --k-lex 20 --k-dense 100 --k-gate 3 \
   --retrievers e5 qwen3 --device cuda \
-  --encoder-batch 64 --neural-batch 128 --query-batch 4096 \
+  --encoder-batch 128 --neural-batch 128 --query-batch 4096 \
   --neural-weight 0.6 \
   --calibration-out models/calibration.json --audit
 ```
@@ -183,10 +183,10 @@ after reviewing the complete calibration and required locked audit use the resul
 uv run --group neural python src/run.py \
   --data cache/data --cache cache --gate models/gate --neural models/neural \
   --out artifacts/final_test --split test \
-  --workers 3 --threads 8 \
+  --workers 8 --threads 12 --shard-size 250000 --gpu-ids 0 1 2 3 \
   --k-lex 20 --k-dense 100 --k-gate 3 \
   --retrievers e5 qwen3 --device cuda \
-  --encoder-batch 64 --neural-batch 128 --query-batch 4096 \
+  --encoder-batch 128 --neural-batch 128 --query-batch 4096 \
   --neural-weight 0.6 \
   --calibration models/calibration.json --export-out output/final
 ```
@@ -195,7 +195,7 @@ the full-pool calibration and test outputs are pending. do not run the test comm
 
 ## compute notes
 
-the verified remote training configuration was `Standard_NC24ads_A100_v4` with an 80 gb a100 and 24 cpu cores. it completed the cu128 path with `torch 2.8.0+cu128`
+the verified remote training configuration was `Standard_NC24ads_A100_v4` with an 80 gb a100 and 24 cpu cores. it completed the cu128 path with `torch 2.8.0+cu128`. full production uses `Standard_NC96ads_A100_v4` with four a100 devices after quota and preflight verification
 
 the local benchmark environment has 12 cpu threads 15.37 gib ram and a 6 gib gpu. e5 dense validation ran on that local gpu. do not assume the local encoder batch or precision transfers to the a100 or vice versa
 
@@ -212,7 +212,7 @@ uv run --group cloud python src/cloud.py run \
   --subscription '<subscription>' \
   --group '<resource-group>' \
   --workspace '<workspace>' \
-  --profile gpu --hours '<hours-at-most-6>' --rate '<current-usd-per-hour>' \
+  --profile gpu --hours '<hours-at-most-12>' --rate '<current-usd-per-hour>' \
   --fixed 10 --cap 500 \
   --input train=azureml://datastores/<datastore>/paths/<project>/<upstream-run>/out/ \
   --command 'uv run --frozen --group neural python src/neural.py train --train ${{inputs.train}}/train --val ${{inputs.train}}/val --out ${{outputs.out}}/models/neural --batch 128 --epochs 2 --maxlen 384 --device cuda' \
@@ -220,6 +220,8 @@ uv run --group cloud python src/cloud.py run \
 ```
 
 the output uri is recorded in the job journal. pass that `azureml://datastores/...` uri as the next `--input` to chain jobs without a local download. use only task compute in the supplied workspace and never place subscription ids sas tokens or api keys in this file
+
+`--profile gpu4` selects the four-gpu node. reserve its own current hourly ceiling rather than the single-gpu rate. `--output-mode rw_mount` persists inference shards and checkpoints and `--no-download` leaves them at the recorded uri. run indexes use content identities and relative run paths so copies can resume under a new job mount after revalidating current model and source fingerprints
 
 azure references
 
@@ -246,7 +248,7 @@ uv run python src/package.py \
   --gate-model-dir models/gate --neural-model-dir models/neural \
   --calibration models/calibration.json \
   --hf-cache <safe-huggingface-cache> \
-  --output-zip output/submission.zip
+  --team-name Amazites --output-zip output/Amazites_submission.zip
 ```
 
 `src/package.py` requires the final full-corpus `models/calibration.json` and `--hf-cache`. it rejects sampled or partial calibration. it validates ids, candidate subset membership, model provenance, calibration completeness, and the selected source versions. it packages every snapshot selected by that calibration and loads those snapshots locally after extraction
