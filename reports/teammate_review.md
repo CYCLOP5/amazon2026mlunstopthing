@@ -73,7 +73,9 @@ the added retriever introduced 530145 extra first-stage pairs on 8925 queries. f
 
 ## submission priority and updated ranking rule
 
-the user now prioritizes an uploadable submission. further model experiments are deferred while complete calibration and test inference finish
+the safe teammate gate and three-retriever combination have since been implemented and passed exact feature/checkpoint parity and real-runtime smoke checks
+complete upgraded validation and test scoring run in parallel with the first baseline delivery
+the remaining submission refinement will use complete validation and leaderboard feedback
 
 the challenge update explicitly ranks candidate size per source1 as well as matching quality. current final matching receives at most three candidates per target, not a hard cap of three per source1. at full test coverage this implies approximately 29.91 million scored pairs and 17.26 pairs per source1 on average; exact distribution and tails must be measured from the completed candidate file
 

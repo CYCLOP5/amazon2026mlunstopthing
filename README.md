@@ -1,281 +1,166 @@
-# reproducible entity resolution workflow
+# business entity resolution
 
-this repository matches provided business records using only the supplied tsv files and eligible pretrained models
+supplied business records → compact candidate sets → calibrated matching sets
 
-the selected stack is lexical retrieval plus `intfloat/multilingual-e5-base` and `Qwen/Qwen3-Embedding-0.6B` retrieval then a baseline tree gate and an e5 cross encoder
+> deadline: sunday 2026-09-27 at 08:00 ist / 02:30 utc
+>
+> attempts: three total, zero used at the last user confirmation
+>
+> azure authorization: $1,000 total across two disjoint $500 allocations
 
-full corpus calibration, final test export, and locked audit are pending. no official score or completed submission is claimed here
+## current state
+
+two implemented variants are scoring the complete datasets
+
+| variant | retrieval | learned gate | final matcher |
+| --- | --- | --- | --- |
+| baseline | lexical + e5-base + qwen | original lightgbm/catboost mean | fine-tuned e5 pair classifier |
+| upgrade | lexical + e5-base + qwen + e5-large | verified teammate lightgbm, 54 features | same fine-tuned e5 pair classifier |
+
+both currently keep up to three candidates per target before final matching and use neural logit weight 0.6
+three per target is not a cap of three per s1
+the exported source1 candidate distribution is measured separately
+
+full-pool calibration final test export and locked audit are still delivery gates
+no official score or completed submission is claimed here
+
+## docs
+
+| doc | contents |
+| --- | --- |
+| [arch](docs/arch.md) | data model modules retrieval gates matcher calibration caches and lifecycle |
+| [ops](docs/ops.md) | parallel scoring cpu export validation packaging and recovery commands |
+| [training](docs/training.md) | native candidate/gate fit neural training and checkpoint provenance |
+| [status](docs/status.md) | timestamped progress dependencies and first-upload gates |
+| [evidence](reports/README.md) | measured results and their evaluation scope |
+| [research / eda](plan.md) | primary sources dataset analysis and decision history |
+| [methodology](Documentation_template.md) | submission-method draft awaiting final measured results |
+
+## why infer and validate
+
+**test inference creates the predictions for the competition's unlabeled records**
+without those predictions there is no matching file to upload
+
+validation scores known records to choose the acceptance cutoff and check accuracy
+it can run at the same time as test inference
+export waits for complete test scores and the calibration for that exact model version
+
+```mermaid
+flowchart lr
+    weights[frozen trained models] --> val[labeled-pool scoring]
+    weights --> test[competition test scoring]
+    val --> cal[cutoff and audit]
+    test --> export[export]
+    cal --> export
+    export --> check[strict file checks]
+    check --> upload[upload and leaderboard feedback]
+```
 
 ## boundaries
 
-- use only the provided data and mit or apache 2.0 pretrained assets at or below 8b parameters
-- do not use business lookup geocoding translation or other external data or apis
-- retain original unicode text and use the offline transliterated comparison view created by `anyascii`
-- do not put raw business records entity ids credentials sas tokens api keys or host paths in public artifacts
-- do not reuse a sampled threshold for final output. calibrate on the complete training target pool with the exact final configuration
+- only supplied business records enter the matching pipeline
+- no business lookup geocoding external translation services or external data augmentation
+- preserve original unicode and use local transliteration as an additional comparison view
+- deployed pretrained sources must meet the challenge's mit/apache-2.0 and 8b-parameter restrictions
+- final output includes every required s1 row, including empty predictions
+- every accepted match must occur in its exported candidate set
+- export the actual final pre-matcher candidates, including rejected matches
+- keep raw records credentials host-specific paths and model/cache binaries out of git
 
-selected sources
+## setup and prep
 
-- `https://huggingface.co/intfloat/multilingual-e5-base`
-- `https://huggingface.co/Qwen/Qwen3-Embedding-0.6B`
-- `https://github.com/anyascii/anyascii`
-- `https://arxiv.org/abs/2004.00584`
-
-## setup
-
-the committed `.python-version` pins python 3.11.16. `uv.lock` is the reproducibility lock and selects `torch 2.8.0+cu128` through the configured pytorch index
+python and dependencies are pinned by `.python-version`, `pyproject.toml`, and `uv.lock`
+use the uv environment rather than global package installs
 
 ```sh
 uv python install 3.11.16
-uv sync --frozen
+uv sync --frozen --group neural --group cloud
+uv run python src/data.py --data student_resource/dataset --out cache/data
+```
+
+the prepared dataset preserves original ids and text, adds compact row ids and comparison views, and freezes entity-grouped folds
+fold 2 fits models, fold 0 tunes decisions, and fold 1 is the locked audit
+
+## checks
+
+```sh
 uv run python src/data.py --check
 uv run python src/block.py --check
 uv run python src/train.py --check
+uv run python src/tfeat.py --check
 uv run --group neural python src/embed.py --check
 uv run --group neural python src/neural.py check
+uv run python src/hybrid.py --check
+uv run python src/match.py --check
 uv run python src/run.py --check
+uv run python src/infer.py --check
+uv run python src/validate.py --check
 uv run python src/package.py --check
 ```
 
-these checks use temporary data. they do not download a corpus or make paid calls
+these runnable checks are separate from the expensive labeled-pool inference job
+real-model smoke tests and exact teammate-feature parity are linked in the evidence index
 
-run the pipeline commands below from the repository root. after extracting a final package, run them from `code/business_entity_resolution`; the same `src/...` paths work there, but the supplied raw dataset must be provided separately with `--data`
+## entry points
 
-## prepare the supplied data
-
-place the supplied files under `student_resource/dataset` in this repository, or pass the supplied dataset directory explicitly with `--data`. the final package does not include raw records
-
-```sh
-uv run python src/data.py \
-  --data student_resource/dataset \
-  --out cache/data
-```
-
-`src/data.py` reads explicit tsv fields with empty strings preserved. it stores raw unicode `nm` and `ad` plus normalized transliterated comparison fields `nn` and `an`. normalization is nfkc casefold punctuation-to-space whitespace collapse and offline `anyascii` only for the comparison view
-
-the train split creates fixed seed 42 entity folds. fold 2 is fit data fold 0 is tuning data and fold 1 is the locked audit partition. strata include country link degree unicode aliases and blank aliases. keep the resulting `cache/data/meta.json` with every later artifact
-
-## lexical candidates and tree gate
-
-run each country and fold separately. these examples make sampled lexical train and tuning runs with bounded eight-thread retrieval
-
-```sh
-uv run python src/block.py \
-  --data cache/data --cache cache/block --country us --fold 2 \
-  --n 5000 --neg 1000 --k 20 --threads 8 \
-  --out cache/runs/lex_train_us
-
-uv run python src/block.py \
-  --data cache/data --cache cache/block --country india --fold 2 \
-  --n 5000 --neg 1000 --k 20 --threads 8 \
-  --out cache/runs/lex_train_india
-
-uv run python src/block.py \
-  --data cache/data --cache cache/block --country us --fold 0 \
-  --n 2000 --neg 1000 --k 20 --threads 8 \
-  --out cache/runs/lex_val_us
-
-uv run python src/block.py \
-  --data cache/data --cache cache/block --country india --fold 0 \
-  --n 2000 --neg 1000 --k 20 --threads 8 \
-  --out cache/runs/lex_val_india
-```
-
-the lexical blocker keeps independent name address and exact-key candidates. it is not a full pairwise comparison
-
-train the tree only after the selected train and validation runs share the same candidate score version and dense feature schema. `src/train.py` computes complete name and address features for every retained pair rather than trusting the channel that introduced it
-
-```sh
-uv run python src/train.py \
-  --data cache/data \
-  --train cache/runs/lex_train_us cache/runs/lex_train_india \
-  --val cache/runs/lex_val_us cache/runs/lex_val_india \
-  --out models/gate --model lgb --threads 8 --trees 800
-```
-
-`models/gate/metadata.json` records the feature contract score version input runs and sampled-query warning. sampled metrics are diagnostics not final calibration
-
-## dense validation candidates
-
-e5 uses its required `query:` and `passage:` prefixes. the validation command below writes `dense_candidates.parquet` beside the lexical run and records the pinned source revision
-
-```sh
-uv run --group neural python src/embed.py \
-  --data cache/data --run cache/runs/lex_val_india --cache cache/embed \
-  --model intfloat/multilingual-e5-base \
-  --revision d128750597153bb5987e10b1c3493a34e5a4502a \
-  --sources reports/model_sources.json \
-  --device cuda --batch 64 --k 100 --maxlen 256
-```
-
-the observed india validation union of lexical e5 and qwen retrieval reached link recall `0.99538` at width 100 from each dense retriever. this is retrieval recall on a selected query diagnostic not a final score
-
-## neural pair model
-
-prepare fold 2 pairs with hard negatives. fold 2 can add a missed known positive before hard-negative selection. fold 0 validation keeps only its generated candidates and receives no gold-positive injection
-
-```sh
-uv run --group neural python src/neural.py prepare \
-  --data cache/data --run cache/runs/lex_train_us \
-  --out cache/neural_pairs/train_us --hard 8 --random 2
-
-uv run --group neural python src/neural.py prepare \
-  --data cache/data --run cache/runs/lex_train_india \
-  --out cache/neural_pairs/train_india --hard 8 --random 2
-
-uv run --group neural python src/neural.py prepare \
-  --data cache/data --run cache/runs/lex_val_us \
-  --out cache/neural_pairs/val_us
-
-uv run --group neural python src/neural.py prepare \
-  --data cache/data --run cache/runs/lex_val_india \
-  --out cache/neural_pairs/val_india
-
-uv run --group neural python src/neural.py train \
-  --train cache/neural_pairs/train_us cache/neural_pairs/train_india \
-  --val cache/neural_pairs/val_us cache/neural_pairs/val_india \
-  --out models/neural \
-  --model intfloat/multilingual-e5-base \
-  --revision d128750597153bb5987e10b1c3493a34e5a4502a \
-  --sources reports/model_sources.json \
-  --batch 128 --epochs 2 --maxlen 384 --device cuda
-```
-
-the trained model is an e5 initialized cross encoder with a binary classification head and bce-with-logits loss. the e5 model-source parameter field is the conservative safetensors-element bound `278044162`. the measured training set had 502635 pairs including 34785 positives. two epochs took about 25 minutes including validation on the a100 stage
-
-the final neural artifact is `models/neural` with `neural_metadata.json` tokenizer config and inference weights. use the provided local checkpoint for offline scoring when available. regenerate it only from the pinned data artifacts and command above. preserve its precision metadata
-
-## selected final configuration
-
-use this configuration unchanged for full training calibration and final test inference
-
-| setting | selected value |
+| module | responsibility |
 | --- | --- |
-| retrievers | `e5 qwen3` |
-| lexical candidates | `20` |
-| dense candidates per retriever | `100` |
-| upstream tree filter | `3` |
-| neural blend weight | `0.6` |
-| tree artifact | `models/gate` |
-| neural artifact | `models/neural` |
+| `src/eda.py`, `src/probe.py` | supplied-data analysis and diagnostic probes |
+| `src/data.py` | parquet prep and entity-grouped folds |
+| `src/block.py` | lexical candidates and complete field similarity scores |
+| `src/feat.py`, `src/train.py` | native feature contract and tree models |
+| `src/tm_rules.py`, `src/tm_prep.py`, `src/tfeat.py` | verified teammate feature backend |
+| `src/embed.py`, `src/hybrid.py` | pinned multilingual encoders and hybrid retrieval |
+| `src/neural.py` | hard-negative pair data fine-tuning and pair scoring |
+| `src/match.py`, `src/run.py` | learned filtering neural inference shards and resume |
+| `src/infer.py` | full-pool calibration and final tsv export |
+| `src/validate.py` | ids coverage duplicates candidate membership and size stats |
+| `src/package.py` | offline reproducibility archive |
+| `src/cloud.py`, `src/budget.py` | bounded compute lifecycle and reservation accounting |
 
-the two dense retrievers plus the neural encoder total about 1.152b neural parameters. source revisions, licenses, and conservative parameter bounds are in `reports/model_sources.json`
+see the [runbook](docs/ops.md) for exact commands
+validation and test partitions are separate jobs; do not put the test workload behind the full validation workload
+cpu is appropriate for prep tree models calibration export and checks
+gpu is preferred for this corpus's embedding and neural matching workload
 
-`src/run.py` defaults to one worker, one thread, and query batches of 4096. the production run uses a 96-core four-a100 node with eight worker processes twelve cpu threads per worker and 250000-record shards. gpu affinity distributes the workers across the four devices. use settings that fit the actual machine when reproducing on smaller hardware
+## model and evidence summary
 
-```sh
-uv run --group neural python src/run.py \
-  --data cache/data --cache cache --gate models/gate --neural models/neural \
-  --out artifacts/final_train --split train \
-  --workers 8 --threads 12 --shard-size 250000 --gpu-ids 0 1 2 3 \
-  --k-lex 20 --k-dense 100 --k-gate 3 \
-  --retrievers e5 qwen3 --device cuda \
-  --encoder-batch 128 --neural-batch 128 --query-batch 4096 \
-  --neural-weight 0.6 \
-  --calibration-out models/calibration.json --audit
+- 2,206,821 training refs and 1,732,544 test refs
+- 10,320,219 labeled targets and 9,969,589 competition test targets
+- france is about 15% of test refs and has no labeled training counterpart
+- frozen baseline retrieval and its separately trained matcher total about 1.152b neural parameters
+- the three-retriever upgrade and matcher total about 1.712b
+- the teammate port matched 54 feature values and checkpoint predictions exactly on the parity sample
+- the real upgraded smoke run covered 12 targets and 36 final candidates
+- these smoke and sampled comparison results are not full-corpus or leaderboard scores
+
+immutable model revisions licenses and parameter evidence are in [model sources](reports/model_sources.json)
+upstream notices are in [licenses](licenses/readme.md)
+
+## output and packaging
+
+```text
+output/
+  matching_results.tsv
+  candidate_pairs.tsv
+  calibration.json
 ```
 
-`src/run.py` refuses calibration unless every training country and target is covered. it writes country manifests source hashes coverage arrays timing and model configuration. use a lower encoder or neural batch if the selected device cannot hold the model and batches. do not change precision between calibration and test because the configuration fingerprint records it
+the final archive additionally carries source dependency locks selected model snapshots tokenizer files calibration and the completed methodology document
+raw datasets must be supplied separately when reproducing the run
+runtime loaders use packaged hf snapshots locally when available
 
-after reviewing the complete calibration and required locked audit use the resulting calibration file for the complete test export
+the strict validator reports candidate count mean nearest-rank p50/p95/p99 maximum and the complete histogram
+the organizer's final ranking reviews both matching quality and candidate generation
+the current exact dense scan is memory-bounded but is not claimed to be a billion-record approximate index
 
-```sh
-uv run --group neural python src/run.py \
-  --data cache/data --cache cache --gate models/gate --neural models/neural \
-  --out artifacts/final_test --split test \
-  --workers 8 --threads 12 --shard-size 250000 --gpu-ids 0 1 2 3 \
-  --k-lex 20 --k-dense 100 --k-gate 3 \
-  --retrievers e5 qwen3 --device cuda \
-  --encoder-batch 128 --neural-batch 128 --query-batch 4096 \
-  --neural-weight 0.6 \
-  --calibration models/calibration.json --export-out output/final
-```
+## operations
 
-the full-pool calibration and test outputs are pending. do not run the test command with a threshold copied from sampled validation
+the original four-a100 worker lost allocation after 9,161,442 scored validation targets
+its verified checkpoints and exact runtime were retained for recovery on a smaller a100
+the test workers continued independently
 
-## compute notes
-
-the verified remote training configuration was `Standard_NC24ads_A100_v4` with an 80 gb a100 and 24 cpu cores. it completed the cu128 path with `torch 2.8.0+cu128`. full production uses `Standard_NC96ads_A100_v4` with four a100 devices after quota and preflight verification
-
-the local benchmark environment has 12 cpu threads 15.37 gib ram and a 6 gib gpu. e5 dense validation ran on that local gpu. do not assume the local encoder batch or precision transfers to the a100 or vice versa
-
-keep workers times threads within available cores. use country sharding memory-mapped embedding arrays and finite batches. do not schedule all 350 workspace cpu cores
-
-## cloud execution
-
-`src/cloud.py` creates only task-tagged compute. it has a hard `500` usd ledger cap a finite job timeout zero minimum nodes one maximum node 120 second idle scale down and verified deletion. it does not delete existing workspace workloads
-
-use current pricing and placeholders supplied by the account owner
-
-```sh
-uv run --group cloud python src/cloud.py run \
-  --subscription '<subscription>' \
-  --group '<resource-group>' \
-  --workspace '<workspace>' \
-  --profile gpu --hours '<hours-at-most-12>' --rate '<current-usd-per-hour>' \
-  --fixed 10 --cap 500 \
-  --input train=azureml://datastores/<datastore>/paths/<project>/<upstream-run>/out/ \
-  --command 'uv run --frozen --group neural python src/neural.py train --train ${{inputs.train}}/train --val ${{inputs.train}}/val --out ${{outputs.out}}/models/neural --batch 128 --epochs 2 --maxlen 384 --device cuda' \
-  --out artifacts/cloud/neural --no-download
-```
-
-the output uri is recorded in the job journal. pass that `azureml://datastores/...` uri as the next `--input` to chain jobs without a local download. use only task compute in the supplied workspace and never place subscription ids sas tokens or api keys in this file
-
-`--profile gpu4` selects the four-gpu node. reserve its own current hourly ceiling rather than the single-gpu rate. `--output-mode rw_mount` persists inference shards and checkpoints and `--no-download` leaves them at the recorded uri. run indexes use content identities and relative run paths so copies can resume under a new job mount after revalidating current model and source fingerprints
-
-azure references
-
-- `https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/gpu-accelerated/nca100v4-series`
-- `https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-optimize-cost?view=azureml-api-2`
-
-## verify and package
-
-verify the final outputs before packaging
-
-```sh
-python <challenge-resource-root>/utils/validate_submission.py \
-  --matching output/final/matching_results.tsv \
-  --candidate output/final/candidate_pairs.tsv \
-  --test-dir <supplied-dataset>/test \
-  --check-ids
-
-uv run python src/package.py \
-  --matching output/final/matching_results.tsv \
-  --candidate output/final/candidate_pairs.tsv \
-  --test-dir student_resource/dataset/test \
-  --repo-root . --code-root . \
-  --readme README.md --methodology Documentation_template.md \
-  --gate-model-dir models/gate --neural-model-dir models/neural \
-  --calibration models/calibration.json \
-  --hf-cache <safe-huggingface-cache> \
-  --team-name Amazites --output-zip output/Amazites_submission.zip
-```
-
-`src/package.py` requires the final full-corpus `models/calibration.json` and `--hf-cache`. it rejects sampled or partial calibration. it validates ids, candidate subset membership, model provenance, calibration completeness, and the selected source versions. it packages every snapshot selected by that calibration and loads those snapshots locally after extraction
-
-the validation helper belongs to the supplied challenge resources, not the final archive. the package command above runs from the source checkout. to repackage an extracted archive, run this from `code/business_entity_resolution`:
-
-```sh
-uv run python src/package.py \
-  --matching ../../output/matching_results.tsv \
-  --candidate ../../output/candidate_pairs.tsv \
-  --test-dir <supplied-dataset>/test \
-  --repo-root . --code-root . \
-  --readme README.md --methodology ../../Documentation_template.md \
-  --gate-model-dir models/gate --neural-model-dir models/neural \
-  --calibration models/calibration.json \
-  --hf-cache models/hf \
-  --output-zip ../../repacked_submission.zip
-```
-
-## current evidence
-
-- training anchors 2206821 and test anchors 1732544
-- france is about 15 percent of test anchors and has no labeled training equivalent
-- the metric is macro per anchor f0.5 with correct empty sets and singleton anchors included
-- india e5 qwen lexical union recall is `0.99538` at dense width 100 each on the selected query diagnostic
-- selected query neural diagnostics reached `0.934` link recall at `0.995` precision with weighted-logit neural weight `0.6`
-- the tree top 3 filter reduced neural calls from about 1.5 million to 53481 in that selected query diagnostic
-- a real local cli run completed 38 queries and scored 114 neural pairs; this is not a full-corpus result
-- these precision recall and filter figures are not official or full-pool results
-- full-pool calibration, test outputs, and locked audit: **pending**
+all task compute has finite runtime ownership tags persistent outputs and cleanup
+already-submitted azure jobs retain their runtime limits and automatic compute cleanup
+budget reports are conservative estimates, not an azure invoice
+see [status](docs/status.md) and [ops](docs/ops.md) before allocating or resuming work

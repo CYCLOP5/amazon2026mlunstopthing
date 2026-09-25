@@ -14,7 +14,10 @@ reserve a 4b model for hard cases only if the measured improvement justifies its
 the strongest current evidence points to retrieval quality and hard negative training before model size
 the final architecture will be selected from measured experiments rather than assumed from generic model leaderboards
 
-azure budget is capped at 500 usd for this project
+the original azure authorization was 500 usd and was explicitly increased to 1000 usd
+the active total is enforced as two disjoint 500 usd allocations for baseline and upgraded runs
+the deadline is sunday 2026-09-27 at 08:00 ist or 02:30 utc
+zero of three total submissions had been used at the last user confirmation
 use uv and push code docs and compact metrics to the requested github repo at meaningful milestones
 keep raw competition data large model files and generated candidate files out of normal git history
 
@@ -34,7 +37,7 @@ this is business entity resolution rather than the older amazon price prediction
 - azure hosted training and self hosted eligible model inference do not require external identity lookup
 - final results need one row for every test s1 id including empty predictions
 - the candidate file must contain the actual final matcher input set and every predicted link
-- rankings ultimately use the private leaderboard
+- final ranking also reviews candidate generation code and candidate count per s1 alongside leaderboard matching quality
 
 the supplied validator defaults to skipping target id existence checks
 it also treats missing candidate files and matches outside the candidate set as warnings
@@ -514,7 +517,7 @@ python3 utils/validate_submission.py \
 package both outputs the self contained pipeline with pinned dependencies run instructions and the filled methodology template
 large candidate files may need a memory rich machine for the supplied validator
 also implement bounded memory format and subset checks
-verify cloud cleanup and the spend ledger before declaring the goal complete
+verify cloud cleanup and the spend ledger before declaring delivery complete
 
 ## remaining external facts
 
@@ -682,7 +685,8 @@ azure ml regional spot quota was increased to 96 vcpus and verified on 2026-09-2
 the official eastus four a100 price is 2.715082 usd per hour spot or 14.692 on demand
 production reservations use a conservative 15.5 usd hourly ceiling plus staging allowance
 jobs retain one node maximum zero minimum idle shutdown and finite timeout
-the controller now permits up to 12 hours only when the full worst case reservation fits the unchanged 500 usd cap
+at that stage the controller permitted up to 12 hours only when the full worst case reservation fit the original 500 usd allocation
+the later project authorization is 1000 usd total; see the current execution update below
 
 review fixes require resumed children to revalidate current model hashes before reusing predictions
 final packages require all selected retriever snapshots and automatically use their local offline cache
@@ -758,9 +762,71 @@ replacing qwen with large-instruct recalls 0.995235
 adding large-instruct as a third dense encoder recalls 0.996101 and recovers 5 additional positive queries
 at width 200 the third encoder recovers only 3 additional positive queries
 large-instruct performs better at some narrow widths but is not a better two-encoder replacement at the selected production width
-this does not justify changing the active production configuration or claiming a higher final matching score
+this initially left the two-retriever baseline unchanged pending a direct matcher comparison
+the five-link gain did justify that follow-up; the later three-retriever deployment is described below
 
 full same-width comparisons and scope are recorded in `reports/e5_large_same_width_india.json`
 the individual model result is in `reports/e5_large_instruct_india.json`
 
-the user confirmed no fixed deadline and team Amazites with Varun Jhaveri Shivsharan Sanjawad Raj Mathuria and Aastha Singh
+the earlier no-deadline interpretation was incorrect
+the user explicitly confirmed sunday 2026-09-27 at 08:00 ist, with all three intended submissions required by then
+team amazites comprises varun jhaveri, shivsharan sanjawad, raj mathuria, and aastha singh
+
+## current execution update
+
+the baseline and upgraded implementations are now distinct frozen configurations
+
+| item | baseline | upgrade |
+| --- | --- | --- |
+| dense retrievers | e5-base and qwen | e5-base qwen and e5-large |
+| gate | native lightgbm/catboost mean | 54-feature teammate lightgbm without four sampled s1 aggregates |
+| final matcher | trained e5 pair classifier | same trained e5 pair classifier |
+| final candidates per target | up to 3 | up to 3 |
+| neural logit weight | 0.6 | 0.6 |
+
+the teammate feature port matched its original transform arrays and checkpoint probabilities exactly on 2613 pairs from 64 queries
+the real upgraded runtime smoke covered 12 targets and 36 final candidates
+the sharded launcher was also checked with the actual selected models
+these establish implementation parity and execution, not final matching quality
+
+the safer teammate gate improved paired recall at 99.5 percent precision from about 91.89 to 93.32 percent with unchanged neural scores
+the compared population is a fixed selected candidate diagnostic
+the uploaded diagnostics referenced a 0.9688 validation result and an earlier 0.958 leaderboard figure; they did not verify a new 0.97 leaderboard result for the uploaded ensemble version
+
+validation target scoring and competition test scoring now run independently
+the upgraded work is divided into four validation partitions and four test partitions on separate single-a100 workers
+the original baseline test work also runs across four single-a100 workers
+each worker uses two processes with twelve cpu threads per process
+calibration and export are downstream cpu work
+
+the original four-a100 validation worker lost allocation after 9161442 targets
+its 41 manifests had no missing or unlisted checkpoint files
+remaining work was moved to a smaller a100 using a byte-verified original runtime archive and copied outputs
+copied checkpoint counts are distinguished from new scoring progress
+the unavailable large compute was deleted
+
+an initial eight-job upgrade launch failed before inference when the azure sdk concurrently uploaded the same local gate folder
+the fix was to stage and byte-verify that asset once and use its datastore uri for every job
+all eight retry jobs subsequently reached running state and began writing prediction parts
+
+## submission size criterion and remaining gates
+
+candidate count per s1 is now an explicit organizer ranking criterion
+the strict validator reports total pairs empty rows mean nearest-rank p50/p95/p99 maximum and the full size histogram
+the file remains the actual final pre-neural candidate set, including pairs the matcher rejects
+three candidates per target does not imply three candidates per reference
+
+the current dense search uses exact chunked similarity scans
+it bounds memory but does not establish billion-record approximate-search scalability
+an ann replacement remains a measured future scaling change rather than an implemented result
+
+the current hard spending authorization is 1000 usd total across the original and upgrade ledgers
+conservative accrual and reservations are estimates rather than a billing invoice
+quota is distinct from regional physical gpu availability
+
+full labeled-pool calibration locked audit complete test export strict validation and archive checks remain required
+the intended sequence is a validated baseline upload, an upgraded upload, and a final refinement informed by validation and leaderboard feedback
+no public leaderboard score is claimed before an actual upload returns a result
+
+current operator documentation is in [arch](docs/arch.md), [ops](docs/ops.md), [training](docs/training.md), and [status](docs/status.md)
+the [evidence index](reports/README.md) maps every main result to its scope

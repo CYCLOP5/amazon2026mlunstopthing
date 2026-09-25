@@ -1,114 +1,159 @@
 # ml challenge 2026 business entity resolution
 
-**team name:** Amazites
-**team members:** Varun Jhaveri, Shivsharan Sanjawad, Raj Mathuria, Aastha Singh
-**submission date:** 2026-09-25
+- **team:** amazites
+- **members:** varun jhaveri, shivsharan sanjawad, raj mathuria, aastha singh
+- **doc revision:** 2026-09-25
+- **submission date:** pending actual upload
+- **deadline:** 2026-09-27 08:00 ist / 02:30 utc
+
+> implementation-method draft
+> final variant cutoff full-pool score candidate count and archive hash must be populated from completed artifacts
 
 ## 1. executive summary
 
-the selected system retrieves candidates with complementary lexical e5 and qwen3 views then applies a tree gate and a fine tuned e5 cross encoder
+the system retrieves candidate businesses from complementary lexical and multilingual views
+a learned gate reduces the shortlist before a locally fine-tuned pair classifier scores each retained link
+full-pool calibration selects the decoder and acceptance threshold
 
-it is precision focused because macro per anchor f0.5 penalizes false positive links strongly. all work uses supplied records and eligible local pretrained models only
+the baseline uses e5-base and qwen retrieval with the original lightgbm/catboost gate
+the implemented upgrade uses the verified teammate lightgbm gate plus e5-base qwen and e5-large retrieval
+both use the fine-tuned e5 matcher
+the final submitted variant is selected from complete results rather than assumed here
 
-## 2. methodology
+## 2. data and problem analysis
 
-### 2.1 problem analysis
+- 2,206,821 training refs and 1,732,544 test refs
+- 10,320,219 labeled training targets and 9,969,589 competition test targets
+- repeated names shared addresses blank fields and script changes create ambiguous matches
+- france is about 15% of test refs but has no labeled training counterpart
+- macro per-ref f0.5 rewards correct empty sets and penalizes false merges strongly
 
-training contains 2206821 reference anchors and test contains 1732544. france is about 15 percent of test anchors but has no labeled training counterpart
+raw unicode text is retained
+offline `anyascii` comparison views bridge scripts for lexical search
+the teammate backend uses its pinned `unidecode` transform to preserve checkpoint semantics
+no external business lookup geocoding translation service or external reference enrichment feeds predictions
 
-names and addresses repeat often. aliases can be non-ascii and addresses can be blank. all audited training links remain within country but country labels are discovered from data rather than hardcoded
+## 3. split and training strategy
 
-the score is macro per anchor f0.5 including empty sets and singletons. a pairwise threshold or sampled candidate score is therefore insufficient for final selection
+entity-grouped folds use seed 42
+fold 2 fits models fold 0 tunes decisions and fold 1 is reserved for locked audit
+aliases of one known business remain together
 
-### 2.2 solution strategy
+the neural matcher was trained on 502,635 pairs including 34,785 positives
+it uses an e5-base initialization a binary classification head and bce-with-logits loss
+the recorded fit uses two epochs batch 128 and maximum pair length 384
+hard negatives come from generated candidates with additional bounded random negatives
+missed known positives may be inserted into fit data only
 
-**approach type:** hybrid retrieval tree gate and cross encoder
-**core innovation:** independent unicode lexical and multilingual dense candidate views followed by bounded learned filtering and calibrated set decoding
+the upgraded lightgbm uses 54 features and 248 fitted trees
+its fit used 1,858,304 fixed candidate pairs
+four sampled reference aggregates were removed because they exposed owner-sampling membership
+the production transform and checkpoint probabilities passed exact parity checks
 
-the data stage preserves raw unicode name and address text. it creates a separate nfkc casefold punctuation-normalized offline transliterated view using `anyascii`. transliteration is comparison support not replacement text and no translation api is used
+## 4. blocking and candidate generation
 
-training folds are frozen with seed 42 at the reference entity level. fold 2 fits models fold 0 tunes decisions and fold 1 is held for locked audit. folds are stratified by country link degree unicode aliases and blank aliases
+| setting | baseline | upgrade |
+| --- | --- | --- |
+| lexical width | 20 | 20 |
+| dense width per retriever | 100 | 100 |
+| dense lanes | e5-base and qwen | e5-base qwen and e5-large |
+| learned gate | native lightgbm/catboost | teammate lightgbm without sampled s1 aggregates |
+| final candidates per target | at most 3 | at most 3 |
 
-the selected retrievers are `intfloat/multilingual-e5-base` revision `d128750597153bb5987e10b1c3493a34e5a4502a` and `Qwen/Qwen3-Embedding-0.6B` revision `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3`. e5 uses its documented query and passage prefixes. qwen3 uses the identity retrieval instruction and left padding
+the lexical lane unions independent name/address searches and exact normalized keys
+exact-key collisions are retained
+both field similarities are computed completely for every retained pair
+country labels are discovered from data and an explicit unpartitioned fallback handles missing/unmatched labels
 
-sources
+e5-base uses its query/passage prefixes
+qwen uses an identity-retrieval instruction and left padding
+e5-large uses an instructed query and raw ref text
+all model revisions are pinned in [model sources](reports/model_sources.json)
 
-- `https://huggingface.co/intfloat/multilingual-e5-base`
-- `https://huggingface.co/Qwen/Qwen3-Embedding-0.6B`
-- `https://arxiv.org/abs/2004.00584`
+dense search is exact and chunked: memory is bounded, but the reference pool is still scanned
+billion-record approximate indexing is not claimed
+the final candidate file is the complete post-gate input to the neural matcher, including links later rejected
 
-## 3. candidate generation blocking
+**actual candidate pairs:** pending completed export
 
-- **blocking keys used:** exact normalized name and address keys character name and address retrieval offline transliterated name retrieval and dense multilingual retrieval
-- **candidate pairs generated:** pending full-pool run
-- **how true matches were protected:** channels are unioned within country and source with lexical width 20 plus dense width 100 from each retriever. exact collisions are retained. no dense pair matrix is materialized
+**per-s1 mean / p50 / p95 / p99 / max:** pending strict validation report
 
-on the selected india query diagnostic lexical retrieval plus both dense encoders reached link recall `0.99538` at width 100 each. this is candidate coverage only not a final matching score
+three candidates per target is not three candidates per s1
+the final source1 distribution is measured directly from the output
 
-the final matcher input is the last post-gate candidate set. the selected configuration is `klex=20` `kdense=100` and upstream tree filter `k=3`. candidates dropped before neural scoring are counted by the run manifest rather than hidden
+## 5. matching and decoding
 
-## 4. matching model
+the baseline gate uses the native 44-feature representation
+the upgrade includes canonical compact skeleton alias legal-form address state and soft numeric evidence
+target-side ranks and gaps are retained while the four biased sampled s1 aggregates are excluded
 
-**features used:**
+the final neural classifier scores field-labeled ref/target pairs
+the current blend is weighted log odds with neural weight 0.6
+the upgraded parts retain gate and neural probabilities for later measured refinements
 
-- name features: normalized and raw edit and token similarities transliteration agreement length and ambiguity features
-- address features: character and token similarity digit agreement disagreement missingness and retrieval evidence
-- other: country source channel ranks score gaps frequency and dense similarities
+calibration compares plain thresholding with selecting one best ref per target before thresholding
+it scores every labeled target so false assignments from other businesses remain visible
+selection uses fold 0; fold 1 remains the locked audit
 
-**model type:** baseline boosted tree gate plus e5 binary cross encoder
-**threshold selection method:** choose the decoder and cutoff only from complete full-training-pool calibration using exact coverage and configuration fingerprints
+**final decoder / cutoff:** pending full-pool calibration
 
-the cross encoder starts from `intfloat/multilingual-e5-base` and uses field-labeled pair text. its binary classification head is trained with bce-with-logits loss at batch 128 for two epochs with maximum length 384
+**final submitted variant:** pending complete variant comparison
 
-the trained neural model is initialized from e5. the e5 model-source parameter field is the conservative safetensors-element bound `278044162`. selected retrieval plus neural parameters total about 1.152b. all deployed source licenses are mit or apache 2.0 and the stack remains below 8b parameters. provided local checkpoints are used offline when present and can be regenerated only from the pinned artifacts
+## 6. results and limitations
 
-the selected inference blend is weighted-logit with neural weight `0.6`. the tree gate artifact is `models/gate` and the neural artifact is `models/neural`
+| observation | scope |
+| --- | --- |
+| baseline india lexical/e5/qwen recall 0.995379 at dense width 100 | selected query retrieval diagnostic |
+| adding large-instruct recalled 0.996101 and five extra positive queries | same selected query population |
+| safer teammate gate improved paired high-precision recall with unchanged neural scores | fixed candidate diagnostic |
+| 54-feature arrays and checkpoint predictions matched exactly on 2,613 pairs | runtime parity check |
+| upgraded real-weight smoke covered 12 targets and 36 candidates | functional integration check |
 
-cuda precision must be identical in calibration and test inference. `src/run.py` records this and rejects incompatible resumed output
+these figures are not an official or full-pool matching score
+repeated generic names shared addresses and near-copy records cause false merges
+script changes shortened names weak addresses and edited numbers cause missed links
+number conflicts remain soft evidence because true pairs can contain number noise
 
-## 5. results and error analysis
+**full-pool macro f0.5:** pending
 
-- **f0.5 score macro:** pending full-corpus calibration, test export, and locked audit
-- **common false positives wrong merges:** repeated generic names shared addresses and close lexical competitors
-- **common false negatives missed matches:** script or transliteration changes shortened aliases weak address text and blank addresses
+**locked audit:** pending
 
-the neural training stage used 502635 pairs including 34785 positives and completed in about 25 minutes including validation on the a100 stage. selected-query diagnostics reached `0.934` link recall at `0.995` precision with neural weight `0.6`. the tree top 3 filter reduced neural calls from about 1.5 million to 53481. a real local cli run completed 38 queries and scored 114 neural pairs. these are diagnostics not an official score and do not establish full-pool performance
+**leaderboard feedback:** no submission used at last confirmation
 
-the full training calibration test export and locked audit have not completed. no sampled threshold is reused for submission
+## 7. execution and reproducibility
 
-## 6. conclusion
+validation scoring and test scoring run as independent jobs
+each is divided into four outer target-id partitions with 250,000-record internal work units
+single-a100 workers use explicit gpu affinity and two 12-thread processes
+cpu handles prep features calibration export and validation; gpu handles the selected neural workloads
 
-the workflow favors complementary retrieval and hard negatives over a larger model. final claims wait for complete training calibration full test coverage strict validation and the locked audit
+the original four-a100 worker lost allocation at 9,161,442 scored validation targets
+verified checkpoints and the original runtime snapshot were retained for smaller-worker recovery
+resumed artifacts must match data model feature numeric and source fingerprints
+the complete target pool must be covered exactly once
 
-## appendix
+uv pins python and dependencies
+model metadata pins revisions licenses feature order parameter counts and precision
+the baseline uses about 1.152b neural parameters and the upgrade about 1.712b including the separately trained matcher
+deployed source models have mit or apache-2.0 metadata and remain below the challenge parameter ceiling
 
-### a. code artefacts
+the total azure authorization is $1,000 across two disjoint $500 ledgers
+jobs have finite runtime task ownership checks persistent outputs and verified compute cleanup
+existing unrelated resources are preserved
 
-`src/data.py` prepares provided tsv files and freezes folds. `src/block.py` creates lexical candidate runs. `src/train.py` fits the tree gate. `src/embed.py` writes dense validation candidates. `src/neural.py` prepares pairs trains the cross encoder and scores pairs
+## 8. submission contents and verification
 
-`src/run.py` is the final entry point. it launches one country run per worker validates exact coverage calibrates only complete training coverage and exports only complete test coverage
+the required outputs are `matching_results.tsv` and `candidate_pairs.tsv`
+strict validation checks headers ids duplicates all-ref coverage and final-match membership in candidates
+it also reports candidate count distributions for the organizer's additional ranking criterion
 
-the required final outputs are `output/matching_results.tsv` and `output/candidate_pairs.tsv`. `src/package.py` requires both outputs `models/gate` `models/neural` and the final full-corpus `models/calibration.json`, as well as this README, this methodology document, the source lock, and model provenance. it rejects sampled or partial calibration
+the final archive includes source uv lock local selected model snapshots tokenizer files calibration model provenance and upstream notices
+raw datasets credentials cloud caches and training feature matrices are excluded
 
-`src/package.py` accepts the committed uv files instead of a separate requirements file. it packages only calibration-selected retrievers with their sourced provenance; with `--hf-cache` it includes their safe pinned snapshots for offline inference
+**output checksums / archive hash:** pending completed artifacts
 
-### b. compute and reproducibility
+implementation detail: [arch](docs/arch.md)
 
-the verified remote worker was `Standard_NC24ads_A100_v4` with an 80 gb a100 and 24 cpu cores using `torch 2.8.0+cu128`. the local benchmark environment had 12 cpu threads 15.37 gib ram and a 6 gib gpu where e5 dense validation completed
+reproduction and operations: [ops](docs/ops.md) and [training](docs/training.md)
 
-workers and threads are bounded so country-parallel inference uses at most 24 cpu threads on the remote worker. batches must fit actual vram. no run should consume all 350 workspace cpu cores
-
-the cloud runner enforces a 500 usd cap finite job duration zero minimum nodes one maximum node 120 second idle deletion and task-only ownership tags. it preserves pre-existing workspace resources
-
-remote artifacts can be supplied as `azureml://datastores/<datastore>/paths/<project>/<run>/out/` inputs. `--no-download` records the output uri for chaining without local transfer. subscription resource group workspace and pricing are supplied at run time and are intentionally not recorded here
-
-### c. additional results
-
-| evidence | observed value | scope |
-| --- | ---: | --- |
-| india e5 qwen lexical retrieval recall | 0.99538 | selected query diagnostic at dense width 100 each |
-| neural candidate validation pairs | 1508516 | candidate pair validation |
-| neural validation throughput | about 6356 pairs per second | a100 final validation pass |
-| full-corpus calibration, test outputs, and locked audit | pending | no optimistic completion claim |
-
-the relevant primary sources are `https://huggingface.co/intfloat/multilingual-e5-base` `https://huggingface.co/Qwen/Qwen3-Embedding-0.6B` and `https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-optimize-cost?view=azureml-api-2`
+research and evidence: [plan](plan.md) and [report index](reports/README.md)
