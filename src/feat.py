@@ -56,8 +56,8 @@ def _txt(d, c, i):
     return d[c].gather(pl.Series(i, dtype=pl.UInt32)).fill_null("").to_list()
 
 
-def _sc(a, b, fn, th):
-    return rp.cpdist(a, b, scorer=fn, workers=th, dtype=np.float32) / 100
+def _sc(a, b, fn, th, scale=100):
+    return rp.cpdist(a, b, scorer=fn, workers=th, dtype=np.float32) / scale
 
 
 def _tm(a, b):
@@ -183,9 +183,9 @@ def make(st, queries, pairs, threads=1):
         (np.asarray(au) == qa) & (np.asarray(au) != ""),
         (np.asarray(nn) == qn) & (np.asarray(nn) != ""),
         (np.asarray(an) == qx) & (np.asarray(an) != ""),
-        _sc(nu, qu, fz.ratio, threads), _sc(nu, qu, di.JaroWinkler.normalized_similarity, threads),
+        _sc(nu, qu, fz.ratio, threads), _sc(nu, qu, di.JaroWinkler.normalized_similarity, threads, 1),
         _sc(nu, qu, fz.token_sort_ratio, threads), _sc(nu, qu, fz.token_set_ratio, threads),
-        _sc(au, qa, fz.ratio, threads), _sc(au, qa, di.JaroWinkler.normalized_similarity, threads),
+        _sc(au, qa, fz.ratio, threads), _sc(au, qa, di.JaroWinkler.normalized_similarity, threads, 1),
         _sc(au, qa, fz.token_sort_ratio, threads), _sc(au, qa, fz.token_set_ratio, threads),
         _sc(nn, qn, fz.ratio, threads), _sc(an, qx, fz.token_set_ratio, threads),
     ]
@@ -233,6 +233,7 @@ def check():
     assert s["d"]["nu"].to_list()[0] == "राम"
     assert x.shape == (3, len(n)) and x.dtype == np.float32 and np.isfinite(x).all() and n == ff
     assert x[0, n.index("nue")] == 1 and x[0, n.index("nae")] == 1
+    assert x[1, n.index("nfw")] == 1
     r2 = r.with_columns(pl.lit(99).alias("deg"), pl.lit(0).alias("uni"), pl.lit(0).alias("blank"), pl.lit(1).alias("fold"))
     q2 = q.with_columns(pl.lit(-1).alias("own"))
     p2 = p.with_columns(pl.lit(-1).alias("own"), pl.lit(1).alias("y"))
