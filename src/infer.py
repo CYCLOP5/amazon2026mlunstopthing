@@ -470,6 +470,33 @@ def export(data, runs, calibration, out):
     man = rs[0]["manifest"]
     if cal.get("config_sha256") != man["config_sha256"] or cal.get("model_sha256") != man["config"]["model"]["sha256"]:
         raise ValueError("calibration and inference model/configuration mismatch")
+    return _export(data, rs, sel, calibration, out)
+
+
+def provisional(data, runs, cutoff, decoder, out):
+    data, out = path(data).resolve(), path(out).resolve()
+    if isinstance(cutoff, bool) or not np.isfinite(cutoff) or not 0 <= cutoff <= 1:
+        raise ValueError("provisional cutoff must be finite and in [0, 1]")
+    if decoder not in {"plain_threshold", "target_top1_then_threshold"}:
+        raise ValueError("invalid provisional decoder")
+    rs = _runs(data, runs, "test", _ids(data, "test"))
+    man = rs[0]["manifest"]
+    sel = {"decoder": decoder, "threshold": cutoff}
+    selection = {"kind": "provisional-export-selection", "selection": sel,
+                 "basis": "diagnostic cutoff pending full-pool calibration",
+                 "config": man["config"], "config_sha256": man["config_sha256"],
+                 "model_sha256": man["config"]["model"]["sha256"],
+                 "test_coverage": {"complete": True, "targets": sum(len(r["coverage"]) for r in rs)}}
+    out.parent.mkdir(parents=True, exist_ok=True)
+    selection_path = out.parent / (out.name + "_provisional_selection.json")
+    _write(selection_path, selection)
+    z = _export(data, rs, sel, selection_path, out)
+    z["provisional"] = True
+    return z
+
+
+def _export(data, rs, sel, calibration, out):
+    out.parent.mkdir(parents=True, exist_ok=True)
     lf = _lf(rs, ("qid", "tid", "prob"))
     if sel["decoder"] == "target_top1_then_threshold":
         mf = lf.sort(["tid", "prob", "qid"], descending=[False, True, False]).group_by("tid", maintain_order=True).first()
@@ -566,6 +593,17 @@ def check():
         assert aud["tune"]["selected"] == cal["tune"]["selected"] and aud["audit"]["fold"] == 1
         out = export(data, [te], d / "cal.json", d / "out")
         assert out["matching_pairs"] >= 2 and "S1-fr\tS2-fr" in (d / "out/matching_results.tsv").read_text()
+        early = provisional(data, [te], .99, "target_top1_then_threshold", d / "early")
+        assert early["provisional"]
+        assert _json(d / "early_provisional_selection.json")["kind"] == "provisional-export-selection"
+        assert (d / "early/candidate_pairs.tsv").read_bytes() == (d / "out/candidate_pairs.tsv").read_bytes()
+        for bad in (-.1, 1.1, float("nan")):
+            try:
+                provisional(data, [te], bad, "target_top1_then_threshold", d / "bad")
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("invalid provisional cutoff accepted")
         ids = [x.split("\t", 1)[0] for x in (d / "out/matching_results.tsv").read_text().splitlines()[1:]]
         assert ids == sorted(ids)
         bad = _json(d / "cal.json")
@@ -622,6 +660,13 @@ def main():
     e.add_argument("--runs", type=path, nargs="+", required=True)
     e.add_argument("--calibration", type=path, required=True)
     e.add_argument("--out", type=path, default=root / "output")
+    v = s.add_parser("export-provisional")
+    v.add_argument("--data", type=path, default=root / "cache/data")
+    v.add_argument("--runs", type=path, nargs="+", required=True)
+    v.add_argument("--cutoff", type=float, required=True)
+    v.add_argument("--decoder", choices=["plain_threshold", "target_top1_then_threshold"],
+                   default="target_top1_then_threshold")
+    v.add_argument("--out", type=path, required=True)
     a = p.parse_args()
     if a.check:
         check()
@@ -631,6 +676,8 @@ def main():
         calibrate(a.data, a.runs, a.out, a.audit)
     elif a.cmd == "export":
         export(a.data, a.runs, a.calibration, a.out)
+    elif a.cmd == "export-provisional":
+        provisional(a.data, a.runs, a.cutoff, a.decoder, a.out)
     else:
         p.error("choose infer, calibrate, export, or --check")
 
