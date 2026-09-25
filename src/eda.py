@@ -8,6 +8,7 @@ from pathlib import Path as path
 
 
 def rows(p):
+    csv.field_size_limit(2**31 - 1)
     with p.open(encoding="utf-8-sig", newline="") as f:
         yield from csv.reader(f, delimiter="\t")
 

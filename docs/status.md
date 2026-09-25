@@ -1,124 +1,76 @@
-# delivery status
+# evaluation and submission evidence
 
-> snapshot: 2026-09-25 16:27 utc / 21:57 ist
+> updated: 2026-09-25
 >
 > deadline: sunday 2026-09-27 08:00 ist / 02:30 utc
 >
-> attempts used: 0 of 3 at the last confirmation
+> upgraded v1 submitted; reported public leaderboard f0.5: **0.969**
 
-this is a timestamped operational snapshot rather than a live dashboard
-no uploadable submission files or official leaderboard scores existed at this check
+## model comparison
 
-### subsequent schedule update
+| variant | retrieval | gate | matcher | measured result |
+| --- | --- | --- | --- | --- |
+| original baseline | lexical + e5-base + qwen | native lightgbm/catboost mean | fine-tuned e5 pair classifier | **0.97550** locked offline source1 macro f0.5 |
+| upgraded v1 | lexical + e5-base + qwen + e5-large | 54-feature teammate lightgbm | same fine-tuned e5 pair classifier | **0.969** reported public leaderboard f0.5 |
 
-the later authorization is $1,500 total and the upgraded variant is prioritized for upload one
-unfinished upgraded test work is being redistributed into 16 explicit disjoint assignments
-full validation continues independently; the first export may use a clearly marked provisional cutoff
-the baseline eta and budget table below describe the earlier snapshot rather than the revised allocation
+the metrics above use different evaluation populations
+the baseline figure is an offline audit; it is not a public leaderboard result
+upgraded full-pool calibration remains a separate evaluation
+the first upgraded upload uses the documented provisional cutoff of 0.8
+the baseline comparison export is complete and uses its full-pool selected cutoff of 0.5527569055557251
+both baseline output files passed the strict validator and the supplied validator with id checking
+its verified file hashes and counts are in [baseline output evidence](../reports/submission_baseline.json)
 
-## completed work
+## completed upgraded v1 output
 
-- full supplied-data eda and label audit
-- pinned uv runtime and offline transliteration
-- native lexical/tree baseline and fine-tuned multilingual pair matcher
-- verified cloud execution persistent checkpoints and task-only cleanup
-- teammate code/diagnostic review and controlled lightgbm/xgboost comparisons
-- exact 54-feature teammate runtime/checkpoint parity
-- implemented e5-base qwen and e5-large combined retrieval
-- real-model and sharded-launcher smoke checks
-- strict submission validation and source1 candidate-size reporting
-
-## live scoring snapshot
-
-all 13 jobs reported running and had fresh output activity
-
-| work | completed targets | required targets | progress |
-| --- | ---: | ---: | ---: |
-| baseline labeled pool | 9,481,218 | 10,320,219 | 91.9% |
-| baseline test pool | 3,315,633 | 9,969,589 | 33.3% |
-| upgraded labeled pool | 1,343,488 | 10,320,219 | 13.0% |
-| upgraded test pool | 1,918,321 | 9,969,589 | 19.2% |
-
-the baseline recovery has produced 319,776 new targets beyond its 9,161,442 restored checkpoints
-completed shards were revalidated with zero new retrieval/feature/neural work before unfinished shards resumed
-both reference-cache warmups succeeded
-
-the current allocation is
-
-- one smaller-a100 baseline recovery worker
-- four baseline test workers
-- four upgraded validation workers
-- four upgraded test workers
-
-the upgraded jobs use the actual teammate checkpoint and all three retrievers
-the baseline uses its original frozen model/runtime
-
-## first-submission estimate
-
-the measured interval from 15:54 to 16:27 utc covered about 33 minutes
-baseline test throughput was about 641 targets/second across four workers
-the slowest quarter projected about 3.1 hours of scoring still remaining at that recent pace
-
-the working first-file estimate is **saturday 2026-09-26 around 01:30–03:30 ist**
-this includes time after scoring for calibration availability export download and strict checks
-it assumes continued allocations and timely postprocessing
-it is not a guarantee against preemption changing country-specific throughput or output transfer delays
-
-| work | recent aggregate throughput | remaining scoring at that rate |
-| --- | ---: | ---: |
-| baseline test | about 641 targets/sec | about 2.9 h aggregate; 3.1 h slowest quarter |
-| upgraded labeled pool | about 602 targets/sec | about 4.1 h |
-| upgraded test | about 716 targets/sec | about 3.1 h |
-
-these are workload estimates rather than completed results
-final files do not appear merely because the scoring jobs finish
-the complete manifests must still be calibrated exported and validated
-
-## first-upload gates
-
-| gate | state at this snapshot |
-| --- | --- |
-| trained baseline models | complete |
-| complete baseline labeled target scores | running recovery |
-| selected cutoff and locked audit | waiting on complete labeled scores |
-| complete baseline test target scores | running in four partitions |
-| compatible configuration and exact coverage checks | final aggregation pending |
-| matching and candidate tsvs | not exported yet |
-| strict id/subset/candidate-size checks | waiting for tsvs |
-| first portal result | no upload yet |
-
-## why both scoring paths exist
-
-test inference produces predictions for the competition's unknown records
-validation inference scores known records to choose the acceptance cutoff and evaluate errors
-those jobs are independent after training and run concurrently
-export depends on complete test scores and the calibration belonging to the same model version
-
-cpu is sufficient for preparation lexical features tree fitting calibration export and file validation
-the current embedding encoders and neural matcher benefit strongly from gpu execution
-a new cpu-only neural run is not assumed to beat already-progressing gpu jobs
-
-## budget snapshot
-
-| measure | combined value |
+| measure | value |
 | --- | ---: |
-| authorized allocation caps | $1,000.00 |
-| conservative accrued estimate | $471.81 |
-| committed worst case including outstanding reservations | $835.36 |
-| headroom against the allocated caps | $164.64 |
+| test targets scored | 9,969,589 |
+| source1 rows | 1,732,544 |
+| accepted target matches | 5,694,959 |
+| empty matching rows | 101,247 |
+| candidate pairs | 29,908,767 |
+| mean candidates per source1 | 17.2629 |
+| median | 13 |
+| p95 | 36 |
+| p99 | 76 |
+| maximum | 70,118 |
 
-the two $500 ledgers cover baseline and upgrade work separately
-these figures include conservative hourly ceilings and fixed allowances
-they are not an azure billing invoice
-task-created compute is deleted when its controlled job finishes or fails
+both the strict validator and the supplied competition validator passed
+the supplied validator ran with `--check-ids`
+all reference rows and target identifiers were checked, and every accepted match belongs to the candidate set
+the long candidate tail is reported explicitly; three candidates per target does not imply three per reference
 
-## next three uploads
+| file | bytes | sha256 |
+| --- | ---: | --- |
+| `matching_results.tsv` | 95,834,040 | `3f096c5491b67cd5188466c98d6657b85062e650000ae2692dcee91329f643f1` |
+| `candidate_pairs.tsv` | 407,820,759 | `eca9d5a6589f7998341f8d01e30c8bfc5fb88f229a16255e6c2c9da887de240f` |
 
-1. finish the validated first baseline and record its returned score
-2. compare the upgraded full-pool results and candidate sizes before the second upload
-3. use that evidence and leaderboard feedback for the final refinement
+## training and execution
 
-the third model/cutoff/candidate budget is not chosen in advance of feedback
-all three intended uploads must occur before the sunday morning cutoff
+- full supplied-data eda and label-integrity audit
+- entity-grouped folds with separate fitting, selection, and locked-audit populations
+- two-epoch e5 pair-classifier training on 502,635 supplied-data pairs
+- exact teammate transform, 54-feature, and checkpoint-probability parity on the diagnostic sample
+- complete country reference pools for multilingual and lexical retrieval
+- original and upgraded test scoring completed with exact target coverage
+- 16 disjoint single-a100 assignments for accelerated upgraded test inference
+- shared reference caches and 4,418,033 existing target predictions reused at repartitioning
+- missing-batch recovery checked with exact pair identity and zero probability difference
+- cpu-only aggregation and final tsv generation
 
-see [arch](arch.md), [ops](ops.md), [training](training.md), and [evidence](../reports/README.md)
+## interpreting the evidence
+
+sampled pair precision, retrieval recall, offline source1 macro f0.5, and public leaderboard f0.5 are distinct measurements
+the selected-query diagnostic helped choose a provisional operating point; it did not establish test accuracy
+the public result is recorded as reported, without attributing the entire difference to one changed component
+the baseline comparison changes retrieval, gate, and selected cutoff together
+
+## remaining evaluation
+
+- complete upgraded full-pool calibration and locked audit
+- compare the original baseline submission with upgraded v1
+- use validation and leaderboard feedback for the remaining submissions
+- finalize selected-model methodology and reproducibility archive
+
+see [arch](arch.md), [training](training.md), [reproduction commands](ops.md), and [evidence](../reports/README.md)

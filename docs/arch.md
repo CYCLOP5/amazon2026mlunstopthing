@@ -180,7 +180,7 @@ its memory is bounded but its arithmetic still scans the reference pool for each
 
 this is not proof of billion-record readiness
 an approximate index such as hnsw or ivf/pq is a future scaling change requiring new recall and timing measurements
-final candidate size and upstream retrieval cost are different quantities and both must be reported honestly
+final candidate size and upstream retrieval work are different quantities and both must be reported honestly
 
 ## 5. two implemented gate backends
 
@@ -340,48 +340,29 @@ cpu-only neural inference is possible but has not been benchmarked as a competit
 more cpu quota does not create more gpu capacity
 the current hybrid pipeline uses both cpu and gpu within each worker
 
-## 10. cloud lifecycle and budget
+## 10. azure ml execution
 
-`src/cloud.py` reserves a conservative ceiling before creating task-tagged compute
+| vm | processor allocation | role |
+| --- | --- | --- |
+| `Standard_NC24ads_A100_v4` | 24 vcpus and one a100 80 gb | supervised pair-model training and per-partition scoring |
+| `Standard_NC96ads_A100_v4` | 96 vcpus and four a100 80 gb | multi-gpu execution and full-pool validation |
+| `Standard_E16ds_v4` | 16 vcpus | score aggregation and tsv export |
 
-```mermaid
-flowchart lr
-    reserve[reserve budget] --> create[create min 0 max 1 compute]
-    create --> submit[submit bounded job]
-    submit --> work[execute and persist output]
-    work --> complete[verify job result]
-    work --> fail[failed canceled or interrupted]
-    complete --> cleanup[verify task compute deletion]
-    fail --> cleanup
-    cleanup --> ledger[close reservation]
-```
-
-the authorization is $1,500 total
-three disjoint $500 ledgers preserve compatibility with already-running controllers
-
-```text
-artifacts/budget.json          baseline allocation
-artifacts/upgrade_budget.json  upgrade allocation
-```
-
-the delivery allocation uses `artifacts/delivery_budget.json`
-their allocated caps sum to $1,500
-reported accrual and worst-case reservations are conservative estimates rather than an azure invoice
-pre-existing workspaces and unrelated resources are preserved
-
-regional low-priority quota was verified at 600 cores during this session
-quota and available physical capacity are separate
-the original four-a100 worker lost its allocation at 9,161,442 scored validation targets
-its 41 manifests had no missing or unlisted checkpoint files
-remaining validation was moved to a smaller a100 using the immutable original runtime and copied checkpoints
+experiments also ran on a local rtx 2060 with 6 gib gpu memory
+training and large-corpus inference used azure ml in eastus
+validation and test partitions execute independently
+the accelerated test configuration uses 16 disjoint single-a100 assignments
+two worker processes share each gpu, with twelve cpu threads per process
+checkpoint identities bind data model feature order numerical precision and runtime source
+this permits completed batches to be reused when work is repartitioned across machines
 
 shared input assets are uploaded once and hash-verified before parallel jobs receive their datastore uri
 concurrent sdk uploads of the same local model folder previously collided with `BlobAlreadyExists`
 artifact reads use the datastore's actual credential type and skip zero-byte directory markers
 
-submitted azure jobs retain their deadlines output persistence and automatic compute cleanup
+submitted azure jobs persist versioned output artifacts
 
-## 11. candidate-budget evidence
+## 11. candidate-size evidence
 
 the organizer now reviews candidate generation code and candidate count per s1 alongside matching score
 `src/validate.py` reports total pairs empty rows mean nearest-rank p50/p95/p99 maximum and the complete size histogram
@@ -418,6 +399,6 @@ see [evidence index](../reports/README.md), [ops](ops.md), [delivery status](sta
 4. export and validate both tsvs for the selected first upload
 5. use the first leaderboard result to choose the next refinement
 6. complete all three intended uploads before sunday 2026-09-27 at 08:00 ist / 02:30 utc
-7. finish artifact packaging budget audit and task-resource cleanup
+7. finalize the selected-model methodology and reproducibility archive
 
 no full-corpus score leaderboard score or completed submission is inferred from a passed smoke test

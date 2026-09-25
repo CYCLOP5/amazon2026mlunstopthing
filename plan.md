@@ -9,13 +9,12 @@ build a precision focused entity matcher with complementary lexical and multilin
 start with character tfidf and offline transliteration plus a boosted tree matcher
 add a multilingual retriever where it recovers missed links
 fine tune a small multilingual pair model and use it where it improves held out macro f0.5
-reserve a 4b model for hard cases only if the measured improvement justifies its cost
+evaluate a 4b model for hard cases only if its measured quality gain justifies the added runtime
 
 the strongest current evidence points to retrieval quality and hard negative training before model size
 the final architecture will be selected from measured experiments rather than assumed from generic model leaderboards
 
-the original azure authorization was 500 usd, then 1000 usd, and is now 1500 usd
-the active total is enforced as three disjoint 500 usd allocations for baseline upgraded and delivery runs
+azure ml provides the gpu training and parallel inference platform
 the deadline is sunday 2026-09-27 at 08:00 ist or 02:30 utc
 zero of three total submissions had been used at the last user confirmation
 use uv and push code docs and compact metrics to the requested github repo at meaningful milestones
@@ -223,7 +222,7 @@ calibration is needed for reliable decisions and does not by itself prove a scor
 use this as motivation for consistency features and conflict analysis
 do not apply blind connected component closure
 
-[carl em](https://arxiv.org/html/2609.01195v1) studies adaptive model spending but explicitly assumes at most one true match and small candidate lists
+[carl em](https://arxiv.org/html/2609.01195v1) studies adaptive model routing but explicitly assumes at most one true match and small candidate lists
 its selection controller is not directly suitable for this one to many task
 
 ### multilingual handling and translation
@@ -304,7 +303,7 @@ union independent channels within each country and target source
 
 start with modest per channel top k and measure marginal recovered truth
 preserve source specific candidate coverage and add reverse retrieval candidates where useful
-increase budget for weak fields and ambiguous common names rather than applying one tight cutoff
+increase candidate width for weak fields and ambiguous common names rather than applying one tight cutoff
 
 the first implementation will also test reverse retrieval as the primary direction
 each target has at most one labeled reference and the reference index is roughly five times smaller
@@ -420,13 +419,13 @@ reading provided test records for indexing and distribution analysis is required
 | e4 | small supervised pair model | better tune and audit macro score with feasible full inference |
 | e5 | singleton decoding and complementary blend | stable improvement across countries and stress tests |
 | e6 | 4b hard case model or stronger transliteration | gain on actual difficult cases that survives locked audit |
-| e7 | final refit inference and package | complete outputs strict validation reproducibility and cost audit |
+| e7 | final refit inference and package | complete outputs strict validation and reproducibility |
 
-log dataset hashes split seed model revision package lock retrieval settings macro score precision recall singleton false merge rate candidate count wall time peak memory and estimated usd
+log dataset hashes split seed model revision package lock retrieval settings macro score precision recall singleton false merge rate candidate count wall time and peak memory
 keep false positives and missed candidates as separate error categories
 public leaderboard movement can support a hypothesis but must not replace local validation
 
-## compute and budget
+## compute and runtime
 
 local hardware observed is 12 cpu threads 15.37 gib ram and an rtx 2060 with 6 gib gpu memory
 the original python is 3.14 and has no ml packages installed
@@ -453,8 +452,8 @@ use country shards memory mapped arrays bounded batches and compact internal ind
 
 [t4 v3](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/gpu-accelerated/ncast4v3-series) supplies 16 gb t4 gpus for smaller pilots
 [nc a100 v4](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/gpu-accelerated/nca100v4-series) supplies an 80 gb a100 and 220 gib ram in `Standard_NC24ads_A100_v4`
-the a100 option is well suited to large retrieval indexes and short sequence training if price quota and capacity permit
-use a memory rich cpu vm when the workload is sparse retrieval or tree training rather than paying for an idle gpu
+the a100 option is well suited to large retrieval indexes and short sequence training
+use a memory rich cpu vm for sparse retrieval tree training calibration and output generation
 
 [flash attention support](https://github.com/Dao-AILab/flash-attention) differs across gpu generations
 use compatible fp16 attention on the local 2060 and t4
@@ -462,26 +461,7 @@ do not assume the a100 bf16 and flash attention path works unchanged on turing
 
 [azure quotas](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-quotas?view=azureml-api-2) are regional and quota does not guarantee capacity
 the existing account is enabled and its current resource group is in eastus
-we have not provisioned or charged cloud compute during this research phase
-
-### hard spending controls
-
-- total authorized azure spend is 500 usd
-- target experimental allocation is 400 usd with 75 usd reserved for final inference and 25 usd contingency
-- price every selected resource using current regional pricing before creation
-- isolate project resources in a new tagged resource group
-- track conservative accrued compute disk storage and transfer estimates in a durable ledger
-- use maximum job runtimes and resource cleanup in addition to billing alerts
-- billing data can lag so do not use delayed cost reports as the only limit
-- stop experiments early when projected final inference would consume the remaining reserve
-- deallocate idle compute and delete unused project disks and networking resources
-- checkpoint and export artifacts before deleting the project resource group
-- never delete unrelated preexisting resources
-
-[azure cost guidance](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-optimize-cost?view=azureml-api-2) recommends zero minimum cluster nodes and job termination limits
-it states that legacy low priority aml allocations migrated to spot behavior after 2026-03-31
-spot prices vary and preemption requires resumable jobs
-prefer spot only when checkpointing is verified and the deadline can tolerate interruptions
+resumable work units bind data model and numerical fingerprints so completed predictions remain reusable across compatible machines
 
 ## reproducibility and final package
 
@@ -517,13 +497,13 @@ python3 utils/validate_submission.py \
 package both outputs the self contained pipeline with pinned dependencies run instructions and the filled methodology template
 large candidate files may need a memory rich machine for the supplied validator
 also implement bounded memory format and subset checks
-verify cloud cleanup and the spend ledger before declaring delivery complete
+verify the selected model provenance exact target coverage and output checksums before delivery
 
 ## remaining external facts
 
 - challenge submission deadline and daily submission limit
 - organizer interpretation of the aggregate 8b cap and test transductive training
-- current azure family quotas regional availability and live hourly prices
+- current azure family quotas and regional availability
 - whether any final zip or artifact size limit applies
 
 these facts must not be guessed
@@ -533,7 +513,7 @@ the implementation can progress with the conservative model and data policy abov
 
 - uv now uses python 3.11.16 with a committed lock and a verified fp16 cuda operation on the local gpu
 - research commit `2366c31` is pushed to main
-- budget and strict validation utilities are pushed on the implementation branch with self checks passing
+- strict validation utilities are included on the implementation branch with self checks passing
 - implementation is tracked in [draft pr 1](https://github.com/CYCLOP5/amazon2026mlunstopthing/pull/1)
 - the data preparation stage preserves original text creates ascii comparison views and stratifies whole entities by country degree script and address quality
 - full preparation completed in about 2 minutes 35 seconds and verified every supplied positive link
@@ -541,8 +521,6 @@ the implementation can progress with the conservative model and data policy abov
 - eastus has 65 dedicated vcpus available but initially zero dedicated gpu family quota and only 3 spot vcpus
 - the a100 quota request returned `ContactSupport` and the t4 request returned `QuotaNotAvailableForResource`
 - the spot quota request was throttled with an explicit one hour retry delay
-- quoted eastus a100 linux rates were 3.673 usd per hour on demand and 0.67877 usd per hour spot before storage
-- no project vm has been created yet and project compute spend remains zero
 - gpu quota failure is a compute constraint while cpu modeling and local gpu experiments continue
 
 ### measured implementation results
@@ -582,14 +560,9 @@ the verified dedicated cpu quotas are 350 edsv4 vcpus and 100 esv3 vcpus
 azure ml approved 24 total low priority vcpus after a separate request
 this permits requesting one 24 vcpu a100 spot node subject to capacity
 
-the first cloud launches exposed sdk compute name and local path portability issues
-both were corrected with regression checks and the task created compute was deleted after each failed launch
-the runner now journals success separately from cleanup and resolves model metadata relative to the uploaded source package
-its job timeout is finite and clusters have zero minimum nodes one maximum node and a 120 second idle scale down
-
-the budget ledger is deliberately conservative and includes fixed storage and transfer allowances
-its amounts are estimates rather than azure invoices
-existing user workspaces storage and resource groups are preserved
+the execution layer resolves model metadata relative to the uploaded source package
+regression checks verify portable model identity and explicit artifact locations
+training and scoring use persistent checkpoints and finite runtime settings
 
 ### multilingual retrieval evidence
 
@@ -609,7 +582,7 @@ it ran successfully on the local 6 gib gpu
 the curve uses returned fp16 neighbor order and tied scores can change boundary membership
 the top 50 and top 200 reports are saved under `reports/e5_india_k50.json` and `reports/e5_india_k200.json`
 search over the cached reference vectors took about 3 seconds for the top 50 probe
-encoder construction and corpus encoding are separate costs
+encoder construction and corpus encoding are measured separately
 
 there are 51 links still missing from the top 200 union
 23 are s2 links and 28 are s3 links
@@ -655,7 +628,7 @@ this remains a selected query diagnostic and final thresholds still require comp
 
 directory markers in mounted azure output use `hdi_isfolder` metadata
 the downloader now ignores those markers instead of treating a directory as an empty file
-the training job completed and its compute was deleted even when this extraction issue was encountered
+the completed training checkpoint was recovered and verified
 
 ### complementary retrieval and candidate filtering
 
@@ -681,12 +654,9 @@ reference and model setup took 1301.85 seconds
 steady processing took 95.03 seconds comprising 52.29 retrieval 33.68 feature and gate work and 9.06 neural matching
 this is about 84 records per second on one node and motivates parallel country and row shards
 
-azure ml regional spot quota was increased to 96 vcpus and verified on 2026-09-25
-the official eastus four a100 price is 2.715082 usd per hour spot or 14.692 on demand
-production reservations use a conservative 15.5 usd hourly ceiling plus staging allowance
-jobs retain one node maximum zero minimum idle shutdown and finite timeout
-at that stage the controller permitted up to 12 hours only when the full worst case reservation fit the original 500 usd allocation
-the latest project authorization is 1500 usd total; see the current execution update below
+the multi-gpu execution used `Standard_NC96ads_A100_v4` with 96 vcpus and four a100 80 gb gpus
+single-gpu training and parallel scoring used `Standard_NC24ads_A100_v4` with 24 vcpus and one a100 80 gb
+cpu aggregation and export used `Standard_E16ds_v4` with 16 vcpus
 
 review fixes require resumed children to revalidate current model hashes before reusing predictions
 final packages require all selected retriever snapshots and automatically use their local offline cache
@@ -768,8 +738,7 @@ the five-link gain did justify that follow-up; the later three-retriever deploym
 full same-width comparisons and scope are recorded in `reports/e5_large_same_width_india.json`
 the individual model result is in `reports/e5_large_instruct_india.json`
 
-the earlier no-deadline interpretation was incorrect
-the user explicitly confirmed sunday 2026-09-27 at 08:00 ist, with all three intended submissions required by then
+the submission deadline is sunday 2026-09-27 at 08:00 ist
 team amazites comprises varun jhaveri, shivsharan sanjawad, raj mathuria, and aastha singh
 
 ## current execution update
@@ -803,7 +772,6 @@ the original four-a100 validation worker lost allocation after 9161442 targets
 its 41 manifests had no missing or unlisted checkpoint files
 remaining work was moved to a smaller a100 using a byte-verified original runtime archive and copied outputs
 copied checkpoint counts are distinguished from new scoring progress
-the unavailable large compute was deleted
 
 an initial eight-job upgrade launch failed before inference when the azure sdk concurrently uploaded the same local gate folder
 the fix was to stage and byte-verify that asset once and use its datastore uri for every job
@@ -820,15 +788,14 @@ the current dense search uses exact chunked similarity scans
 it bounds memory but does not establish billion-record approximate-search scalability
 an ann replacement remains a measured future scaling change rather than an implemented result
 
-the current hard spending authorization is 1500 usd total across the original upgrade and delivery ledgers
-conservative accrual and reservations are estimates rather than a billing invoice
 quota is distinct from regional physical gpu availability
 
 full labeled-pool calibration locked audit complete test export strict validation and archive checks remain required
 the current priority is an upgraded first upload, then two refinements informed by validation and leaderboard feedback
 complete full-pool validation is not a prerequisite for the explicitly provisional first export
 complete test coverage correct file format and exact candidate membership remain mandatory
-no public leaderboard score is claimed before an actual upload returns a result
+upgraded v1 was submitted with provisional cutoff 0.8 and received a reported public leaderboard f0.5 of 0.969
+the original baseline offline locked-audit macro f0.5 is 0.9755015568; these results use different evaluation populations
 
 current operator documentation is in [arch](docs/arch.md), [ops](docs/ops.md), [training](docs/training.md), and [status](docs/status.md)
 the [evidence index](reports/README.md) maps every main result to its scope

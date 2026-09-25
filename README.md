@@ -4,9 +4,7 @@ supplied business records → compact candidate sets → calibrated matching set
 
 > deadline: sunday 2026-09-27 at 08:00 ist / 02:30 utc
 >
-> attempts: three total, zero used at the last user confirmation
->
-> azure authorization: $1,500 total across three disjoint $500 allocations
+> attempts: three total; upgraded v1 submitted and leaderboard feedback pending
 
 ## current state
 
@@ -121,7 +119,7 @@ real-model smoke tests and exact teammate-feature parity are linked in the evide
 | `src/infer.py` | full-pool calibration and final tsv export |
 | `src/validate.py` | ids coverage duplicates candidate membership and size stats |
 | `src/package.py` | offline reproducibility archive |
-| `src/cloud.py`, `src/budget.py` | bounded compute lifecycle and reservation accounting |
+| `src/cloud.py` | azure ml execution and artifact transport |
 
 see the [runbook](docs/ops.md) for exact commands
 validation and test partitions are separate jobs; do not put the test workload behind the full validation workload
@@ -159,13 +157,16 @@ the strict validator reports candidate count mean nearest-rank p50/p95/p99 maxim
 the organizer's final ranking reviews both matching quality and candidate generation
 the current exact dense scan is memory-bounded but is not claimed to be a billion-record approximate index
 
-## operations
+## execution platform
 
-the original four-a100 worker lost allocation after 9,161,442 scored validation targets
-its verified checkpoints and exact runtime were retained for recovery on a smaller a100
-the test workers continued independently
+| machine | hardware | use |
+| --- | --- | --- |
+| local workstation | 12 cpu threads, rtx 2060 6 gib | eda retrieval experiments and runtime checks |
+| `Standard_NC24ads_A100_v4` | 24 vcpus, one a100 80 gb | pair-model training and parallel scoring |
+| `Standard_NC96ads_A100_v4` | 96 vcpus, four a100 80 gb | multi-gpu pilot and initial full-pool scoring |
+| `Standard_E16ds_v4` | 16 vcpus | cpu aggregation and submission export |
 
-all task compute has finite runtime ownership tags persistent outputs and cleanup
-already-submitted azure jobs retain their runtime limits and automatic compute cleanup
-budget reports are conservative estimates, not an azure invoice
-see [status](docs/status.md) and [ops](docs/ops.md) before allocating or resuming work
+the pair classifier trained for two epochs on 502,635 hard-negative pair examples
+the accelerated test pass used 16 disjoint single-a100 assignments with two 12-thread processes per worker
+shared reference embeddings and completed score batches were reused
+see [training](docs/training.md), [arch](docs/arch.md), and [reproduction commands](docs/ops.md)

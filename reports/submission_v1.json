@@ -1,0 +1,38 @@
+{
+  "variant": "upgraded-v1",
+  "public_leaderboard_f05": 0.969,
+  "score_source": "team-reported",
+  "cutoff": 0.8,
+  "decoder": "target_top1_then_threshold",
+  "calibration": "provisional selected-query diagnostic",
+  "strict_validation": "passed",
+  "official_validation_with_ids": "passed",
+  "statistics": {
+    "source1": 1732544,
+    "targets": 9969589,
+    "matching_rows": 1732544,
+    "matching_empty": 101247,
+    "matching_ids": 5694959,
+    "candidate_rows": 1732544,
+    "candidate_empty": 24,
+    "candidate_ids": 29908767,
+    "candidate_sizes": {
+      "mean": 17.26291915241402,
+      "p50": 13,
+      "p95": 36,
+      "p99": 76,
+      "max": 70118,
+      "quantile_method": "nearest_rank"
+    }
+  },
+  "files": {
+    "matching_results.tsv": {
+      "bytes": 95834040,
+      "sha256": "3f096c5491b67cd5188466c98d6657b85062e650000ae2692dcee91329f643f1"
+    },
+    "candidate_pairs.tsv": {
+      "bytes": 407820759,
+      "sha256": "eca9d5a6589f7998341f8d01e30c8bfc5fb88f229a16255e6c2c9da887de240f"
+    }
+  }
+}

@@ -279,6 +279,12 @@ def check():
             raise AssertionError("singleton score failed")
         write(d / "pred.tsv", "source1_entity_id\tmatched_entity_ids\nS1-a\t\nS1-x\t\n")
         fails(lambda: score(d / "truth.tsv", d / "pred.tsv"), {"missing source1 coverage", "unknown source1 id"})
+        wide = [f"S2-{i:08d}" for i in range(15000)]
+        write(td / "test_source2.tsv", src + "".join(f"{x}\tn\ta\tfrance\n" for x in wide))
+        write(m, "source1_entity_id\tmatched_entity_ids\nS1-fr\t" + wide[0] + "\nS1-us\t\n")
+        write(c, "source1_entity_id\tcandidate_entity_ids\nS1-fr\t" + ",".join(wide) + "\nS1-us\t\n")
+        if validate(m, c, td)["candidate_sizes"]["max"] != len(wide):
+            raise AssertionError("wide valid candidate row failed")
     print("check: passed")
 
 

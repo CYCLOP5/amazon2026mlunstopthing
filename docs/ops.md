@@ -4,7 +4,7 @@
 >
 > attempts: three total, zero used at the last user confirmation
 >
-> submitted jobs retain their runtime limits output persistence and cleanup
+> scored artifacts retain their model data and runtime provenance
 
 ## 1. files and environment
 
@@ -175,7 +175,7 @@ the strict project checker reports
 - mean nearest-rank p50/p95/p99 maximum and histogram of candidates per s1
 - failures for bad headers malformed rows duplicates unknown ids missing coverage or final matches outside candidates
 
-do not spend a submission attempt on a file that fails these checks
+do not use a submission attempt on a file that fails these checks
 passing checks proves structural correctness, not a particular leaderboard score
 
 ## 6. package the selected variant
@@ -206,34 +206,18 @@ raw competition datasets credentials cloud caches and training feature matrices 
 
 the methodology template remains explicitly provisional until full metrics cutoff candidate counts and the actual upload date can be filled from evidence
 
-## 7. cloud budget and recovery
+## 7. azure execution and checkpoint reuse
 
-the authorized total is $1,500 split between three $500 ledgers
-
-```sh
-uv run python src/budget.py --ledger artifacts/budget.json status
-uv run python src/budget.py --ledger artifacts/upgrade_budget.json status
-uv run python src/budget.py --ledger artifacts/delivery_budget.json status
-```
-
-add the two reported spent/committed values for the project view
-do not interpret either ledger alone as the total project spend
-`artifacts/budget_authorization.json` records the two allocations
-fixed staging allowances and hourly ceilings are conservative accounting estimates
-
-`src/cloud.py` accepts shared remote inputs and an explicit ledger
+`src/cloud.py` accepts shared remote inputs
 upload a shared local model once before parallel submission, verify its bytes, then use that datastore uri in every job
 the sdk's concurrent upload path previously raised `BlobAlreadyExists` when eight jobs tried to upload one folder
 
-every managed job has finite runtime zero minimum nodes one maximum node ownership tags persistent outputs and cleanup
-only task-created compute may be removed
-completed outputs and reusable checkpoints remain at their recorded datastore uri
+outputs and reusable checkpoints are stored at explicit datastore uris
 
-### original baseline recovery
+### portable checkpoint identity
 
-the four-a100 node lost allocation after 9,161,442 targets had been scored
-all 41 manifests had their listed files and no unlisted checkpoint parts were found
-the replacement worker uses a byte-verified archive of the original runtime and a copied checkpoint tree
+the original multi-gpu pass produced 41 verified manifests covering 9,161,442 targets
+resumed workers use a byte-verified runtime archive and a copied checkpoint tree
 only its process/gpu allocation changes; model data feature precision and shard identities remain fixed
 recovery includes validation/calibration only, so it does not repeat the separate test jobs
 
@@ -264,7 +248,7 @@ do not discard completed work or assume that `running` alone proves record throu
 
 the third configuration is not predetermined before the first feedback arrives
 the upgraded run retains component scores to support later analysis
-any changed candidate budget must still export the real pre-matcher candidate set
+any changed candidate limit must still export the real pre-matcher candidate set
 
 track the portal's attempt count after each upload
 the last confirmed count was zero used out of three
@@ -281,7 +265,7 @@ uv run python src/infer.py export-provisional \
   --data cache/data --runs artifacts/final_test/countries/* \
   --cutoff 0.8 --decoder target_top1_then_threshold --out output/v1
 
-uv run python src/validate.py \
+uv run python src/validate.py validate \
   --matching output/v1/matching_results.tsv \
   --candidate output/v1/candidate_pairs.tsv \
   --test-dir student_resource/dataset/test
@@ -316,4 +300,4 @@ checkpoint redistribution preserves useful work while making extra workers produ
 split-only scoring jobs produce score shards rather than final upload files
 combine complete manifests, calibrate, export, validate, and package the chosen variant
 record the portal result and remaining attempt count after each upload
-verified compute cleanup preserves the completed artifacts at their recorded datastore uri
+completed artifacts retain their dataset model and runtime provenance

@@ -118,7 +118,7 @@ number conflicts remain soft evidence because true pairs can contain number nois
 
 **locked audit:** pending
 
-**leaderboard feedback:** no submission used at last confirmation
+**leaderboard feedback:** upgraded v1 submitted with reported public leaderboard f0.5 of 0.969
 
 ## 7. execution and reproducibility
 
@@ -137,9 +137,10 @@ model metadata pins revisions licenses feature order parameter counts and precis
 the baseline uses about 1.152b neural parameters and the upgrade about 1.712b including the separately trained matcher
 deployed source models have mit or apache-2.0 metadata and remain below the challenge parameter ceiling
 
-the total azure authorization is $1,000 across two disjoint $500 ledgers
-jobs have finite runtime task ownership checks persistent outputs and verified compute cleanup
-existing unrelated resources are preserved
+azure ml training used `Standard_NC24ads_A100_v4` with 24 vcpus and one a100 80 gb
+the initial multi-gpu pass used `Standard_NC96ads_A100_v4` with 96 vcpus and four a100 80 gb
+accelerated test scoring used 16 disjoint single-a100 assignments with shared reference caches and reusable score batches
+cpu aggregation/export used `Standard_E16ds_v4` with 16 vcpus
 
 ## 8. submission contents and verification
 
@@ -150,7 +151,9 @@ it also reports candidate count distributions for the organizer's additional ran
 the final archive includes source uv lock local selected model snapshots tokenizer files calibration model provenance and upstream notices
 raw datasets credentials cloud caches and training feature matrices are excluded
 
-**output checksums / archive hash:** pending completed artifacts
+**upgraded v1 output checksums:** recorded in `reports/submission_v1.json`; both output validators passed with id checks enabled
+
+**final archive hash:** pending final model selection
 
 implementation detail: [arch](docs/arch.md)
 

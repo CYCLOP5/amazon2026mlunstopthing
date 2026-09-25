@@ -2,7 +2,18 @@
 
 > sampled retrieval recall pairwise precision and macro f0.5 are different measurements
 > only complete full-pool calibration supports a final cutoff claim
-> no leaderboard score is claimed by this index
+> team-reported leaderboard results are labeled separately from offline metrics
+
+## submitted upgraded v1
+
+upgraded v1 received a reported public leaderboard f0.5 of **0.969**
+it used the three-retriever pipeline, teammate lightgbm gate, fine-tuned e5 matcher, and provisional cutoff 0.8
+both complete output files passed strict validation and the supplied validator with id checking
+see [v1 result and output evidence](submission_v1.json)
+
+the requested baseline comparison uses its original gate/retrievers and full-pool selected cutoff
+that comparison changes multiple pipeline components and cannot isolate a single feature set's causal effect
+the baseline output is complete and validated; see [baseline file evidence](submission_baseline.json)
 
 ## data and eda
 
@@ -89,6 +100,6 @@ it does not establish competition accuracy
 - validated matching and candidate tsvs
 - candidate count mean/tails and actual archive hashes
 - portal feedback and the updated submission-attempt count
-- final task-resource cleanup and combined budget audit
+- finalized reproducibility artifacts and selected-model provenance
 
 see [arch](../docs/arch.md), [ops](../docs/ops.md), and [status](../docs/status.md)
