@@ -86,7 +86,7 @@ def split(s, er, a):
 def output(p, hd, req, tar, er, keep=False, fin=None):
     seen = set()
     out = {} if keep else None
-    st = {"rows": 0, "empty": 0, "ids": 0}
+    st = {"rows": 0, "empty": 0, "ids": 0, "sizes": {}}
     try:
         it = rows(p)
         got = next(it, None)
@@ -105,6 +105,7 @@ def output(p, hd, req, tar, er, keep=False, fin=None):
             seen.add(a)
             v = split(s, er, a)
             st["ids"] += len(v)
+            st["sizes"][len(v)] = st["sizes"].get(len(v), 0) + 1
             if not v:
                 st["empty"] += 1
             for x in v:
@@ -148,6 +149,17 @@ def validate(matching, candidate, test_dir):
             if v:
                 er.add("final match outside candidate set", a, len(v))
     er.fail()
+    hist = cs["sizes"]
+    quantiles = {}
+    for pct in (50, 95, 99):
+        rank = max(1, (len(req) * pct + 99) // 100)
+        total = 0
+        quantiles[f"p{pct}"] = 0
+        for size, count in sorted(hist.items()):
+            total += count
+            if total >= rank:
+                quantiles[f"p{pct}"] = size
+                break
     return {
         "source1": len(req),
         "targets": len(tar),
@@ -157,6 +169,13 @@ def validate(matching, candidate, test_dir):
         "candidate_rows": cs["rows"],
         "candidate_empty": cs["empty"],
         "candidate_ids": cs["ids"],
+        "candidate_sizes": {
+            "mean": cs["ids"] / len(req) if req else 0.0,
+            **quantiles,
+            "max": max(hist, default=0),
+            "quantile_method": "nearest_rank",
+            "histogram": hist,
+        },
     }
 
 
@@ -241,6 +260,9 @@ def check():
         st = validate(m, c, td)
         if st["matching_empty"] != 1 or st["targets"] != 2:
             raise AssertionError("valid france or empty list failed")
+        if st["candidate_sizes"] != {"mean": 1.0, "p50": 0, "p95": 2, "p99": 2, "max": 2,
+                                      "quantile_method": "nearest_rank", "histogram": {0: 1, 2: 1}}:
+            raise AssertionError("candidate size distribution failed")
         write(m, "source1_entity_id\tmatched_entity_ids\nS1-fr\tS2-fr,S2-fr\nS1-us\t\n")
         fails(lambda: validate(m, c, td), {"duplicate id within list"})
         write(m, "source1_entity_id\tmatched_entity_ids\nS1-fr\tS2-fr\nS1-fr\tS2-fr\nS1-us\t\n")
