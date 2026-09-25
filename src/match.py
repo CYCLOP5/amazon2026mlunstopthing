@@ -112,7 +112,7 @@ def _retrievers(xs):
     return xs
 
 
-def _cfg(data, gate, nn, rs, klex, kdense, kgate):
+def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight):
     dm = _json(data / "meta.json")
     ret = []
     for x in rs:
@@ -124,8 +124,10 @@ def _cfg(data, gate, nn, rs, klex, kdense, kgate):
          "gate": gate, "neural": nn, "retrievers": ret,
          "feature_contract": gate["feature_names"], "block_score_version": block.sv,
          "text_format": neural.fmt, "k": {"lexical": klex, "dense": kdense, "gate": kgate},
-         "numeric": {"gate": "mean_probability", "neural": "sigmoid_probability", "topk_ties": "qid_asc"}}
-    z["model"] = {"sha256": hh.sha256(json.dumps({"gate": gate["sha256"], "neural": nn["sha256"]}, sort_keys=True).encode()).hexdigest()}
+         "numeric": {"gate": "mean_probability", "neural": "sigmoid_probability", "topk_ties": "qid_asc",
+                     "blend": {"method": "weighted_logit", "neural_weight": neural_weight}}}
+    z["model"] = {"sha256": hh.sha256(json.dumps(
+        {"gate": gate["sha256"], "neural": nn["sha256"], "neural_weight": neural_weight}, sort_keys=True).encode()).hexdigest()}
     return z, hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
 
 
@@ -152,6 +154,29 @@ def _prob(x, what):
     if x.ndim != 1 or not np.isfinite(x).all() or (x < 0).any() or (x > 1).any():
         raise ValueError(f"invalid {what} probabilities")
     return x
+
+
+def _weight(x):
+    try:
+        x = float(x)
+    except (TypeError, ValueError):
+        raise ValueError("neural weight must be finite and in [0, 1]") from None
+    if not np.isfinite(x) or not 0 <= x <= 1:
+        raise ValueError("neural weight must be finite and in [0, 1]")
+    return x
+
+
+def _blend(neural_prob, gate_prob, neural_weight):
+    neural_prob, gate_prob = _prob(neural_prob, "neural"), _prob(gate_prob, "gate")
+    if neural_prob.shape != gate_prob.shape:
+        raise ValueError("neural and gate probabilities have different shapes")
+    if neural_weight == 1:
+        return neural_prob
+    eps = np.finfo(np.float32).eps
+    neural_prob, gate_prob = (np.clip(x, eps, 1 - eps) for x in (neural_prob, gate_prob))
+    logits = np.float32(neural_weight) * (np.log(neural_prob) - np.log1p(-neural_prob))
+    logits += np.float32(1 - neural_weight) * (np.log(gate_prob) - np.log1p(-gate_prob))
+    return (np.float32(1) / (np.float32(1) + np.exp(-logits))).astype(np.float32, copy=False)
 
 
 def _empty(split, sr):
@@ -186,17 +211,18 @@ def _old(out, x, ids, split, q, refs):
 
 def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, rid_start=None, rid_stop=None,
           k_lex=10, k_dense=50, k_gate=20, device="auto", threads=4, encoder_batch=64, neural_batch=32,
-          query_batch=512, retrievers=None, gate_models=None, neural_bundle=None, neural_predictor=None):
+          query_batch=512, retrievers=None, gate_models=None, neural_bundle=None, neural_predictor=None, neural_weight=1.0):
     if split not in {"train", "test"} or min(k_lex, k_dense, k_gate, threads, encoder_batch, neural_batch, query_batch) < 1:
         raise ValueError("invalid matching options")
     if rid_start is not None and rid_stop is not None and rid_start >= rid_stop:
         raise ValueError("rid start must be below rid stop")
     data, cache, out = (path(x).resolve() for x in (data, cache, out))
+    neural_weight = _weight(neural_weight)
     gm, names, dense, gi = _gate(gate_dir)
     nm, ni = _neural(neural_dir)
     rs = _retrievers(retrievers)
     cfg, ch = _cfg(data, {**gi, "feature_names": names, "dense_features": dense, "score_version": block.sv}, ni,
-                   rs, k_lex, k_dense, k_gate)
+                   rs, k_lex, k_dense, k_gate, neural_weight)
     scope = infer._scope(data, split, country, rid_start, rid_stop)
     mp = out / "manifest.json"
     if mp.exists():
@@ -271,7 +297,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                         post = _top(p.with_columns(pl.Series("gate", gp)), k_gate)
                         tx = _text(state["refs"], q, post)
                         npb = neural_predictor(tx) if neural_predictor is not None else neural.predict(neural_bundle, tx, neural_batch)
-                        npb = _prob(npb, "neural")
+                        npb = _blend(npb, post["gate"].to_numpy(), neural_weight)
                         scored = post.select("qid", "tid", "sr", *(["y"] if split == "train" else [])).with_columns(
                             pl.Series("prob", npb)).select("qid", "tid", "prob", "sr", *(["y"] if split == "train" else [])).sort("tid", "qid")
                 _valid(scored, q, cr, split, sr)
@@ -346,6 +372,11 @@ def check():
             calls.extend(x.iter_rows())
             return np.full(len(x), .9, np.float32)
 
+        nn, gp = np.array([.8], np.float32), np.array([.2], np.float32)
+        manual = 1 / (1 + np.exp(-(.6 * (np.log(nn) - np.log1p(-nn)) + .4 * (np.log(gp) - np.log1p(-gp)))))
+        np.testing.assert_allclose(_blend(nn, gp, .6), manual.astype(np.float32), rtol=1e-6)
+        assert _blend(nn, gp, 1).tobytes() == nn.tobytes()
+
         rs = [{"model": embed.mod0, "revision": embed.rev0, "encoder": enc(), "params": 2}]
         tr, te = root / "run-tr", root / "run-te"
         match(data, root / "cache", gd, nd, tr, "train", k_lex=2, k_dense=2, k_gate=1, device="cpu", threads=1,
@@ -362,6 +393,13 @@ def check():
         cal = infer.calibrate(data, [tr], root / "cal.json")
         ex = infer.export(data, [te], root / "cal.json", root / "out")
         assert "S1-empty\t" in (root / "out/matching_results.tsv").read_text() and ex["source1"] == 4
+        try:
+            match(data, root / "cache", gd, nd, te, "test", k_lex=2, k_dense=2, k_gate=1, device="cpu", threads=1,
+                  retrievers=rs, gate_models={"fake": gate()}, neural_predictor=pred, neural_weight=.6)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("weight mismatch resume accepted")
         raw = root / "raw"; raw.mkdir()
         for n, rows in (("test_source1.tsv", ["S1-us", "S1-empty", "S1-fr", "S1-fit"]), ("test_source2.tsv", ["S2-us", "S2-fr"]),
                         ("test_source3.tsv", ["S3-us", "S3-none"])):
@@ -429,13 +467,15 @@ def main():
     p.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     p.add_argument("--threads", type=int, default=min(os.cpu_count() or 1, 8))
     p.add_argument("--encoder-batch", type=int, default=64); p.add_argument("--neural-batch", type=int, default=32); p.add_argument("--query-batch", type=int, default=512)
+    p.add_argument("--neural-weight", type=float, default=1.0)
     a = p.parse_args()
     if a.check:
         check()
     elif a.gate and a.neural and a.out:
         allx = {embed.family(x["model"]): x for x in hybrid.specs()}
         match(a.data, a.cache, a.gate, a.neural, a.out, a.split, a.country, a.rid_start, a.rid_stop, a.k_lex, a.k_dense,
-              a.k_gate, a.device, a.threads, a.encoder_batch, a.neural_batch, a.query_batch, [allx[x] for x in a.retrievers])
+              a.k_gate, a.device, a.threads, a.encoder_batch, a.neural_batch, a.query_batch, [allx[x] for x in a.retrievers],
+              neural_weight=a.neural_weight)
     else:
         p.error("use --check or --gate --neural --out")
 
