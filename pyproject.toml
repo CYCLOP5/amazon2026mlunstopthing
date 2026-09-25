@@ -1,0 +1,30 @@
+[project]
+name = "amazon-er"
+version = "0.1.0"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "anyascii>=0.3",
+    "catboost>=1.2.7",
+    "faiss-cpu>=1.8",
+    "huggingface-hub>=0.34,<1",
+    "lightgbm>=4.5",
+    "numpy>=2",
+    "polars>=1",
+    "psutil>=6",
+    "pyarrow>=17",
+    "rapidfuzz>=3.9",
+    "scikit-learn>=1.5",
+    "scipy>=1.13",
+    "sentence-transformers>=5.1,<6",
+    "sparse-dot-topn>=1.1",
+    "torch==2.8.0",
+    "transformers>=4.51,<5",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch" }
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
