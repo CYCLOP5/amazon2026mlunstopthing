@@ -112,6 +112,8 @@ def setup(data, cache, co, sp="train", fold=0):
     tr = pl.read_parquet(data / "train/ref.parquet")
     if sp == "train":
         fit = tr.filter((pl.col("co") == co) & (pl.col("fold") == 2))
+        if fit.is_empty():
+            fit = tr.filter(pl.col("fold") == 2)
         if fold == 2:
             ref = ref.filter(pl.col("fold") == 2)
     else:

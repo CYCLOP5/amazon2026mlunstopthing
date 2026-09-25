@@ -282,6 +282,10 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800):
         raise ValueError("training and validation runs required")
     tr = [_run(data, p, 2) for p in trs]
     va = [_run(data, p, 0) for p in vals]
+    svs = {r["met"].get("score_version", 1) for r in tr + va}
+    if len(svs) != 1:
+        raise ValueError("mixed candidate score versions")
+    sv = svs.pop()
     if len({r["dir"] for r in tr + va}) != len(tr) + len(va):
         raise ValueError("run cannot be both training and validation")
     xa = [_features(data, out, r, threads) for r in tr]
@@ -322,7 +326,7 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800):
         files[name] = p
     pl.concat(raw).write_parquet(out / "validation_predictions.parquet", compression="zstd")
     pl.concat(per).write_parquet(out / "validation_anchors.parquet", compression="zstd")
-    met = {"version": ver, "seed": 42, "feature_names": ff, "models": names, "model_files": files,
+    met = {"version": ver, "seed": 42, "score_version": sv, "feature_names": ff, "models": names, "model_files": files,
            "configuration": {"data": str(data), "data_meta_sha256": _sha(data / "meta.json"), "threads": threads, "trees": trees, "class_weights": None,
                              "augmentation": False, "train_runs": [str(r["dir"]) for r in tr],
                              "validation_runs": [str(r["dir"]) for r in va]},

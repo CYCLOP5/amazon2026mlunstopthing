@@ -6,11 +6,13 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
 from decimal import Decimal as dc
 from decimal import ROUND_CEILING as rc
 from pathlib import Path as path
 from types import SimpleNamespace as ns
 from uuid import uuid4
+from urllib.parse import unquote as uq
 
 import budget as bd
 
@@ -21,7 +23,7 @@ pf = {
     "cpu": ("Standard_E16ds_v4", "dedicated", False),
     "gpu": ("Standard_NC24ads_A100_v4", "low_priority", True),
 }
-end = {"completed", "failed", "canceled", "cancelled", "notresponding"}
+end = {"completed", "failed", "canceled", "cancelled"}
 rx = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 skip = {".venv", ".azure", "__pycache__", "artifacts", "cache", "data", "dataset", "models", "output"}
 
@@ -42,8 +44,12 @@ def own(x, j):
     return getattr(x, "tags", None) == tag(j["run"])
 
 
+def state(x):
+    return str(getattr(x, "value", x) or "").lower()
+
+
 def term(x):
-    return str(x or "").lower() in end
+    return state(x) in end
 
 
 def pairs(xs):
@@ -201,9 +207,66 @@ def entities(s, code):
         name=s["job"], display_name=s["run"], experiment_name=pr, tags=s["tags"],
         code=str(code), command=shell(s), compute=s["compute"],
         environment=Environment(image=im), inputs=ins,
-        outputs={"out": Output(type="uri_folder", mode=s["output_mode"])}, timeout=s["timeout"],
+        outputs={"out": Output(type="uri_folder", mode=s["output_mode"], path=s.get("out_uri"))}, timeout=s["timeout"],
     )
     return comp, job
+
+
+def wait_job(ml, name, due, interval=20):
+    last = None
+    while True:
+        job = ml.jobs.get(name)
+        st = state(job.status)
+        if st != last:
+            print("job state", name, st, flush=True)
+            last = st
+        if term(st):
+            return job
+        if time.monotonic() >= due:
+            die("job controller deadline reached")
+        time.sleep(interval)
+
+
+def location(uri):
+    m = re.fullmatch(r"azureml://datastores/([^/]+)/paths/(.+)", uri or "")
+    if not m:
+        die("unsupported output datastore uri")
+    return m[1], uq(m[2]).rstrip("/") + "/"
+
+
+def download(ml, uri, dest):
+    from azure.core.credentials import AzureNamedKeyCredential, AzureSasCredential
+    from azure.identity import AzureCliCredential
+    from azure.storage.blob import BlobServiceClient
+
+    name, pre = location(uri)
+    ds = ml.datastores.get(name, include_secrets=True)
+    cr = getattr(ds, "credentials", None)
+    sas = getattr(cr, "sas_token", None)
+    key = getattr(cr, "account_key", None)
+    cred = AzureSasCredential(sas) if sas else (AzureNamedKeyCredential(ds.account_name, key) if key else AzureCliCredential())
+    svc = BlobServiceClient("https://" + ds.account_name + ".blob.core.windows.net", credential=cred)
+    cc = svc.get_container_client(ds.container_name)
+    dest = dest.resolve()
+    dest.mkdir(parents=True, exist_ok=True)
+    n = 0
+    for obj in cc.list_blobs(name_starts_with=pre):
+        rel = obj.name[len(pre):]
+        if not rel or rel.endswith("/"):
+            continue
+        p = (dest / rel).resolve()
+        if not p.is_relative_to(dest):
+            die("unsafe artifact path")
+        p.parent.mkdir(parents=True, exist_ok=True)
+        tmp = p.with_suffix(p.suffix + ".part")
+        with tmp.open("wb") as f:
+            cc.download_blob(obj.name, max_concurrency=4).readinto(f)
+        tmp.replace(p)
+        n += 1
+    if not n:
+        die("completed job has no output artifacts")
+    print("downloaded artifacts", n, flush=True)
+    return n
 
 
 def cancel(ml, j):
@@ -258,7 +321,11 @@ def run(a):
     write(jp, j)
     code = snapshot(root, jp.parent / (run + "-code"))
     ml = client(a)
+    ds = ml.datastores.get_default()
+    s["out_uri"] = "azureml://datastores/" + ds.name + "/paths/" + pr + "/" + run + "/out/"
+    j["out_uri"] = s["out_uri"]
     reserve(a, s)
+    due = time.monotonic() + (float(s["hours"]) + 1) * 3600
     j["state"] = "reserved"
     write(jp, j)
     print("reserved", run, "creating", s["compute"], flush=True)
@@ -274,12 +341,12 @@ def run(a):
         j["state"] = "job_submitted"
         write(jp, j)
         print("job submitted", got.name, flush=True)
-        ml.jobs.stream(got.name)
-        got = ml.jobs.get(got.name)
-        if str(getattr(got, "status", "")).lower() != "completed":
-            die("job ended with " + str(getattr(got, "status", "unknown")))
+        got = wait_job(ml, got.name, due)
+        j["job_status"] = state(got.status)
+        if state(got.status) != "completed":
+            die("job ended with " + state(got.status))
         a.out.mkdir(parents=True, exist_ok=True)
-        ml.jobs.download(got.name, download_path=a.out, output_name="out")
+        download(ml, s["out_uri"], a.out)
         j["state"] = "downloaded"
         j["outcome"] = "completed"
         write(jp, j)
@@ -346,6 +413,11 @@ def check():
     assert ld["items"][0]["reserved"] == "20.50"
     j = {"run": s["run"]}
     assert own(ns(tags=tag(s["run"])), j) and not own(ns(tags={}), j)
+    assert term(ns(value="Completed")) and not term(ns(value="Running"))
+    seq = iter([ns(status=ns(value="Running")), ns(status=ns(value="Completed"))])
+    got = wait_job(ns(jobs=ns(get=lambda _: next(seq))), "check", time.monotonic() + 1, 0)
+    assert state(got.status) == "completed"
+    assert location("azureml://datastores/store/paths/project/run/out/") == ("store", "project/run/out/")
     print("checks passed")
 
 

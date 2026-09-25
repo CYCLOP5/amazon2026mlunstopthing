@@ -114,6 +114,8 @@ def _cfg(data, models, k):
     m, mi = _model(models)
     if m.get("feature_names") != feat.ff:
         raise ValueError("model feature order mismatch")
+    if m.get("score_version") != block.sv:
+        raise ValueError("model candidate score version mismatch")
     dm = _json(data / "meta.json")
     z = {"version": ver, "data_meta_sha256": _sha(data / "meta.json"), "source_files": dm.get("files", {}), "model": mi,
          "features": feat.ff, "block_score_version": block.sv, "k": k}
@@ -123,12 +125,12 @@ def _cfg(data, models, k):
 def _queries(p, co, lo, hi, batch):
     f = pq.ParquetFile(p)
     cs = [x for x in ("rid", "eid", "nm", "ad", "nn", "an", "co", "sr", "own") if x in f.schema.names]
-    for b in f.iter_batches(batch_size=batch, columns=cs):
-        d = pl.from_arrow(b).filter(pl.col("co") == co)
-        if lo is not None:
-            d = d.filter(pl.col("rid") >= lo)
-        if hi is not None:
-            d = d.filter(pl.col("rid") < hi)
+    lf = pl.scan_parquet(p).select(cs).filter(pl.col("co") == co)
+    if lo is not None:
+        lf = lf.filter(pl.col("rid") >= lo)
+    if hi is not None:
+        lf = lf.filter(pl.col("rid") < hi)
+    for d in lf.collect_batches(chunk_size=batch, maintain_order=True):
         if not d.is_empty():
             yield d.sort("rid")
 
@@ -250,11 +252,12 @@ def infer(data, models, out, cache, sp="test", k=10, threads=4, batch=4096,
     if not ms:
         raise ValueError("no loaded models")
     n, nq, npair, seen = 0, 0, 0, set()
+    cos = set(pl.read_parquet(data / sp / "ref.parquet", columns=["co"])["co"])
     for co in _countries(data, sp, country):
-        try:
+        if co in cos:
             ref, ix, eq = block.setup(data, cache, co, sp=sp, fold=0)
             st = feat.prep(ref)
-        except ValueError:
+        else:
             ref = ix = eq = st = None
         for sr in (2, 3):
             for q in _queries(data / sp / f"s{sr}.parquet", co, rid_start, rid_stop, batch):
@@ -528,7 +531,17 @@ def check():
         models = d / "models"
         models.mkdir()
         (models / "fake.bin").write_bytes(b"fake")
-        _write(models / "metadata.json", {"feature_names": feat.ff, "models": ["fake"], "model_files": {"fake": "fake.bin"}})
+        _write(models / "metadata.json", {"feature_names": feat.ff, "score_version": block.sv,
+                                         "models": ["fake"], "model_files": {"fake": "fake.bin"}})
+        old = _json(models / "metadata.json")
+        _write(models / "metadata.json", {**old, "score_version": 1})
+        try:
+            _cfg(data, models, 1)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("score version mismatch accepted")
+        _write(models / "metadata.json", old)
 
         class fake:
             def predict_proba(self, x):
@@ -537,6 +550,14 @@ def check():
 
         ms = {"fake": fake()}
         tr, te, cache = d / "train", d / "test", d / "cache"
+        from unittest.mock import patch
+        with patch.object(block, "setup", side_effect=ValueError("broken index")):
+            try:
+                infer(data, models, d / "broken", cache, "train", 1, 1, 1, ms=ms)
+            except ValueError as e:
+                assert str(e) == "broken index"
+            else:
+                raise AssertionError("index failure was hidden")
         infer(data, models, tr, cache, "train", 1, 1, 1, ms=ms)
         infer(data, models, te, cache, "test", 1, 1, 1, ms=ms)
         assert any(x["pairs"] == 0 for x in _json(te / "manifest.json")["parts"])

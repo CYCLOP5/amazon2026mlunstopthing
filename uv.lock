@@ -36,6 +36,7 @@ dependencies = [
 cloud = [
     { name = "azure-ai-ml" },
     { name = "azure-identity" },
+    { name = "azure-storage-blob" },
 ]
 neural = [
     { name = "huggingface-hub" },
@@ -65,6 +66,7 @@ requires-dist = [
 cloud = [
     { name = "azure-ai-ml", specifier = ">=1.30" },
     { name = "azure-identity", specifier = ">=1.24" },
+    { name = "azure-storage-blob", specifier = ">=12.20" },
 ]
 neural = [
     { name = "huggingface-hub", specifier = ">=0.34,<1" },

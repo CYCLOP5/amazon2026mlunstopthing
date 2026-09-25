@@ -1,0 +1,44 @@
+{
+  "label": "sampled-query estimate, not official/full-pool validation",
+  "warning": "validation queries contain selected anchor aliases and sampled orphans, not every target in the full corpus",
+  "anchors": 4000,
+  "queries": 17827,
+  "models": {
+    "lgb": {
+      "plain_threshold": {
+        "macro_f05": 0.9862278156313724,
+        "pair_precision": 0.6032586558044807,
+        "pair_recall": 0.96398351052289,
+        "pairs": 22095,
+        "true_pairs": 13827,
+        "threshold": 0.0011371486288211674
+      },
+      "target_top1_then_threshold": {
+        "macro_f05": 0.9836568384571219,
+        "pair_precision": 0.7678904428904428,
+        "pair_recall": 0.9529905257828886,
+        "pairs": 17160,
+        "true_pairs": 13827,
+        "threshold": 0.00021202461959123338
+      }
+    },
+    "cat": {
+      "plain_threshold": {
+        "macro_f05": 0.9862176469805787,
+        "pair_precision": 0.6158077189738849,
+        "pair_recall": 0.9635495769147321,
+        "pairs": 21635,
+        "true_pairs": 13827,
+        "threshold": 0.006187757958301826
+      },
+      "target_top1_then_threshold": {
+        "macro_f05": 0.9834840074798554,
+        "pair_precision": 0.7735760422783323,
+        "pair_recall": 0.9527735589788096,
+        "pairs": 17030,
+        "true_pairs": 13827,
+        "threshold": 0.003600432805806764
+      }
+    }
+  }
+}

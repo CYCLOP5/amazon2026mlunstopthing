@@ -1,0 +1,68 @@
+{
+  "country": "india",
+  "fold": 2,
+  "anchors": 5000,
+  "queries": 23314,
+  "reference_pool": 706574,
+  "positive_queries": 17314,
+  "pairs": 914760,
+  "retrieved_links": 16454,
+  "link_recall": 0.9503292133533556,
+  "oracle_macro_f05": 0.9801564137149744,
+  "k": 20,
+  "empty_queries": 0,
+  "mean_candidates": 39.23651025135112,
+  "p99_candidates": 54.0,
+  "seconds": 205.2147426970041,
+  "parts": [
+    "pairs_00000.parquet",
+    "pairs_00001.parquet",
+    "pairs_00002.parquet",
+    "pairs_00003.parquet",
+    "pairs_00004.parquet",
+    "pairs_00005.parquet",
+    "pairs_00006.parquet",
+    "pairs_00007.parquet",
+    "pairs_00008.parquet",
+    "pairs_00009.parquet",
+    "pairs_00010.parquet",
+    "pairs_00011.parquet",
+    "pairs_00012.parquet",
+    "pairs_00013.parquet",
+    "pairs_00014.parquet",
+    "pairs_00015.parquet",
+    "pairs_00016.parquet",
+    "pairs_00017.parquet",
+    "pairs_00018.parquet",
+    "pairs_00019.parquet",
+    "pairs_00020.parquet",
+    "pairs_00021.parquet",
+    "pairs_00022.parquet"
+  ],
+  "slices": {
+    "s2_all": {
+      "n": 8396,
+      "hits": 7986
+    },
+    "s2_non_ascii_name": {
+      "n": 2381,
+      "hits": 2050
+    },
+    "s2_blank_addr": {
+      "n": 312,
+      "hits": 279
+    },
+    "s3_all": {
+      "n": 8918,
+      "hits": 8468
+    },
+    "s3_non_ascii_name": {
+      "n": 1602,
+      "hits": 1388
+    },
+    "s3_blank_addr": {
+      "n": 336,
+      "hits": 285
+    }
+  }
+}

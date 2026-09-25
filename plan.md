@@ -541,3 +541,93 @@ the implementation can progress with the conservative model and data policy abov
 - quoted eastus a100 linux rates were 3.673 usd per hour on demand and 0.67877 usd per hour spot before storage
 - no project vm has been created yet and project compute spend remains zero
 - gpu quota failure is a compute constraint while cpu modeling and local gpu experiments continue
+
+### measured implementation results
+
+the reverse character retrieval probe used 2000 held out anchors per country and searched every reference in that country
+
+| country | true links | retrieved links | link recall | oracle macro f0.5 | mean candidates per target |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| us | 6902 | 6816 | 0.98754 | 0.99623 | 41.00 |
+| india | 6925 | 6524 | 0.94209 | 0.97822 | 39.43 |
+
+results are saved in `reports/lex_val_us.json` and `reports/lex_val_india.json`
+india still has a substantial script and spelling gap
+this is why the next measured experiment uses a multilingual encoder
+
+the first tree used 5000 training anchors per country with hard negative candidates
+its sampled query macro estimate was 0.9860 but the threshold selected on that incomplete population had only 0.5798 pair precision
+wrong links into unsampled anchors were not charged to that sampled macro score
+that threshold is not suitable for submission
+`src/infer.py` therefore requires complete target coverage before producing a full pool calibration
+it tunes on fold 0 and opens fold 1 only for an explicitly requested audit
+
+at a provisional threshold of 0.95 the original tree had 0.99577 pair precision and 0.79967 recall over all true links in the sampled queries
+these are diagnostics rather than a competition score
+the model still needs a better precision recall tradeoff
+
+candidate score version 2 computes both field similarities for every candidate
+previously a candidate introduced by one channel could have a zero score recorded for the other channel despite real overlap
+on the india validation candidates this restored 20146 nonzero name scores and 32536 address scores without changing any candidate or label
+model metadata and inference now require matching score versions
+
+### cloud execution status
+
+the user supplied the existing `mlworkloads` azure ml workspace in eastus
+its cluster quotas are independent of ordinary virtual machine quotas
+the verified dedicated cpu quotas are 350 edsv4 vcpus and 100 esv3 vcpus
+azure ml approved 24 total low priority vcpus after a separate request
+this permits requesting one 24 vcpu a100 spot node subject to capacity
+
+the first cloud launches exposed sdk compute name and local path portability issues
+both were corrected with regression checks and the task created compute was deleted after each failed launch
+the runner now journals success separately from cleanup and resolves model metadata relative to the uploaded source package
+its job timeout is finite and clusters have zero minimum nodes one maximum node and a 120 second idle scale down
+
+the budget ledger is deliberately conservative and includes fixed storage and transfer allowances
+its amounts are estimates rather than azure invoices
+existing user workspaces storage and resource groups are preserved
+
+### multilingual retrieval evidence
+
+the frozen e5 base encoder was tested on the same 2000 india anchors against all 883188 india references
+it ran successfully on the local 6 gib gpu
+
+| dense width | dense link recall | dense and lexical union recall |
+| ---: | ---: | ---: |
+| 1 | 0.90296 | 0.96491 |
+| 5 | 0.94267 | 0.97545 |
+| 10 | 0.95437 | 0.97978 |
+| 20 | 0.96217 | 0.98383 |
+| 50 | 0.97227 | 0.98816 |
+| 100 | 0.97718 | 0.99004 |
+| 200 | 0.98209 | 0.99264 |
+
+the curve uses returned fp16 neighbor order and tied scores can change boundary membership
+the top 50 and top 200 reports are saved under `reports/e5_india_k50.json` and `reports/e5_india_k200.json`
+search over the cached reference vectors took about 3 seconds for the top 50 probe
+encoder construction and corpus encoding are separate costs
+
+there are 51 links still missing from the top 200 union
+23 are s2 links and 28 are s3 links
+21 have non ascii alias names and 8 have blank addresses
+blank address residual risk is 3.125 percent versus 0.645 percent for populated addresses
+eight residuals have both normalized name and address string likeness below 50 percent
+two blank address residuals have ambiguous normalized reference names
+no conflicting owners were found in the checked identical raw record groups
+
+going from top 100 to top 200 adds 892500 pairs for 18 more links or roughly 49600 additional pairs per recovered link
+the next experiment is a complementary frozen retrieval model followed by supervised hard negative fine tuning
+large uniform candidate lists and speculative phonetic rules are lower priority
+
+### execution reliability
+
+full inference now filters parquet data before batching
+a real 7974 target pilot retained identical 312428 scored pairs while runtime fell from about 112 to 77 seconds
+index failures now raise errors rather than silently creating empty candidate sets
+when a validation country has no fit partition rows its lexical transform uses other fit partition countries only
+
+the azure ml sdk returned sas credentials where its artifact helpers expected account keys
+this caused log signature and incorrect padding failures
+the runner now waits on normalized job status enum values and downloads from an explicit task output uri using the actual credential type
+this path passed a real 12 file download check without modifying the workspace credentials
