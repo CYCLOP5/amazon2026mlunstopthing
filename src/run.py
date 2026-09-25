@@ -1,0 +1,326 @@
+import argparse as ap
+import concurrent.futures as cf
+import hashlib as hh
+import json
+import math
+import os
+import subprocess as sp
+import sys
+import tempfile as tf
+from pathlib import Path as path
+
+import numpy as np
+
+import infer
+
+
+def _json(p):
+    with path(p).open(encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _write(p, z):
+    p = path(p)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    q = p.with_suffix(p.suffix + ".tmp")
+    q.write_text(json.dumps(z, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    q.replace(p)
+
+
+def _hash(z):
+    return hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
+
+
+def _dir(co):
+    return "country_" + hh.sha256(co.encode("utf-8")).hexdigest()[:16]
+
+
+def _countries(data, split, selected):
+    allx = infer._countries(data, split, None)
+    if selected is None:
+        return allx
+    if len(selected) != len(set(selected)):
+        raise ValueError("duplicate country selection")
+    bad = sorted(set(selected) - set(allx))
+    if bad:
+        raise ValueError(f"unknown countries {bad}")
+    return [x for x in allx if x in set(selected)]
+
+
+def _ids(data, split, countries, lo, hi):
+    xs = [infer._ids(data, split, x, lo, hi) for x in countries]
+    z = np.sort(np.concatenate(xs)) if xs else np.empty(0, np.uint32)
+    if len(z) != len(np.unique(z)):
+        raise ValueError("selected target ids overlap")
+    return z
+
+
+def _owner(data, cache, gate, neural, split, countries, lo, hi, klex, kdense, kgate, retrievers, device, threads,
+           encoder_batch, neural_batch, query_batch, neural_weight):
+    return {"data": str(path(data).resolve()), "cache": str(path(cache).resolve()), "gate": str(path(gate).resolve()),
+            "neural": str(path(neural).resolve()), "split": split, "countries": countries, "rid_start": lo,
+            "rid_stop": hi, "k_lex": klex, "k_dense": kdense, "k_gate": kgate, "retrievers": list(retrievers),
+            "device": device, "threads": threads, "encoder_batch": encoder_batch, "neural_batch": neural_batch,
+            "query_batch": query_batch, "neural_weight": neural_weight}
+
+
+def _command(data, cache, gate, neural, out, split, co, lo, hi, klex, kdense, kgate, retrievers, device, threads,
+             encoder_batch, neural_batch, query_batch, neural_weight):
+    z = [sys.executable, str(path(__file__).with_name("match.py")), "--data", str(data), "--cache", str(cache),
+         "--gate", str(gate), "--neural", str(neural), "--out", str(out), "--split", split, "--country", co,
+         "--k-lex", str(klex), "--k-dense", str(kdense), "--k-gate", str(kgate), "--retrievers", *retrievers,
+         "--device", device, "--threads", str(threads), "--encoder-batch", str(encoder_batch), "--neural-batch",
+         str(neural_batch), "--query-batch", str(query_batch), "--neural-weight", str(neural_weight)]
+    if lo is not None:
+        z.extend(("--rid-start", str(lo)))
+    if hi is not None:
+        z.extend(("--rid-stop", str(hi)))
+    return z
+
+
+def _child(argv, log):
+    with path(log).open("ab") as f:
+        return sp.run(argv, stdin=sp.DEVNULL, stdout=f, stderr=sp.STDOUT, check=False).returncode
+
+
+def _index(out, owner, full):
+    p = out / "runs.json"
+    if not p.exists():
+        if any(out.iterdir()):
+            raise ValueError("run output exists without runs.json")
+        return {"version": 1, "owner": owner, "owner_sha256": _hash(owner), "full": full, "complete": False,
+                "runs": []}
+    z = _json(p)
+    if z.get("version") != 1 or z.get("owner") != owner or z.get("owner_sha256") != _hash(owner):
+        raise ValueError("existing run index ownership/configuration mismatch")
+    if z.get("full") != full or not isinstance(z.get("runs"), list):
+        raise ValueError("invalid existing run index")
+    return z
+
+
+def _check_args(countries, workers, threads, lo, hi, klex, kdense, kgate, encoder_batch, neural_batch, query_batch,
+                neural_weight):
+    cores = os.cpu_count() or 1
+    if not countries:
+        raise ValueError("no countries selected")
+    if min(workers, threads, klex, kdense, kgate, encoder_batch, neural_batch, query_batch) < 1:
+        raise ValueError("workers and matching options must be positive")
+    if workers > cores or threads > cores or workers * threads > cores:
+        raise ValueError(f"workers * threads must not exceed available cores ({cores})")
+    if lo is not None and hi is not None and lo >= hi:
+        raise ValueError("rid start must be below rid stop")
+    if not math.isfinite(neural_weight) or not 0 <= neural_weight <= 1:
+        raise ValueError("neural weight must be finite and in [0, 1]")
+
+
+def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=None, rid_stop=None, workers=1,
+        threads=1, k_lex=10, k_dense=50, k_gate=20, retrievers=("e5",), device="auto", encoder_batch=64,
+        neural_batch=32, query_batch=4096, neural_weight=1.0, calibration_out=None, audit=False, calibration=None,
+        export_out=None, runner=None):
+    data, cache, gate, neural, out = (path(x).resolve() for x in (data, cache, gate, neural, out))
+    if split not in {"train", "test"}:
+        raise ValueError("split must be train or test")
+    countries = _countries(data, split, countries)
+    _check_args(countries, workers, threads, rid_start, rid_stop, k_lex, k_dense, k_gate, encoder_batch, neural_batch,
+                query_batch, neural_weight)
+    full = countries == infer._countries(data, split, None) and rid_start is None and rid_stop is None
+    if calibration_out is not None and (split != "train" or not full):
+        raise ValueError("calibration requires complete full training coverage")
+    if audit and calibration_out is None:
+        raise ValueError("audit requires --calibration-out")
+    if (calibration is None) != (export_out is None):
+        raise ValueError("test export requires both --calibration and --export-out")
+    if calibration is not None and (split != "test" or not full):
+        raise ValueError("export requires complete full test coverage")
+    owner = _owner(data, cache, gate, neural, split, countries, rid_start, rid_stop, k_lex, k_dense, k_gate, retrievers,
+                   device, threads, encoder_batch, neural_batch, query_batch, neural_weight)
+    out.mkdir(parents=True, exist_ok=True)
+    z = _index(out, owner, full)
+    old = {x.get("country"): x for x in z["runs"] if isinstance(x, dict)}
+    if len(old) != len(z["runs"]) or set(old) - set(countries):
+        raise ValueError("invalid existing country ownership")
+    runroot, logroot = out / "countries", out / "logs"
+    runroot.mkdir(exist_ok=True)
+    logroot.mkdir(exist_ok=True)
+    jobs = []
+    for co in countries:
+        rd = (runroot / _dir(co)).resolve()
+        cc = (cache / "countries" / _dir(co)).resolve()
+        if rd.parent != runroot.resolve() or cc.parent != (cache / "countries").resolve():
+            raise ValueError("unsafe country directory")
+        cmd = _command(data, cc, gate, neural, rd, split, co, rid_start, rid_stop, k_lex, k_dense, k_gate, retrievers,
+                       device, threads, encoder_batch, neural_batch, query_batch, neural_weight)
+        rec = {"country": co, "runpath": str(rd), "childstatus": "pending", "config": owner, "command": cmd}
+        if co in old:
+            prior = old[co]
+            if prior.get("runpath") != rec["runpath"] or prior.get("config") != owner or prior.get("command") != cmd:
+                raise ValueError("existing country run ownership/configuration mismatch")
+            rec.update(prior)
+        jobs.append((co, rd, logroot / f"{_dir(co)}.log", cmd, rec))
+    z["runs"] = [x[-1] for x in jobs]
+    z["complete"] = False
+    z.pop("verification", None)
+    _write(out / "runs.json", z)
+    runner = _child if runner is None else runner
+
+    def one(co, log, cmd):
+        try:
+            code = runner(cmd, log)
+            if code != 0:
+                return co, "failed", code, f"child exited {code}"
+            return co, "succeeded", code, None
+        except Exception as e:
+            return co, "failed", None, f"{type(e).__name__}: {e}"
+
+    by_country = {x[0]: x[-1] for x in jobs}
+    with cf.ThreadPoolExecutor(max_workers=min(workers, len(jobs))) as pool:
+        fs = []
+        for co, _, log, cmd, rec in jobs:
+            rec["childstatus"] = "running"
+            rec["log"] = str(log.resolve())
+            fs.append(pool.submit(one, co, log, cmd))
+        _write(out / "runs.json", z)
+        for f in cf.as_completed(fs):
+            co, status, code, error = f.result()
+            rec = by_country[co]
+            rec["childstatus"], rec["returncode"] = status, code
+            if error is None:
+                rec.pop("error", None)
+            else:
+                rec["error"] = error
+            _write(out / "runs.json", z)
+    failed = [x["country"] for x in z["runs"] if x["childstatus"] != "succeeded"]
+    if failed:
+        z["verification"] = {"status": "skipped", "reason": "failed children", "countries": failed}
+        _write(out / "runs.json", z)
+        raise RuntimeError(f"matching children failed for {failed}")
+    expected = _ids(data, split, countries, rid_start, rid_stop)
+    paths = [path(x["runpath"]) for x in z["runs"]]
+    try:
+        infer._runs(data, paths, split, expected)
+    except Exception as e:
+        z["verification"] = {"status": "failed", "error": f"{type(e).__name__}: {e}"}
+        _write(out / "runs.json", z)
+        raise
+    z["complete"] = True
+    z["verification"] = {"status": "exact_coverage", "targets": len(expected), "full": full}
+    _write(out / "runs.json", z)
+    _write(out / "runpaths.json", {"runs": [str(x) for x in paths], "split": split, "full": full})
+    result = {"runs": [str(x) for x in paths], "targets": len(expected), "full": full}
+    if calibration_out is not None:
+        result["calibration"] = infer.calibrate(data, paths, calibration_out, audit=audit)
+    if calibration is not None:
+        result["export"] = infer.export(data, paths, calibration, export_out)
+    return result
+
+
+def check():
+    def fake(data, fail=None):
+        calls = []
+
+        def runner(argv, log):
+            calls.append(argv)
+            co, out = argv[argv.index("--country") + 1], path(argv[argv.index("--out") + 1])
+            ids = infer._ids(data, "test", co)
+            parts = out / "parts"
+            parts.mkdir(parents=True, exist_ok=True)
+            p, c = parts / "part_0000000.parquet", parts / "part_0000000.npy"
+            infer._empty("test").write_parquet(p)
+            np.save(c, ids)
+            cfg = {"data_meta_sha256": infer._sha(data / "meta.json"), "model": {"sha256": "check"}}
+            man = {"version": infer.ver, "split": "test", "config": cfg,
+                   "config_sha256": _hash(cfg), "parts": [{"name": "parts/part_0000000.parquet",
+                   "coverage": "parts/part_0000000.npy", "queries": len(ids), "pairs": 0,
+                   "pair_sha256": infer._sha(p), "coverage_sha256": infer._sha(c)}]}
+            _write(out / "manifest.json", man)
+            return 7 if co == fail else 0
+
+        return runner, calls
+
+    with tf.TemporaryDirectory() as tmp:
+        root = path(tmp)
+        data = infer._check_data(root)
+        q = infer.pl.read_parquet(data / "test/s3.parquet").with_columns(infer.pl.lit("neverland").alias("co"))
+        q.write_parquet(data / "test/s3.parquet")
+        assert _countries(data, "test", None) == ["france", "neverland", "us"]
+        assert _dir("France") == _dir("France") and _dir("France") != _dir("neverland") and "/" not in _dir("France")
+        runner, calls = fake(data)
+        out = root / "out"
+        z = run(data, root / "cache", root / "gate", root / "neural", out, workers=2, threads=1, k_lex=3,
+                k_dense=4, k_gate=5, retrievers=("e5", "qwen3"), device="cpu", encoder_batch=7, neural_batch=5,
+                query_batch=123, neural_weight=.6, runner=runner)
+        assert z["full"] and len(calls) == 3 and _json(out / "runs.json")["complete"]
+        first = {tuple(x) for x in calls}
+        run(data, root / "cache", root / "gate", root / "neural", out, workers=2, threads=1, k_lex=3, k_dense=4,
+            k_gate=5, retrievers=("e5", "qwen3"), device="cpu", encoder_batch=7, neural_batch=5, query_batch=123,
+            neural_weight=.6, runner=runner)
+        assert len(calls) == 6 and {tuple(x) for x in calls[3:]} == first
+        cmd = calls[0]
+        for flag, value in (("--k-lex", "3"), ("--k-dense", "4"), ("--k-gate", "5"), ("--encoder-batch", "7"),
+                            ("--neural-batch", "5"), ("--query-batch", "123"), ("--neural-weight", "0.6")):
+            assert cmd[cmd.index(flag) + 1] == value
+        assert cmd[cmd.index("--retrievers") + 1:cmd.index("--device")] == ["e5", "qwen3"]
+        assert len({x[x.index("--cache") + 1] for x in calls[:3]}) == 3
+        injected = _command(data, root / "cache", root / "gate", root / "neural", root / "x", "test", "x; touch bad",
+                            None, None, 1, 1, 1, ("e5",), "cpu", 1, 1, 1, 1, 1.)
+        assert injected[injected.index("--country") + 1] == "x; touch bad"
+        try:
+            run(data, root / "cache", root / "gate", root / "neural", root / "shard", countries=["us"],
+                calibration_out=root / "calibration.json", runner=runner)
+        except ValueError as e:
+            assert "complete full" in str(e)
+        else:
+            raise AssertionError("shard calibration accepted")
+        bad, seen = fake(data, "france")
+        try:
+            run(data, root / "cache", root / "gate", root / "neural", root / "failed", workers=2, threads=1, runner=bad)
+        except RuntimeError as e:
+            assert "france" in str(e) and len(seen) == 3
+        else:
+            raise AssertionError("failed worker accepted")
+        assert any(x["childstatus"] == "failed" for x in _json(root / "failed/runs.json")["runs"])
+    print("checks passed")
+
+
+def main():
+    root = path(__file__).resolve().parents[1]
+    p = ap.ArgumentParser()
+    p.add_argument("--check", action="store_true")
+    p.add_argument("--data", type=path, default=root / "cache/data")
+    p.add_argument("--cache", type=path, default=root / "cache")
+    p.add_argument("--gate", type=path)
+    p.add_argument("--neural", type=path)
+    p.add_argument("--out", type=path)
+    p.add_argument("--split", choices=("train", "test"), default="test")
+    p.add_argument("--country", nargs="+")
+    p.add_argument("--rid-start", type=int)
+    p.add_argument("--rid-stop", type=int)
+    p.add_argument("--workers", type=int, default=1)
+    p.add_argument("--threads", type=int, default=1)
+    p.add_argument("--k-lex", type=int, default=10)
+    p.add_argument("--k-dense", type=int, default=50)
+    p.add_argument("--k-gate", type=int, default=20)
+    p.add_argument("--retrievers", choices=("e5", "qwen3"), nargs="+", default=["e5"])
+    p.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    p.add_argument("--encoder-batch", type=int, default=64)
+    p.add_argument("--neural-batch", type=int, default=32)
+    p.add_argument("--query-batch", type=int, default=4096)
+    p.add_argument("--neural-weight", type=float, default=1.0)
+    p.add_argument("--calibration-out", type=path)
+    p.add_argument("--audit", action="store_true")
+    p.add_argument("--calibration", type=path)
+    p.add_argument("--export-out", type=path)
+    a = p.parse_args()
+    if a.check:
+        check()
+    elif a.gate and a.neural and a.out:
+        z = run(a.data, a.cache, a.gate, a.neural, a.out, a.split, a.country, a.rid_start, a.rid_stop, a.workers,
+                a.threads, a.k_lex, a.k_dense, a.k_gate, a.retrievers, a.device, a.encoder_batch, a.neural_batch,
+                a.query_batch, a.neural_weight, a.calibration_out, a.audit, a.calibration, a.export_out)
+        print(json.dumps(z, indent=2))
+    else:
+        p.error("use --check or --gate --neural --out")
+
+
+if __name__ == "__main__":
+    main()
