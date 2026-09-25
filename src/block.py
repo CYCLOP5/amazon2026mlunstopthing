@@ -2,6 +2,7 @@ import argparse as ap
 import hashlib as hh
 import json
 import os
+import shutil as sh
 import tempfile as tf
 import time
 from collections import defaultdict as dd
@@ -16,9 +17,11 @@ from sparse_dot_topn import sp_matmul_topn as topn
 
 schema = {"tid": pl.UInt32, "qid": pl.UInt32, "ns": pl.Float32,
           "ads": pl.Float32, "en": pl.UInt8, "ea": pl.UInt8}
+sv = 2
 
 
 def indexes(ref, fit, dest):
+    ref = ref.sort("rid")
     dest.mkdir(parents=True, exist_ok=True)
     idx = {}
     for fld in ("nn", "an"):
@@ -30,12 +33,18 @@ def indexes(ref, fit, dest):
                       max_features=600000, sublinear_tf=True)
             v.fit(fit[fld].to_list())
             b = v.transform(ref[fld].to_list()).T.tocsr()
-            tmp = p.with_suffix(".tmp")
+            tmp = p.with_suffix(f".{os.getpid()}.tmp")
             jl.dump((v, b, ref["rid"].to_numpy()), tmp, compress=0)
             tmp.replace(p)
             print("index", fld, b.shape, b.nnz, "seconds", round(time.monotonic() - t, 1), flush=True)
             del v, b
-        idx[fld] = jl.load(p, mmap_mode="c")
+        obj = jl.load(p, mmap_mode="c")
+        dp = dest / f"{fld}_rows.joblib"
+        if not dp.exists():
+            tmp = dp.with_suffix(f".{os.getpid()}.tmp")
+            jl.dump(obj[1].T.tocsr(), tmp, compress=0)
+            tmp.replace(dp)
+        idx[fld] = (*obj, jl.load(dp, mmap_mode="c"))
         if not np.array_equal(idx[fld][2], ref["rid"].to_numpy()):
             raise ValueError("stale reference index")
     eq = {fld: dd(list) for fld in ("nn", "an")}
@@ -46,13 +55,33 @@ def indexes(ref, fit, dest):
     return idx, eq
 
 
+def rescore(q, p, idx):
+    if p.is_empty():
+        return p
+    ids = q["rid"].to_numpy()
+    order = np.argsort(ids)
+    qi = np.searchsorted(ids[order], p["tid"].to_numpy())
+    if (qi >= len(ids)).any() or not np.array_equal(ids[order][qi], p["tid"].to_numpy()):
+        raise ValueError("unknown query id during scoring")
+    qi = order[qi]
+    for fld, col in (("nn", "ns"), ("an", "ads")):
+        v, _, ids, d = idx[fld]
+        ri = np.searchsorted(ids, p["qid"].to_numpy())
+        if (ri >= len(ids)).any() or not np.array_equal(ids[ri], p["qid"].to_numpy()):
+            raise ValueError("unknown reference id during scoring")
+        a = v.transform(q[fld].to_list())
+        vals = np.asarray(a[qi].multiply(d[ri]).sum(axis=1)).ravel()
+        p = p.with_columns(pl.Series(col, np.clip(vals, 0, 1).astype(np.float32)))
+    return p
+
+
 def search(q, idx, eq, k=10, threads=4):
     if k < 1 or threads < 1:
         raise ValueError("positive k and thread count required")
     fs = []
     tids = q["rid"].to_numpy()
     for fld, sc in (("nn", "ns"), ("an", "ads")):
-        v, b, ids = idx[fld]
+        v, b, ids, _ = idx[fld]
         a = v.transform(q[fld].to_list())
         c = topn(a, b, top_n=min(k, b.shape[1]), threshold=0.01, sort=True, n_threads=threads)
         rr = np.repeat(np.arange(len(q)), np.diff(c.indptr))
@@ -74,7 +103,8 @@ def search(q, idx, eq, k=10, threads=4):
                                 "en": ns, "ea": ads}, schema=schema))
     p = pl.concat(fs).group_by("tid", "qid").agg(pl.col("ns", "ads", "en", "ea").max())
     p = p.join(q.select(pl.col("rid").alias("tid"), "own", "sr"), on="tid", how="left", validate="m:1")
-    return p.with_columns((pl.col("qid").cast(pl.Int64) == pl.col("own")).cast(pl.UInt8).alias("y")).sort("tid", "qid")
+    p = p.with_columns((pl.col("qid").cast(pl.Int64) == pl.col("own")).cast(pl.UInt8).alias("y")).sort("tid", "qid")
+    return rescore(q, p, idx)
 
 
 def setup(data, cache, co, sp="train", fold=0):
@@ -148,7 +178,7 @@ def probe(data, cache, dest, co, fold=0, n=1000, neg=1000, k=10, threads=4, batc
            "oracle_macro_f05": float(np.mean(vals)), "k": k,
            "empty_queries": len(q) - len(cn), "mean_candidates": len(p) / len(q),
            "p99_candidates": float(np.quantile(cn, 0.99)) if len(cn) else 0,
-           "seconds": time.monotonic() - t, "parts": parts, "slices": {}}
+           "seconds": time.monotonic() - t, "score_version": sv, "parts": parts, "slices": {}}
     for sr in (2, 3):
         z = q.filter((pl.col("sr") == sr) & (pl.col("own") >= 0))
         hs = set(hits.filter(pl.col("sr") == sr)["tid"].to_list())
@@ -173,10 +203,34 @@ def check():
         p = search(q, idx, eq, k=1, threads=1)
         assert p.filter(pl.col("y") == 1).height == 2
         assert {9, 12} <= set(p.filter(pl.col("tid") == 20)["qid"])
+        assert np.allclose(p.filter((pl.col("tid") == 20) & pl.col("qid").is_in([9, 12]))["ns"], 1)
         assert p.select("tid", "qid").n_unique() == len(p)
         idx2, eq2 = indexes(r, r, path(tmp))
         assert search(q, idx2, eq2, 1, 1).equals(p)
     print("checks passed")
+
+
+def revise(data, cache, src, dest):
+    if src.resolve() == dest.resolve():
+        raise ValueError("rescored runs need a new output directory")
+    met = json.loads((src / "metrics.json").read_text())
+    ref, idx, eq = setup(data, cache, met["country"], fold=met["fold"])
+    del ref, eq
+    q = pl.read_parquet(src / "queries.parquet")
+    dest.mkdir(parents=True, exist_ok=True)
+    (dest / "metrics.json").unlink(missing_ok=True)
+    for name in ("anchors.parquet", "queries.parquet"):
+        sh.copyfile(src / name, dest / name)
+    for name in met["parts"]:
+        if path(name).name != name or not name.endswith(".parquet"):
+            raise ValueError("invalid candidate part path")
+        p = pl.read_parquet(src / name)
+        qb = q.filter(pl.col("rid").is_in(p["tid"].unique().implode()))
+        p = rescore(qb, p, idx)
+        p.write_parquet(dest / name, compression="zstd")
+    met.update({"score_version": sv, "derived_from": str(src)})
+    (dest / "metrics.json").write_text(json.dumps(met, indent=2) + "\n")
+    print("rescored", src, "to", dest, flush=True)
 
 
 def main():
@@ -193,9 +247,14 @@ def main():
     pa.add_argument("--threads", type=int, default=min(os.cpu_count() or 1, 8))
     pa.add_argument("--batch", type=int, default=1024)
     pa.add_argument("--check", action="store_true")
+    pa.add_argument("--rescore", type=path)
     a = pa.parse_args()
     if a.check:
         check()
+    elif a.rescore:
+        if a.out is None:
+            raise ValueError("rescore requires an output directory")
+        revise(a.data, a.cache, a.rescore, a.out)
     else:
         if a.n < 1 or a.neg < 0 or a.batch < 1:
             raise ValueError("invalid sample or batch size")
