@@ -4,28 +4,27 @@ supplied business records → compact candidate sets → calibrated matching set
 
 > deadline: sunday 2026-09-27 at 08:00 ist / 02:30 utc
 >
-> attempts: three total; upgraded v1 submitted and leaderboard feedback pending
+> attempts: three total; recorded leaderboard feedback: baseline 0.964, upgraded v1 0.969
 
 ## current state
 
-two implemented variants are scoring the complete datasets
+the optuna-selected rich stack has completed full training/test score replay, calibration, export and both submission validators
 
 | variant | retrieval | learned gate | final matcher |
 | --- | --- | --- | --- |
 | baseline | lexical + e5-base + qwen | original lightgbm/catboost mean | fine-tuned e5 pair classifier |
 | upgrade | lexical + e5-base + qwen + e5-large | verified teammate lightgbm, 54 features | same fine-tuned e5 pair classifier |
+| selected cached-score upgrade | same upgraded candidate pool | same upstream gate | 60-feature optuna lightgbm stack, country/house posterior correction and source1 set decoding |
 
-both currently keep up to three candidates per target before final matching and use neural logit weight 0.6
+the upstream variants keep up to three candidates per target and use neural logit weight 0.6 before the additional stack
 three per target is not a cap of three per s1
 the exported source1 candidate distribution is measured separately
 
-the original baseline completed full-pool calibration and locked audit with offline macro f0.5 of 0.97550
-upgraded calibration final test export and final output verification remain delivery gates
-no official score or completed submission is claimed here
+the selected stack scored 0.984547 on 73,752 separate development references, compared with 0.976006 for the uploaded v1 configuration on those same references. these are development results, not leaderboard feedback
 
-the first upgraded leaderboard upload may use an explicit provisional cutoff while full validation continues
-complete test coverage and strict file checks still apply
-see [leaderboard-first export](docs/ops.md#9-leaderboard-first-export)
+validated files are under `artifacts/submission-optuna/output/`; the complete model/code archive is `artifacts/submission-optuna/Amazites_submission.zip`. it contains 5,786,357 matches and 29,908,767 authentic candidates. archive integrity and the original base-runtime source hashes were verified
+
+the compact task-trained retriever has completed fitting. its authorized full-reference gpu comparison against the frozen encoder is a separate experiment; it is not part of the selected cached-score checkpoint
 
 ## docs
 
@@ -38,6 +37,8 @@ see [leaderboard-first export](docs/ops.md#9-leaderboard-first-export)
 | [evidence](reports/README.md) | measured results and their evaluation scope |
 | [research / eda](plan.md) | primary sources dataset analysis and decision history |
 | [methodology](Documentation_template.md) | submission-method draft awaiting final measured results |
+| [teammate integration](reports/teammate-integration.md) | implemented methods, measured development results and reproduction commands |
+| [additional findings](reports/additional-workspace-findings.md) | recovered experiment evidence and the sibling-context projection pitfall |
 
 ## why infer and validate
 
@@ -115,6 +116,10 @@ real-model smoke tests and exact teammate-feature parity are linked in the evide
 | `src/tm_rules.py`, `src/tm_prep.py`, `src/tfeat.py` | verified teammate feature backend |
 | `src/embed.py`, `src/hybrid.py` | pinned multilingual encoders and hybrid retrieval |
 | `src/neural.py` | hard-negative pair data fine-tuning and pair scoring |
+| `src/retr.py`, `src/retr_eval.py` | grouped compact-encoder fitting and complete-reference validation |
+| `src/rfeat.py`, `src/norm2.py`, `src/reverse.py` | corpus-aware features, fold-safe normalization and optional reverse retrieval |
+| `src/stack2.py`, `src/post.py`, `src/decode.py` | pairwise stack, score-density calibration and expected-f0.5 sets |
+| `src/opt.py` | parallel macro-f0.5 hyperparameter search with complete competitor incidence |
 | `src/match.py`, `src/run.py` | learned filtering neural inference shards and resume |
 | `src/infer.py` | full-pool calibration and final tsv export |
 | `src/validate.py` | ids coverage duplicates candidate membership and size stats |
@@ -134,8 +139,9 @@ gpu is preferred for this corpus's embedding and neural matching workload
 - frozen baseline retrieval and its separately trained matcher total about 1.152b neural parameters
 - the three-retriever upgrade and matcher total about 1.712b
 - the teammate port matched 54 feature values and checkpoint predictions exactly on the parity sample
-- the real upgraded smoke run covered 12 targets and 36 final candidates
-- these smoke and sampled comparison results are not full-corpus or leaderboard scores
+- full scored coverage includes every labeled and test target
+- 64 optuna trials selected a model at search macro f0.5 0.985203; its separate development result is 0.984547
+- the selected checkpoint has no recorded leaderboard feedback
 
 immutable model revisions licenses and parameter evidence are in [model sources](reports/model_sources.json)
 upstream notices are in [licenses](licenses/readme.md)
@@ -165,6 +171,7 @@ the current exact dense scan is memory-bounded but is not claimed to be a billio
 | `Standard_NC24ads_A100_v4` | 24 vcpus, one a100 80 gb | pair-model training and parallel scoring |
 | `Standard_NC96ads_A100_v4` | 96 vcpus, four a100 80 gb | multi-gpu pilot and initial full-pool scoring |
 | `Standard_E16ds_v4` | 16 vcpus | cpu aggregation and submission export |
+| `Standard_E64ds_v4` | 64 vcpus | 8-process, 8-thread-per-process optuna search |
 
 the pair classifier trained for two epochs on 502,635 hard-negative pair examples
 the accelerated test pass used 16 disjoint single-a100 assignments with two 12-thread processes per worker
