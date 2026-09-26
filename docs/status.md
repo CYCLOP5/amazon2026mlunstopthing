@@ -2,7 +2,7 @@
 
 > updated: 2026-09-26
 >
-> deadline: sunday 2026-09-27 08:00 ist / 02:30 utc
+> updated planning cutoff: sunday 2026-09-27 21:00 ist / 15:30 utc, based on 18 hours remaining at about 03:08 ist
 >
 > team-reported public leaderboard f0.5: baseline **0.964**; upgraded v1 **0.969**
 

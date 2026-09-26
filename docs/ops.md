@@ -1,6 +1,6 @@
 # ops and submission runbook
 
-> deadline: sunday 2026-09-27, 08:00 ist / 02:30 utc
+> updated planning cutoff: sunday 2026-09-27, 21:00 ist / 15:30 utc
 >
 > attempts: three total, zero used at the last user confirmation
 >
@@ -252,7 +252,7 @@ any changed candidate limit must still export the real pre-matcher candidate set
 
 track the portal's attempt count after each upload
 the last confirmed count was zero used out of three
-all intended uploads must finish before sunday 2026-09-27 08:00 ist
+all intended uploads must finish before the updated planning cutoff, sunday 2026-09-27 21:00 ist
 
 ## 9. leaderboard-first export
 

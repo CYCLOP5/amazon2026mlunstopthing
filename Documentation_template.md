@@ -4,7 +4,7 @@
 - **members:** varun jhaveri, shivsharan sanjawad, raj mathuria, aastha singh
 - **doc revision:** 2026-09-25
 - **submission date:** pending actual upload
-- **deadline:** 2026-09-27 08:00 ist / 02:30 utc
+- **submission planning cutoff:** 2026-09-27 21:00 ist / 15:30 utc
 
 > implementation-method draft
 > final variant cutoff full-pool score candidate count and archive hash must be populated from completed artifacts

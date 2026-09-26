@@ -2,7 +2,7 @@
 
 supplied business records → compact candidate sets → calibrated matching sets
 
-> deadline: sunday 2026-09-27 at 08:00 ist / 02:30 utc
+> updated planning cutoff: sunday 2026-09-27 at 21:00 ist / 15:30 utc, based on 18 hours remaining at about 03:08 ist
 >
 > attempts: three total; recorded leaderboard feedback: baseline 0.964, upgraded v1 0.969
 

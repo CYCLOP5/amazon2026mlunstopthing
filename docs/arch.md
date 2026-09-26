@@ -398,7 +398,7 @@ see [evidence index](../reports/README.md), [ops](ops.md), [delivery status](sta
 3. calibrate each configuration against the full labeled target pool
 4. export and validate both tsvs for the selected first upload
 5. use the first leaderboard result to choose the next refinement
-6. complete all three intended uploads before sunday 2026-09-27 at 08:00 ist / 02:30 utc
+6. complete the remaining planned uploads before the updated cutoff, sunday 2026-09-27 at 21:00 ist / 15:30 utc
 7. finalize the selected-model methodology and reproducibility archive
 
 no full-corpus score leaderboard score or completed submission is inferred from a passed smoke test

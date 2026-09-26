@@ -23,7 +23,7 @@ the strongest current evidence points to retrieval quality and hard negative tra
 the final architecture will be selected from measured experiments rather than assumed from generic model leaderboards
 
 azure ml provides the gpu training and parallel inference platform
-the deadline is sunday 2026-09-27 at 08:00 ist or 02:30 utc
+the updated deadline is about sunday 2026-09-27 21:08 ist or 15:38 utc, based on 18 hours remaining at 03:08 ist. use 21:00 ist as the conservative planning cutoff
 zero of three total submissions had been used at the last user confirmation
 use uv and push code docs and compact metrics to the requested github repo at meaningful milestones
 keep raw competition data large model files and generated candidate files out of normal git history
@@ -746,7 +746,7 @@ the five-link gain did justify that follow-up; the later three-retriever deploym
 full same-width comparisons and scope are recorded in `reports/e5_large_same_width_india.json`
 the individual model result is in `reports/e5_large_instruct_india.json`
 
-the submission deadline is sunday 2026-09-27 at 08:00 ist
+the updated submission planning cutoff is sunday 2026-09-27 at 21:00 ist
 team amazites comprises varun jhaveri, shivsharan sanjawad, raj mathuria, and aastha singh
 
 ## current execution update
