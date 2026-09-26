@@ -410,6 +410,9 @@ def build(matching, candidate, test_dir, repo_root, code_root, readme, methodolo
             raise ValueError("pairwise stack was fitted to different base scores")
         for name in [*stack["files"], "metadata.json"]:
             add(out, f"code/business_entity_resolution/models/stack/{name}", path(stack_dir) / name)
+        seed = repo / "reports/optuna-search.json"
+        if seed.is_file():
+            add(out, "code/business_entity_resolution/reports/optuna-search.json", seed)
     elif stack_dir is not None:
         raise ValueError("unselected pairwise stack supplied")
     if cal.get("rules"):
