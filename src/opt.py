@@ -34,10 +34,14 @@ def prepare(prepared, root, cache, threads=8):
     raw = pl.scan_parquet(prepared)
     touched = raw.join(wanted.select(pl.col("rid").alias("qid")).lazy(), on="qid", how="inner").select("tid").unique()
     frame = raw.join(touched, on="tid", how="semi").sort("tid", "qid").collect(engine="streaming")
-    state = rfeat.prep(refs, data, "train", root / "fit/normalizer.json", cache)
+    name_change, neural_columns = fit.get("name_change", False), fit.get("neural_columns", [])
+    if fit["features"] != stack2.feature_names(name_change, neural_columns):
+        raise ValueError("fitting feature contract changed")
+    maker = stack2.gfeat if name_change else rfeat
+    state = maker.prep(refs, data, "train", root / "fit/normalizer.json", cache)
     targets = stack2.raw_targets(data, "train")
     active = frame.select(stack2.active()).to_series().to_numpy()
-    x = stack2.matrix(frame.filter(pl.Series(active)), state, targets, threads)
+    x = stack2.matrix(frame.filter(pl.Series(active)), state, targets, threads, name_change, neural_columns)
     lookup = np.full(len(refs), -1, np.int32)
     lookup[wanted["rid"].to_numpy()] = np.arange(len(wanted))
     qid = frame["qid"].to_numpy()
@@ -88,7 +92,8 @@ def load(root):
             raise ValueError("search cache changed")
     fit = dict(np.load(root / "fit/fit.npz", allow_pickle=False))
     evaluate = dict(np.load(root / "eval.npz", allow_pickle=False))
-    if fit["x"].shape[1] != len(stack2.features) or evaluate["x"].shape[1] != len(stack2.features):
+    names = stack2.feature_names(meta["fit"].get("name_change", False), meta["fit"].get("neural_columns", []))
+    if meta["fit"]["features"] != names or fit["x"].shape[1] != len(names) or evaluate["x"].shape[1] != len(names):
         raise ValueError("search feature contract mismatch")
     return meta, fit, evaluate
 
@@ -99,6 +104,7 @@ def storage(journal):
 
 def worker(root, journal, models, count, threads, seed):
     meta, fit, evaluate = load(root)
+    names = meta["fit"]["features"]
     study = optuna.load_study(study_name="source1-macro-f05", storage=storage(journal),
                               sampler=optuna.samplers.TPESampler(seed=seed, n_startup_trials=16, constant_liar=True))
     x, y, w = fit["x"], fit["y"], fit["weight"]
@@ -115,11 +121,11 @@ def worker(root, journal, models, count, threads, seed):
                   "bagging_fraction": trial.suggest_float("bagging_fraction", .6, 1.),
                   "feature_fraction": trial.suggest_float("feature_fraction", .65, 1.)}
         maximum = trial.suggest_categorical("round_limit", [400, 800, 1200])
-        train_set = lgb.Dataset(x[train_mask], label=y[train_mask], weight=w[train_mask], feature_name=stack2.features)
-        val_set = lgb.Dataset(x[val_mask], label=y[val_mask], weight=w[val_mask], feature_name=stack2.features, reference=train_set)
+        train_set = lgb.Dataset(x[train_mask], label=y[train_mask], weight=w[train_mask], feature_name=names)
+        val_set = lgb.Dataset(x[val_mask], label=y[val_mask], weight=w[val_mask], feature_name=names, reference=train_set)
         model = lgb.train(params, train_set, num_boost_round=maximum, valid_sets=[val_set], callbacks=[lgb.early_stopping(40, verbose=False)])
         rounds = model.best_iteration or maximum
-        model = lgb.train(params, lgb.Dataset(x, label=y, weight=w, feature_name=stack2.features), num_boost_round=rounds)
+        model = lgb.train(params, lgb.Dataset(x, label=y, weight=w, feature_name=names), num_boost_round=rounds)
         probability = evaluate["raw"].copy()
         probability[evaluate["active"]] = model.predict(evaluate["x"], num_threads=threads)
         result = metric(evaluate, probability, meta["countries"], threads)
@@ -134,7 +140,7 @@ def worker(root, journal, models, count, threads, seed):
     study.optimize(objective, n_trials=count, gc_after_trial=True)
 
 
-def run(root, out, trials=64, workers=8, threads=8):
+def run(root, out, trials=64, workers=8, threads=8, selected_file=None):
     root, out = path(root).resolve(), path(out).resolve()
     if min(trials, workers, threads) < 1 or workers > trials or workers * threads > (os.cpu_count() or 1):
         raise ValueError("invalid trial parallelism")
@@ -150,8 +156,15 @@ def run(root, out, trials=64, workers=8, threads=8):
         scratch = path(temp)
         journal = scratch / "study.journal"
         study = optuna.create_study(study_name="source1-macro-f05", storage=storage(journal), direction="maximize")
-        study.enqueue_trial({"learning_rate": .05, "num_leaves": 31, "max_depth": 6, "min_data_in_leaf": 100,
-                             "lambda_l2": 10., "bagging_fraction": .8, "feature_fraction": .9, "round_limit": 400})
+        selected_file = selected_file or path(__file__).resolve().parents[1] / "reports/optuna-search.json"
+        selected_params = stack2.fit_params(threads, selected_file)
+        selected = {key: selected_params[key] for key in ("learning_rate", "num_leaves", "max_depth", "min_data_in_leaf",
+                                                        "lambda_l2", "bagging_fraction", "feature_fraction")}
+        selected["round_limit"] = 800
+        study.enqueue_trial(selected)
+        if trials > 1:
+            study.enqueue_trial({"learning_rate": .05, "num_leaves": 31, "max_depth": 6, "min_data_in_leaf": 100,
+                                  "lambda_l2": 10., "bagging_fraction": .8, "feature_fraction": .9, "round_limit": 400})
         try:
             with cf.ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("spawn")) as pool:
                 jobs = [pool.submit(worker, root, journal, models, trials // workers + (i < trials % workers), threads, 42 + i)
@@ -166,7 +179,8 @@ def run(root, out, trials=64, workers=8, threads=8):
             raise ValueError("parallel search did not complete each requested trial exactly once")
         best = study.best_trial
         sh.copyfile(models / f"trial-{best.number}.txt", out / "lgb.txt")
-    metadata = {"version": 1, "kind": "postgate-pairwise-rich-stack", "features": stack2.features,
+    metadata = {"version": 1, "kind": "postgate-pairwise-rich-stack", "features": meta["fit"]["features"],
+                 "name_change": meta["fit"].get("name_change", False), "neural_columns": meta["fit"].get("neural_columns", []),
                 "source_config_sha256": meta["fit"]["source_config_sha256"], "data_meta_sha256": meta["fit"]["data_meta_sha256"],
                 "source_scores_sha256": meta["fit"]["source_scores_sha256"], "fit_pairs": meta["fit"]["fit_pairs"],
                 "fit_positive": meta["fit"]["fit_positive"], "fit_partition": {"modulus": 3, "remainder": 0},
@@ -178,7 +192,8 @@ def run(root, out, trials=64, workers=8, threads=8):
     report = {"version": 1, "best_trial": best.number, "best_search_macro_f05": best.value, "trials": rows,
               "workers": workers, "threads_per_worker": threads, "seconds": time.monotonic() - start,
               "references": meta["references"], "targets": meta["targets"], "pairs": meta["pairs"],
-              "cache_sha256": infer._sha(root / "cache.json"), "public_score": None}
+               "cache_sha256": infer._sha(root / "cache.json"), "public_score": None}
+    report["queued_selection_sha256"] = infer._sha(selected_file)
     infer._write(out / "study.json", report)
     return report
 
@@ -200,6 +215,29 @@ def check():
     reduced = {k: v[:-1] if k != "degree" else v for k, v in e.items()}
     assert full == metric(reduced, reduced["raw"], {"us": 2}) and full["macro_f05"] == 1.
     assert not np.any(e["y"][e["local"] < 0])
+    with tf.TemporaryDirectory() as tmp:
+        root = path(tmp) / "cache"
+        (root / "fit").mkdir(parents=True)
+        neural_columns = ["np_m0", "np_m1"]
+        names = stack2.feature_names(True, neural_columns)
+        x = np.zeros((40, len(names)), np.float32)
+        y = np.arange(40) % 2
+        train_mask = np.arange(40) < 30
+        np.savez_compressed(root / "fit/fit.npz", x=x, y=y, weight=np.ones(40), train=train_mask, valid=~train_mask)
+        infer._write(root / "fit/normalizer.json", {})
+        np.savez_compressed(root / "eval.npz", **e, x=np.zeros((len(e["raw"]), len(names)), np.float32), active=np.arange(len(e["raw"])))
+        fit_meta = {"features": names, "name_change": True, "neural_columns": neural_columns,
+                    "source_config_sha256": "check", "source_scores_sha256": "check", "data_meta_sha256": "check",
+                    "fit_pairs": 40, "fit_positive": 20}
+        infer._write(root / "cache.json", {"version": 1, "kind": "source1-macro-optuna-cache", "fit": fit_meta,
+                     "countries": {"us": 2}, "references": 2, "targets": 4, "pairs": 6,
+                     "files": {n: infer._sha(root / n) for n in ("fit/fit.npz", "fit/normalizer.json", "eval.npz")}})
+        out = path(tmp) / "model"
+        result = run(root, out, trials=2, workers=1, threads=1)
+        model_meta, _ = stack2.bundle(out)
+        assert model_meta["features"] == names and model_meta["neural_columns"] == neural_columns and model_meta["name_change"]
+        expected = infer._json(path(__file__).resolve().parents[1] / "reports/optuna-search.json")["best"]["params"]
+        assert result["trials"][0]["params"] == expected
     with tf.TemporaryDirectory() as tmp:
         journal = path(tmp) / "study.journal"
         study = optuna.create_study(study_name="claim-check", storage=storage(journal), direction="maximize")

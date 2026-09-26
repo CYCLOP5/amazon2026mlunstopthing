@@ -8,6 +8,8 @@ the updated teammate repo adds hard-pair cross-encoders, generator-aware name fe
 
 the full plan trains a new dense/name-aware gate and 16 multilingual cross-encoder variants, followed by complete scoring, an individual-logit stack and calibrated entity decoding. the validated optuna archive remains the frozen fallback until the new output passes comparison and validation.
 
+final postprocessing starts its new-score optuna search with the previous selected lightgbm parameters and preserves the feature matrices plus train/test score tables for repeatable cpu-only tuning. neural training settings and final-stack hyperparameters remain separate recorded contracts. [cached tuning workflow](reports/updated-repo-integration.md#reusable-cpu-tuning).
+
 ## decision
 
 build a precision focused entity matcher with complementary lexical and multilingual retrieval

@@ -63,7 +63,28 @@ def matrix(frame, state, targets, threads, name_change=False, neural_columns=())
     return np.concatenate(parts) if parts else np.empty((0, len(fs)), np.float32)
 
 
+def fit_params(threads, file=None):
+    params = {"objective": "binary", "metric": "binary_logloss", "learning_rate": .05, "num_leaves": 31,
+              "max_depth": 6, "min_data_in_leaf": 100, "lambda_l2": 10., "bagging_fraction": .8,
+              "bagging_freq": 1, "feature_fraction": .9, "seed": 19, "num_threads": threads, "verbosity": -1}
+    if file is not None:
+        selected = infer._json(file)
+        if "best" in selected:
+            selected = selected["best"]["details"]["training_params"]
+        else:
+            selected = selected.get("params", selected)
+        allowed = set(params) | {"deterministic", "force_col_wise"}
+        if not isinstance(selected, dict) or not selected or set(selected) - allowed:
+            raise ValueError("invalid or unsupported stack parameters")
+        if selected.get("objective", "binary") != "binary":
+            raise ValueError("stack parameters require a binary objective")
+        params.update(selected)
+        params["num_threads"] = threads
+    return params
+
+
 def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False, parameters=None):
+    params = fit_params(threads, parameters)
     prepared, out, cache = path(prepared), path(out), path(cache)
     source = post.verified(prepared, "train")
     config = source.get("config") or infer._json(path(source["runs"][0]["path"]) / "manifest.json")["config"]
@@ -116,16 +137,6 @@ def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False
     infer._write(out / "cache.json", cache_info)
     if cache_only:
         return cache_info
-    params = {"objective": "binary", "metric": "binary_logloss", "learning_rate": .05, "num_leaves": 31,
-              "max_depth": 6, "min_data_in_leaf": 100, "lambda_l2": 10., "bagging_fraction": .8,
-              "bagging_freq": 1, "feature_fraction": .9, "seed": 19, "num_threads": threads, "verbosity": -1}
-    if parameters is not None:
-        selected = infer._json(parameters)
-        selected = selected.get("params", selected)
-        if selected.get("objective", "binary") != "binary":
-            raise ValueError("stack parameters require a binary objective")
-        params.update({k: v for k, v in selected.items() if k in params or k in ("deterministic", "force_col_wise")})
-        params["num_threads"] = threads
     start = time.monotonic()
     train_set = lgb.Dataset(x[train_mask], label=y[train_mask], weight=weight[train_mask], feature_name=fs)
     valid_set = lgb.Dataset(x[val_mask], label=y[val_mask], weight=weight[val_mask], feature_name=fs, reference=train_set)
@@ -142,7 +153,8 @@ def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False
                 "inner_split": "owner/reference disjoint 1-in-5 groups inside fitting partition; refit fitting partition after early stopping",
                 "fit_targets": "fold2 targets, fold0 partition0 targets, partition0 orphans; calibration/validation owners excluded",
                 "selection": "max(gate,neural)>=.01; all positives and hard negatives; low-score negatives target-sampled at 1/20 with weight20",
-                "rounds": rounds, "params": params, "fit_seconds": time.monotonic() - start,
+                 "rounds": rounds, "params": params, "fit_seconds": time.monotonic() - start,
+                 "parameters_source_sha256": infer._sha(parameters) if parameters is not None else None,
                 "files": {name: infer._sha(out / name) for name in ("lgb.txt", "normalizer.json")}}
     infer._write(out / "metadata.json", metadata)
     return metadata
@@ -218,6 +230,10 @@ def score(prepared, model_dir, out, cache, threads=8):
 
 
 def check():
+    selected = path(__file__).resolve().parents[1] / "reports/optuna-search.json"
+    expected = infer._json(selected)["best"]["details"]["training_params"]
+    assert fit_params(12, selected) == {**expected, "num_threads": 12}
+    assert fit_params(12)["num_leaves"] == 31
     q = np.arange(1000)
     a, b, c = (set(q[post.partition(q, 3) == i]) for i in range(3))
     assert a and b and c and not (a & b or b & c or a & c) and len(a | b | c) == len(q)

@@ -38,3 +38,19 @@ the trained compact retriever improved top-50 recall from 98.43% to 99.73% in in
 the full plan uses 17 independent jobs: one gate-building job and 16 complementary cross-encoder configurations. the allocation uses standard nc96ads a100 v4 and nc24ads a100 v4 machines. inputs are staged once and shared by immutable datastore uri. training, scoring and postprocessing retain per-stage hashes and replayable outputs.
 
 the previously validated optuna submission is the frozen fallback, with development macro f0.5 0.984546. no new public score is inferred from the new training runs.
+
+## reusable cpu tuning
+
+gpu training produces checkpoints. the subsequent full train/test pass produces the fixed candidate set and per-member probabilities. these outputs support repeated cpu-only stack, calibration and decoder experiments.
+
+`full.py finish` now defaults to a 64-trial cpu search on the new cached scores. trial 0 reuses the previous optuna winner from `reports/optuna-search.json`: learning rate 0.0680600552, 127 leaves, unrestricted depth, minimum leaf count 393 and l2 0.00102611617. the prior selection's input hash is recorded; it is a starting configuration for new data, not evidence that it remains optimal. `--optuna-trials 0` refits that configuration directly with grouped early stopping.
+
+the search carries the exact generator-feature and neural-member column contract into every trial and the selected model. partition 1 selects the model; partition 2 remains the separate development comparison. the regression check executes a two-trial search using the expanded feature schema and verifies that the selected prior configuration is trial 0.
+
+final postprocessing retains `tuning-cache/` with the fitting and evaluation matrices, and `scores/` with base/stack train/test parquet files and their sidecars. a later cpu sweep can reuse the downloaded tuning cache:
+
+```sh
+.venv/bin/python src/opt.py run --root artifacts/full-result/tuning-cache --out artifacts/cpu-retune --trials 64 --workers 6 --threads 2
+```
+
+new hyperparameters require rescoring and recalibration with the supplied prepared data before exporting a new matching file. fixed candidates and cached neural probabilities require no new encoder pass. changing retrieval or neural weights requires regenerated gpu-dependent scores. improved leaderboard accuracy is never assumed from a lower pair loss or another search trial alone.

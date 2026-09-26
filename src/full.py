@@ -135,8 +135,13 @@ def score(assets, gate_root, neural_root, split, out, work, gpu_count=4, threads
     return {"split": split, "runs": str(out / split)}
 
 
-def finish(assets, gate_root, train_root, test_root, out, work, threads=64):
+def finish(assets, gate_root, train_root, test_root, out, work, threads=64, stack_parameters=None, optuna_trials=64):
     assets, gate_root, out, work = map(path, (assets, gate_root, out, work))
+    threads = min(threads, os.cpu_count() or 1)
+    if threads < 1 or optuna_trials < 0:
+        raise ValueError("invalid postprocessing resources")
+    stack_parameters = stack_parameters or path(__file__).resolve().parents[1] / "reports/optuna-search.json"
+    stack2.fit_params(threads, stack_parameters)
     data = assets / "data"
     normalizer = gate_root / "gate/normalizer.json"
     out.mkdir(parents=True, exist_ok=True)
@@ -149,7 +154,17 @@ def finish(assets, gate_root, train_root, test_root, out, work, threads=64):
         post.prepare(data, [p.parent for p in manifests], split, work / f"{split}.parquet")
         rfeat.corpus(data, split, normalizer, work / "cache")
         gfeat.frequencies(data, split, normalizer, work / "cache")
-    stack2.fit(work / "train.parquet", normalizer, out / "stack", work / "cache", threads, trees=800)
+    if optuna_trials:
+        import opt
+        search = out / "tuning-cache"
+        stack2.fit(work / "train.parquet", normalizer, search / "fit", work / "cache", threads,
+                   cache_only=True, parameters=stack_parameters)
+        opt.prepare(work / "train.parquet", search, work / "cache", threads)
+        workers = min(8, threads, optuna_trials)
+        opt.run(search, out / "stack", optuna_trials, workers, max(1, threads // workers), stack_parameters)
+    else:
+        stack2.fit(work / "train.parquet", normalizer, out / "stack", work / "cache", threads, trees=800,
+                   parameters=stack_parameters)
     def score_stack(split):
         command("stack2.py", ["score", "--scores", work / f"{split}.parquet", "--model", out / "stack",
                               "--out", work / f"stack-{split}.parquet", "--cache", work / "cache", "--threads", max(1, threads // 2)],
@@ -178,6 +193,11 @@ def finish(assets, gate_root, train_root, test_root, out, work, threads=64):
     for name, folder in (("base", out / "output"), ("rules", out / "output-rules")):
         validation = validate_output(folder / "matching_results.tsv", folder / "candidate_pairs.tsv", raw_test)
         infer._write(out / f"validation-{name}.json", validation)
+    saved = out / "scores"
+    saved.mkdir()
+    for name in ("train", "test", "stack-train", "stack-test"):
+        for suffix in (".parquet", ".json"):
+            sh.copyfile(work / (name + suffix), saved / (name + suffix))
     infer._write(out / "result.json", {"exports": exports, "development": infer._json(out / "development.json")})
     return exports
 
@@ -189,6 +209,8 @@ if __name__ == "__main__":
     p.add_argument("--gate", type=path)
     p.add_argument("--neural", type=path)
     p.add_argument("--previous", type=path)
+    p.add_argument("--stack-parameters", type=path)
+    p.add_argument("--optuna-trials", type=int, default=64)
     p.add_argument("--members", nargs="+", type=path)
     p.add_argument("--train-runs", type=path, nargs="+")
     p.add_argument("--test-runs", type=path, nargs="+")
@@ -206,7 +228,7 @@ if __name__ == "__main__":
     elif a.stage == "score":
         print(score(a.assets, a.gate, a.neural, a.split, a.out, a.work, a.gpus, a.threads, a.country, a.rid_start, a.rid_stop), flush=True)
     elif a.stage == "finish":
-        print(finish(a.assets, a.gate, a.train_runs, a.test_runs, a.out, a.work, a.threads), flush=True)
+        print(finish(a.assets, a.gate, a.train_runs, a.test_runs, a.out, a.work, a.threads, a.stack_parameters, a.optuna_trials), flush=True)
     else:
         import ce
         print(ce.ensemble(a.members, a.out), flush=True)
