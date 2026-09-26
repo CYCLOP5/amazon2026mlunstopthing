@@ -294,6 +294,48 @@ def trained_retrievers(retrievers, roots, out):
     return specs
 
 
+def reverse_assets(retrievers, specs, roots, out):
+    import reverse
+    import hybrid
+    available, used = {}, set()
+    for root in roots:
+        metadata, digest = reverse.config(root)
+        if digest in available:
+            raise ValueError("duplicate reverse cache")
+        available[digest] = path(root), metadata
+    for row, spec in zip(retrievers, specs):
+        digest = row.get("reverse_contract_sha256")
+        if not digest:
+            continue
+        if digest not in available:
+            raise ValueError("selected reverse retrieval cache was not supplied")
+        root, metadata = available[digest]
+        if metadata["model_sha256"] != spec.get("checkpoint_sha256"):
+            raise ValueError("reverse retrieval encoder differs")
+        source = out.get("code/business_entity_resolution/src/reverse.py")
+        if source is None or sha(source) != metadata["code_sha256"]:
+            raise ValueError("reverse retrieval code snapshot differs")
+        folder = f"code/business_entity_resolution/models/reverse/{digest}"
+        add(out, folder + "/config.json", root / "config.json")
+        for split, countries in metadata["countries"].items():
+            for country in countries:
+                name = f"{split}_{hybrid.tag(country)}"
+                directory = root / name
+                meta = load(directory / "metadata.json")
+                if (meta.get("contract_sha256") != digest or meta.get("split") != split or meta.get("country") != country or
+                        set(meta.get("files", {})) != {"qids.npy", "ranks.npy", "offsets.npy"}):
+                    raise ValueError("reverse retrieval coverage is incomplete")
+                for filename, expected in meta["files"].items():
+                    if sha(file(directory / filename, filename)) != expected:
+                        raise ValueError("reverse retrieval data changed")
+                    add(out, f"{folder}/{name}/{filename}", directory / filename)
+                add(out, f"{folder}/{name}/metadata.json", directory / "metadata.json")
+        spec.update({"reverse_root": folder, "reverse_contract_sha256": digest})
+        used.add(digest)
+    if set(available) != used:
+        raise ValueError("unselected reverse cache supplied")
+
+
 def manifest(files, prov, offline, retrievers=None):
     z = {"format": 2, "archive_root": "code/business_entity_resolution", "calibration": "models/calibration.json",
           "files": [], "offline_retriever_weights": offline, "selected_model_provenance": prov,
@@ -328,7 +370,7 @@ def write(dst, files, man):
 
 
 def build(matching, candidate, test_dir, repo_root, code_root, readme, methodology, gate_dir,
-          neural_dir, calibration_file, output_zip, team_name=None, hf_cache=None, trained=None, stack_dir=None):
+          neural_dir, calibration_file, output_zip, team_name=None, hf_cache=None, trained=None, stack_dir=None, reverse_roots=None):
     matching, candidate, test_dir = map(path, (matching, candidate, test_dir))
     repo, code, dst = map(path, (repo_root, code_root, output_zip))
     if team_name and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", team_name):
@@ -368,6 +410,7 @@ def build(matching, candidate, test_dir, repo_root, code_root, readme, methodolo
     add(out, "code/business_entity_resolution/models/calibration.json", file(calibration_file, "final calibration"))
     selected, prov = sources(pp, nn, retrievers)
     specs = trained_retrievers(retrievers, trained or [], out)
+    reverse_assets(retrievers, specs, reverse_roots or [], out)
     frozen = [s for s, r in zip(selected, retrievers) if not r.get("checkpoint_sha256")]
     if frozen and hf_cache is None:
         raise ValueError("hf cache is required for selected retrievers")
@@ -564,6 +607,7 @@ def main(argv=None):
     p.add_argument("--hf-cache", type=path)
     p.add_argument("--trained-retriever", type=path, action="append", default=[])
     p.add_argument("--stack-model-dir", type=path)
+    p.add_argument("--reverse-root", type=path, action="append", default=[])
     a = p.parse_args(argv)
     if a.check:
         check()
@@ -574,7 +618,7 @@ def main(argv=None):
         p.error("all package inputs are required")
     print(json.dumps(build(a.matching, a.candidate, a.test_dir, a.repo_root, a.code_root, a.readme, a.methodology,
                             a.gate_model_dir, a.neural_model_dir, a.calibration, a.output_zip, a.team_name,
-                            a.hf_cache, a.trained_retriever, a.stack_model_dir), indent=2))
+                             a.hf_cache, a.trained_retriever, a.stack_model_dir, a.reverse_root), indent=2))
     return 0
 
 

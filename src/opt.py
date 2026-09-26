@@ -17,6 +17,7 @@ import polars as pl
 import decode
 import infer
 import post
+import post_eval
 import rfeat
 import stack2
 
@@ -71,14 +72,10 @@ def metric(e, probability, countries, threads=1):
     top = decode.winners(e["qid"], e["tid"], calibrated, e["raw"])
     top = top[selected[top]]
     keep, _ = decode.choose(e["local"][top], e["tid"][top], calibrated[top], e["raw"][top], threads=threads)
-    chosen = top[keep]
     n = len(e["degree"])
-    counts = np.bincount(e["local"][chosen], minlength=n)
-    true = np.bincount(e["local"][chosen], weights=e["y"][chosen], minlength=n)
-    denominator = counts + .25 * e["degree"]
-    scores = np.divide(1.25 * true, denominator, out=np.ones(n), where=denominator > 0)
-    return {"macro_f05": float(scores.mean()), "precision": float(true.sum() / len(chosen)) if len(chosen) else 1.,
-            "recall": float(true.sum() / e["degree"].sum()) if e["degree"].sum() else 1., "pairs": len(chosen)}
+    result = post_eval.metric(e["local"][top], e["y"][top], keep, e["degree"], np.ones(n, bool))
+    return {"macro_f05": result["macro_f05"], "precision": result["pair_precision"], "recall": result["pair_recall"],
+            "pairs": result["pairs"]}
 
 
 def load(root):

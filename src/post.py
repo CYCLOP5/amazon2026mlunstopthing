@@ -70,7 +70,7 @@ def prepare(data, roots, split, out):
                       .then(1).otherwise(2).cast(pl.UInt8).alias("seg"))
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp.parquet")
-    infer._sink(d.drop("hs", "nums"), tmp)
+    d.drop("hs", "nums").sort("tid", "qid").sink_parquet(tmp, compression="zstd", row_group_size=262144)
     check = pl.scan_parquet(tmp)
     invalid = pl.col("co").is_null() | pl.col("own").is_null() | (pl.col("sr") != pl.col("actual_sr"))
     for col in ("prob", "gate_prob", "neural_prob"):
@@ -95,13 +95,18 @@ def prepare(data, roots, split, out):
     return source
 
 
-def verified(p, split=None):
+def verified(p, split=None, runs=None):
     p = path(p)
     meta = infer._json(p.with_suffix(".json"))
     if meta.get("version") != 1 or (split and meta.get("split") != split) or infer._sha(p) != meta["score_sha256"]:
         raise ValueError("prepared scores changed or use the wrong split")
     if infer._sha(path(meta["data"]) / "meta.json") != meta["data_meta_sha256"]:
         raise ValueError("prepared data changed")
+    if runs is not None:
+        expected = {str(path(r).resolve()): infer._sha(path(r) / "manifest.json") for r in runs}
+        recorded = {str(path(r["path"]).resolve()): r["sha256"] for r in meta["runs"]}
+        if expected != recorded:
+            raise ValueError("base score manifests changed since preparation")
     return meta
 
 
@@ -257,7 +262,9 @@ def validate_recipe(recipe):
     if recipe.get("known_score") == "stack_prob" and part != {"modulus": 3, "remainder": 1}:
         raise ValueError("stack calibration must exclude fitting and validation partitions")
     for curve in recipe["curves"].values():
-        x, y = np.asarray(curve.get("centres", [])), np.asarray(curve.get("posterior", []))
+        if not isinstance(curve, dict):
+            raise ValueError("invalid posterior curve")
+        x, y = np.asarray(curve.get("centres", []), dtype=float), np.asarray(curve.get("posterior", []), dtype=float)
         if (x.ndim != 1 or y.shape != x.shape or len(x) < 2 or not np.isfinite(x).all() or not np.isfinite(y).all() or
                 (np.diff(x) <= 0).any() or (np.diff(y) < 0).any() or ((y < 0) | (y > 1)).any()):
             raise ValueError("invalid monotone posterior curve")
@@ -359,11 +366,22 @@ def check():
                          "config_sha256": cfg_hash, "parts": [{"name": "parts/p.parquet", "coverage": "parts/p.npy",
                          "queries": 4, "pairs": len(frame), "pair_sha256": infer._sha(pair), "coverage_sha256": infer._sha(cov)}]})
             prepare(data, [run], split, root / f"{split}.parquet")
+            prepare(data, [run], split, root / f"{split}-repeat.parquet")
+            assert infer._sha(root / f"{split}.parquet") == infer._sha(root / f"{split}-repeat.parquet")
         recipe_path = root / "recipe.json"
         model = fit(root / "train.parquet", root / "test.parquet", recipe_path)
         assert model["countries"] == ["us"] and model["curves"]["france|0"]["pooled"]
         result = export(root / "test.parquet", recipe_path, root / "out", threads=2)
         assert result["source1"] == 4 and result["candidate_pairs"] == 5
+        manifest = infer._json(root / "test/manifest.json")
+        infer._write(root / "test/manifest.json", {**manifest, "changed": True})
+        try:
+            verified(root / "test.parquet", "test", [root / "test"])
+        except ValueError as error:
+            assert "manifests changed" in str(error)
+        else:
+            raise AssertionError("stale prepared scores accepted")
+        infer._write(root / "test/manifest.json", manifest)
         bad = {**model, "sources": {"test": "wrong"}}
         infer._write(root / "bad.json", bad)
         try:

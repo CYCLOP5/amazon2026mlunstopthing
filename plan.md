@@ -834,3 +834,7 @@ on the same 73,752 development references, the rich stack with empirical calibra
 the azure search uses a 64-vcpu `standard_e64ds_v4` node, eight trial processes, eight threads each and 64 optuna trials. its cache preserves all competing candidates for every target touching the 73,522 search references. final comparison references are excluded from search labels. the first two-thread smoke trial completed in 36.1 seconds with search macro f0.5 0.984374.
 
 implementation, scope and reproduction commands: [teammate integration](reports/teammate-integration.md).
+
+the 64-trial search completed with best search macro f0.5 0.985203, versus baseline 0.984374 on the same search references. trial 47 is reserved for a separate development comparison. the current completed rich-stack test export contains 5,786,941 matches and 29,908,767 authentic candidates, with the candidate tsv byte-identical to v1. both validators passed with id checks. the retriever and optional full-population reverse retrieval lane remain separate from this cached-score checkpoint.
+
+trial 47 subsequently scored 0.984547 on the separate development references, versus 0.983963 for the first rich stack and 0.976006 for submitted v1. density-corrected extra-orphan stress reached 0.983149. the selected model's test scoring and calibration use its own frozen score provenance. [development results](reports/optuna-development.json).

@@ -5,6 +5,7 @@
 - `src/retr.py`: compact e5-small contrastive fitting on fold2 identities, symmetric masked loss, grouped hard negatives, saved pair populations and resumable optimizer checkpoints. low-memory gpu training uses activation checkpointing.
 - `src/norm2.py`: native-token learning from fold2 pairs only; french suffix and department normalization. department replacements apply to address components, preserving street names such as `rue du nord`.
 - `src/rfeat.py`: a versioned rich gate contract combining existing string features with dense cosines/ranks/gaps, full-corpus name multiplicities, word idf overlap and numeric-distance evidence.
+- `src/reverse.py`: optional full-population source1-to-target retrieval for the trained compact encoder. a faiss ivf-flat extra lane augments target-to-reference candidates; `rr_e5_small` records reciprocal reverse rank. each country bank spans its whole raw target population, including an optional blank-address-only scope.
 - `src/stack2.py`: a pairwise tree stack over 60 string/corpus and gate/neural-logit features. cached scores lack retrieval columns, so those unavailable columns are excluded.
 - `src/post.py`: country/house-stratum posterior calibration and optional gate fallback for countries without fitting labels.
 - `src/decode.py`: target-owner selection followed by source1 prefix decisions. expected f0.5 is exact under independent calibrated pair probabilities for groups up to 64; larger groups use an explicit ratio-of-expectations approximation.
@@ -13,6 +14,8 @@
 new matching runs record initial retrieval misses separately from true candidates removed by the gate. optional selective neural scoring retains the actual postgate candidate set and records which pairs received neural scores.
 
 learned retriever manifests bind the model files to reference-cache identity. packaging includes selected learned weights and normalization assets, and rejects missing or mismatched model components.
+
+reverse indexes bind their data, encoder, implementation and country coverage. cached postprocessing in the normal runner is checked against current run-manifest hashes and the selected base-score parent. the corpus-statistics cache includes its own builder implementation in invalidation.
 
 ## evaluation boundaries
 
@@ -34,6 +37,10 @@ comparison on the same 73,752 fold0 development businesses, with the complete ta
 the extra-orphan stress test duplicates each orphan target once under a distinct synthetic id. v1 scored 0.974118; the rich stack with density correction scored 0.982302. this is a controlled stress test, not a measurement of test labels.
 
 the first real-data optuna smoke trial scored 0.984374 on the separate search partition and completed in 36.1 seconds on two cpu threads. this is not directly comparable with the development table because the reference populations differ.
+
+the completed 64-trial search selected trial 47 with search macro f0.5 0.985203, versus 0.984374 for its queued baseline. parallel study execution took 250.9 seconds. [selected search parameters](optuna-search.json).
+
+on the separate 73,752-reference development partition, the selected model scored 0.984547 with empirical calibration, versus 0.983963 for the original rich stack. precision was 0.996217 and recall 0.962220. the density-corrected extra-orphan stress score improved to 0.983149. [development comparison](optuna-development.json). these checks support a tuned test export; they do not establish a leaderboard score.
 
 full measurements: [stack development](stack2-development.json) and [initial postprocessor development](post-development.json).
 
@@ -61,6 +68,8 @@ a retriever configuration file accepts a list of model/revision/checkpoint objec
 ```
 
 generate corresponding train and development runs for each country, then train the new feature contract with `src/train.py --backend hybrid-v2 --normalizer artifacts/norm2.json`. matching accepts the same retriever configuration through `src/run.py --retrievers-file`; `--neural-floor` enables selective neural evaluation.
+
+to enable the reverse lane, run `src/reverse.py --checkpoint artifacts/retr-new --out cache/reverse-new --split train --country us` for every train/test reference country. add `"reverse_root": "../cache/reverse-new"` to the compact model entry in `artifacts/retrievers.json` and regenerate gate-fitting candidates. package selected reverse indexes with `--reverse-root`. the lane's builder, reciprocal-rank lookup, reverse-only candidate recovery and package coverage are checked on a miniature corpus; large-corpus retrieval results still require the completed encoder and index builds.
 
 the cached-score path is independently reproducible:
 

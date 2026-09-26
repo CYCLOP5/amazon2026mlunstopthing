@@ -22,7 +22,7 @@ ff = [
     "en", "ea", "sr", "nrk", "ark", "nsg", "asg", "cn",
 ]
 
-df = ("ds_e5", "ds_qwen3", "ds_bge_m3", "ds_e5_large", "ds_e5_small")
+df = ("ds_e5", "ds_qwen3", "ds_bge_m3", "ds_e5_large", "ds_e5_small", "rr_e5_small")
 
 rr = re.compile(r"\d+")
 

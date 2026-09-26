@@ -125,6 +125,8 @@ def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu", n
             ret[-1]["format"] = "query: {nm} | {ad}"
         if x.get("checkpoint_sha256"):
             ret[-1]["checkpoint_sha256"] = x["checkpoint_sha256"]
+        if x.get("reverse_contract_sha256"):
+            ret[-1]["reverse_contract_sha256"] = x["reverse_contract_sha256"]
     import torch
     precision = "bf16" if device == "cuda" and torch.cuda.is_bf16_supported() else "fp16" if device == "cuda" else "fp32"
     src = path(__file__).resolve().parent
@@ -135,6 +137,8 @@ def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu", n
         srcs += ["rfeat.py", "norm2.py"]
     if any(x.get("checkpoint_sha256") for x in rs):
         srcs += ["retr.py"]
+    if any(x.get("reverse_contract_sha256") for x in rs):
+        srcs += ["reverse.py"]
     z = {"version": ver, "data_meta_sha256": _sha(data / "meta.json"), "data_version": dm.get("version"),
          "normalization": dm.get("normalization", "data.norm"), "retriever_sources_sha256": _sha(embed.src0),
          "gate": gate, "neural": nn, "retrievers": ret,

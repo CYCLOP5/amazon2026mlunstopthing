@@ -53,6 +53,15 @@ def specs(xs=None):
             d["checkpoint"] = str(path(d["checkpoint"]).resolve())
             d["checkpoint_sha256"] = checkpoint_sha
             d["length"] = meta["length"]
+        if d.get("reverse_root"):
+            import reverse
+            meta, digest = reverse.config(d["reverse_root"])
+            if embed.family(d["model"]) != "e5-small" or meta["model_sha256"] != d.get("checkpoint_sha256"):
+                raise ValueError("reverse retrieval requires its trained compact encoder")
+            if d.get("reverse_contract_sha256", digest) != digest:
+                raise ValueError("reverse retrieval contract changed")
+            d["reverse_root"] = str(path(d["reverse_root"]).resolve())
+            d["reverse_contract_sha256"] = digest
         out.append(d)
     if not 1 <= len(out) <= 3:
         raise ValueError("one to three retrieval models required")
@@ -72,6 +81,8 @@ def configs(names, file=None):
         for d in rows:
             if d.get("checkpoint") and not path(d["checkpoint"]).is_absolute():
                 d["checkpoint"] = str(file.parent / d["checkpoint"])
+            if d.get("reverse_root") and not path(d["reverse_root"]).is_absolute():
+                d["reverse_root"] = str(file.parent / d["reverse_root"])
         return specs(rows)
     allx = {embed.family(x["model"]): x for x in specs()}
     if "e5-small" in names:
@@ -262,7 +273,12 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
             fi.add(z)
         es.append({"spec": d, "model": m, "device": dev, "params": n, "source": src, "refs": a, "rows": ri,
                    "index": fi, "cache": str(cp), "cache_kind": kind, "core": c, "feature": feat(d)})
+        if d.get("reverse_root"):
+            import reverse
+            es[-1]["reverse"] = reverse.load(d["reverse_root"], data, split, country, d)
     fs = [x["feature"] for x in es]
+    if any("reverse" in e for e in es):
+        fs.append("rr_e5_small")
     if len(set(fs)) != len(fs):
         raise ValueError("dense feature names collide")
     return {"data": data, "cache": cache, "country": country, "fallback": fallback, "split": split, "fold": fold,
@@ -271,7 +287,8 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
             "revision": x["spec"]["revision"], "params": x["params"], "source": x["source"], "feature": x["feature"], "device": x["device"],
             "reference_cache": x["cache"], "cache_kind": x["cache_kind"], "maxlen": x["core"]["maxlen"],
             "encoding_corpus": x["core"]["inputs"]["references"],
-            "search_pool": {"rows": len(r), "rid_sha256": ridfp(r)}} for x in es],
+             "search_pool": {"rows": len(r), "rid_sha256": ridfp(r)},
+             "reverse": x.get("reverse", {}).get("metadata")} for x in es],
             "total_params": total, "reference_rows": len(r), "encoding_reference_rows": len(allr), "fallback": fallback,
             "search_reference_rows": len(r), "maxlen": max(x["core"]["maxlen"] for x in es), "pair_chunk": pc}}
 
@@ -348,6 +365,7 @@ def search(state, queries, k_lex=10, k_dense=50, threads=8):
         lx = block.search(qb, state["idx"], state["eq"], k_lex, threads)
         xs = [lx.select("tid", "qid", "ns", "ads", "en", "ea")]
         qv = {}
+        reverse_pairs = None
         for e in state["encoders"]:
             z = enc(e["model"], embed.serial(qb, "query", e["spec"]["model"]), state["batch"])
             qv[e["feature"]] = z
@@ -357,10 +375,19 @@ def search(state, queries, k_lex=10, k_dense=50, threads=8):
                                     "ns": np.zeros(ii.size, np.float32), "ads": np.zeros(ii.size, np.float32),
                                     "en": np.zeros(ii.size, np.uint8), "ea": np.zeros(ii.size, np.uint8)},
                                    schema_overrides=block.schema))
+            if "reverse" in e:
+                import reverse
+                reverse_pairs = reverse.pairs(e["reverse"], qb["rid"].to_numpy(), state["refs"])
+                xs.append(reverse_pairs.select("tid", "qid").with_columns(
+                    pl.lit(0., pl.Float32).alias("ns"), pl.lit(0., pl.Float32).alias("ads"),
+                    pl.lit(0, pl.UInt8).alias("en"), pl.lit(0, pl.UInt8).alias("ea")))
         p = pl.concat(xs).group_by("tid", "qid").agg(pl.col("ns", "ads", "en", "ea").max()).sort("tid", "qid")
         p = p.join(qb.select(pl.col("rid").alias("tid"), "own", "sr"), on="tid", how="left", validate="m:1")
         p = p.with_columns((pl.col("qid").cast(pl.Int64) == pl.col("own")).cast(pl.UInt8).alias("y"))
         p = block.rescore(qb, p, state["idx"])
+        if reverse_pairs is not None:
+            p = p.join(reverse_pairs, on=["qid", "tid"], how="left", maintain_order="left", validate="1:1").with_columns(
+                pl.col("rr_e5_small").fill_null(0.))
         for e in state["encoders"]:
             p = cos(p, qb["rid"].to_numpy(), qv[e["feature"]], state["refs"], e["refs"], e["rows"], e["feature"])
         fs.append(p.sort("tid", "qid"))

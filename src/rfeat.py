@@ -20,7 +20,7 @@ extra = ["ref_name_dup", "target_name_dup", "ref_name_in_targets", "name_idf_cos
          "name_idf_target_cover", "name_idf_max_shared", "name_idf_max_missing", "addr_idf_cos",
          "addr_idf_ref_cover", "addr_idf_target_cover", "house_min_gap", "house_digit_diffs", "house_first_diff",
          "house_last_diff", "house_same_length", "target_house_in_ref"]
-dense_allowed = ("ds_e5", "ds_qwen3", "ds_e5_large", "ds_e5_small", "ds_bge_m3")
+dense_allowed = ("ds_e5", "ds_qwen3", "ds_e5_large", "ds_e5_small", "ds_bge_m3", "rr_e5_small")
 
 
 def names(dense):
@@ -39,7 +39,7 @@ def contract(meta):
 def corpus(data, split, normalizer, cache):
     data, normalizer, cache = path(data), path(normalizer), path(cache)
     source = {"version": 1, "data": infer._sha(data / "meta.json"), "normalizer": infer._sha(normalizer), "split": split,
-              "code": {n: infer._sha(path(__file__).parent / n) for n in ("norm2.py", "tm_prep.py", "tm_rules.py")}}
+              "code": {n: infer._sha(path(__file__).parent / n) for n in ("rfeat.py", "norm2.py", "tm_prep.py", "tm_rules.py")}}
     key = hh.sha256(json.dumps(source, sort_keys=True).encode()).hexdigest()
     out = cache / "rich" / key
     if (out / "metadata.json").exists():

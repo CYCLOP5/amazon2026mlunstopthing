@@ -368,7 +368,7 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
             if not prepared.exists():
                 post.prepare(data, paths, "test", prepared)
             else:
-                meta = post.verified(prepared, "test")
+                meta = post.verified(prepared, "test", paths)
                 if meta["config_sha256"] != _json(paths[0] / "manifest.json")["config_sha256"]:
                     raise ValueError("cached postprocessor scores use different inference runs")
             if cal.get("stack_model"):
@@ -378,6 +378,10 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
                 stacked = out / "post-stacked.parquet"
                 if not stacked.exists():
                     stack2.score(prepared, stack_dir, stacked, cache, threads)
+                else:
+                    stacked_meta = post.verified(stacked, "test", paths)
+                    if stacked_meta.get("parent_scores_sha256") != post.verified(prepared, "test")["score_sha256"]:
+                        raise ValueError("cached stack uses different base scores")
                 prepared = stacked
             elif stack_dir is not None:
                 raise ValueError("unselected pairwise stack supplied")
