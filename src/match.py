@@ -63,7 +63,7 @@ def _gate(d):
     if any(not isinstance(fs.get(n), str) or path(fs[n]).name != fs[n] for n in m["models"]):
         raise ValueError("invalid gate model file name")
     files = [fs[n] for n in m["models"]]
-    if m.get("feature_backend") == "hybrid-v2":
+    if m.get("feature_backend") in ("hybrid-v2", "hybrid-v3"):
         normalizer = m.get("normalizer", {})
         name = normalizer.get("file")
         if not isinstance(name, str) or path(name).name != name or _sha(d / name) != normalizer.get("sha256"):
@@ -71,7 +71,7 @@ def _gate(d):
         files.append(name)
     f = _files(d, files)
     z = {"metadata_sha256": _sha(d / "metadata.json"), "files": f}
-    if m.get("feature_backend") in (tfeat.backend, "hybrid-v2"):
+    if m.get("feature_backend") in (tfeat.backend, "hybrid-v2", "hybrid-v3"):
         if m["models"] != ["lgb"]:
             raise ValueError("teammate gate requires its validated lightgbm booster")
         z["feature_backend"] = m["feature_backend"]
@@ -82,6 +82,8 @@ def _gate(d):
 def _neural(d):
     d = path(d).resolve()
     m = _json(d / "neural_metadata.json")
+    if m.get("architecture") == "mean-pooled-cross-encoder-v1" and not m.get("complete"):
+        raise ValueError("mean-pooled cross-encoder checkpoint is incomplete")
     n = m.get("parameters")
     if not isinstance(n, int) or n < 0 or n > hybrid.mx:
         raise ValueError("invalid neural parameter count")
@@ -89,6 +91,17 @@ def _neural(d):
         raise ValueError("invalid neural model metadata")
     if str(m.get("source", {}).get("license", "")).lower() not in {"mit", "apache-2.0", "apache2", "apache 2.0"}:
         raise ValueError("neural model license is not mit or apache-2.0")
+    if m.get("architecture") == "neural-ensemble-v1":
+        members = []
+        for name, folder in neural.member_paths(d, m):
+            _, child = _neural(folder)
+            members.append({"name": name, "model": child})
+        if sum(x["model"]["parameters"] for x in members) != n:
+            raise ValueError("ensemble parameter count mismatch")
+        z = {"metadata_sha256": _sha(d / "neural_metadata.json"), "members": members, "parameters": n,
+             "architecture": "neural-ensemble-v1", "score_columns": ["np_" + x["name"] for x in members]}
+        z["sha256"] = hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
+        return m, z
     ws = sorted(p.name for p in d.glob("*.safetensors"))
     ws += sorted(p.name for p in d.glob("pytorch_model*.bin"))
     if not ws:
@@ -97,7 +110,9 @@ def _neural(d):
                       "tokenizer.json", "tokenizer_config.json", "special_tokens_map.json", "added_tokens.json",
                       "sentencepiece.bpe.model", "spiece.model", "vocab.txt", "vocab.json", "merges.txt") if (d / x).is_file()]
     z = {"metadata_sha256": _sha(d / "neural_metadata.json"), "weights": _files(d, ws),
-         "tokenization": _files(d, cs), "parameters": n}
+            "tokenization": _files(d, cs), "parameters": n}
+    if m.get("architecture") == "mean-pooled-cross-encoder-v1":
+        z["architecture"] = m["architecture"]
     z["sha256"] = hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
     return m, z
 
@@ -131,14 +146,18 @@ def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu", n
     precision = "bf16" if device == "cuda" and torch.cuda.is_bf16_supported() else "fp16" if device == "cuda" else "fp32"
     src = path(__file__).resolve().parent
     srcs = ["data.py", "block.py", "embed.py", "hybrid.py", "feat.py", "train.py", "neural.py", "match.py"]
-    if gate.get("feature_backend") in (tfeat.backend, "hybrid-v2"):
+    if gate.get("feature_backend") in (tfeat.backend, "hybrid-v2", "hybrid-v3"):
         srcs += ["tfeat.py", "tm_prep.py", "tm_rules.py"]
-    if gate.get("feature_backend") == "hybrid-v2":
+    if gate.get("feature_backend") in ("hybrid-v2", "hybrid-v3"):
         srcs += ["rfeat.py", "norm2.py"]
+    if gate.get("feature_backend") == "hybrid-v3":
+        srcs += ["gfeat.py"]
     if any(x.get("checkpoint_sha256") for x in rs):
         srcs += ["retr.py"]
     if any(x.get("reverse_contract_sha256") for x in rs):
         srcs += ["reverse.py"]
+    if nn.get("architecture") in ("mean-pooled-cross-encoder-v1", "neural-ensemble-v1"):
+        srcs += ["ce.py"]
     z = {"version": ver, "data_meta_sha256": _sha(data / "meta.json"), "data_version": dm.get("version"),
          "normalization": dm.get("normalization", "data.norm"), "retriever_sources_sha256": _sha(embed.src0),
          "gate": gate, "neural": nn, "retrievers": ret,
@@ -282,7 +301,10 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
             raise ValueError("gate metadata changed while loading")
     if not gate_models:
         raise ValueError("no loaded gate models")
-    if gm.get("feature_backend") == "hybrid-v2":
+    if gm.get("feature_backend") == "hybrid-v3":
+        import gfeat
+        ft = gfeat
+    elif gm.get("feature_backend") == "hybrid-v2":
         import rfeat
         ft = rfeat
     else:
@@ -305,7 +327,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
             man["provenance"]["countries"][co] = {"status": "ready", "retrieval": state["config"],
                                                        "references": state["config"]["reference_rows"]}
             fst = (ft.prep(state["refs"], data, split, path(gate_dir) / gm["normalizer"]["file"], cache)
-                   if gm.get("feature_backend") == "hybrid-v2" else ft.prep(state["refs"]))
+                   if gm.get("feature_backend") in ("hybrid-v2", "hybrid-v3") else ft.prep(state["refs"]))
             allowed = state["refs"]
             tm["setup"] += time.perf_counter() - t1
         else:
@@ -352,8 +374,19 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                         tm["features"] += time.perf_counter() - t1
                         t1 = time.perf_counter()
                         raw = post["gate"].to_numpy().copy()
+                        member_scores = {col: raw.copy() for col in ni.get("score_columns", [])}
                         if len(tx):
-                            npb = neural_predictor(tx) if neural_predictor is not None else neural.predict(neural_bundle, tx, neural_batch)
+                            if member_scores:
+                                if neural_predictor is not None:
+                                    raise ValueError("ensemble inference requires its actual member scorers")
+                                values = neural.predict_members(neural_bundle, tx.with_columns(pl.Series("gate_prob", post["gate"].to_numpy()[selected])), neural_batch)
+                                if set(values) != set(member_scores):
+                                    raise ValueError("neural ensemble score contract changed")
+                                for col, value in values.items():
+                                    member_scores[col][selected] = _prob(value, col)
+                                npb = neural.aggregate(values)
+                            else:
+                                npb = neural_predictor(tx) if neural_predictor is not None else neural.predict(neural_bundle, tx, neural_batch)
                             raw[selected] = _prob(npb, "neural")
                         tm["neural"] += time.perf_counter() - t1
                         raw = _prob(raw, "neural")
@@ -361,12 +394,20 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                         scored = post.select("qid", "tid", "sr", *(["y"] if split == "train" else [])).with_columns(
                             pl.Series("prob", npb), pl.Series("gate_prob", post["gate"].to_numpy()),
                             pl.Series("neural_prob", raw)).select("qid", "tid", "prob", "sr", "gate_prob", "neural_prob",
-                                                                  *(["y"] if split == "train" else [])).sort("tid", "qid")
+                                                                   *(["y"] if split == "train" else [])).sort("tid", "qid")
+                        if member_scores:
+                            members = post.select("qid", "tid").with_columns([pl.Series(col, value) for col, value in member_scores.items()])
+                            scored = scored.join(members, on=["qid", "tid"], how="left", maintain_order="left", validate="1:1")
                         if neural_floor is not None:
                             flags = post.select("qid", "tid").with_columns(pl.Series("neural_scored", selected))
                             scored = scored.join(flags, on=["qid", "tid"], how="left", maintain_order="left", validate="1:1")
                 if neural_floor is not None and "neural_scored" not in scored.columns:
                     scored = scored.with_columns(pl.lit(False).alias("neural_scored"))
+                for col in ni.get("score_columns", []):
+                    if col not in scored.columns:
+                        if len(scored):
+                            raise ValueError("missing neural member scores")
+                        scored = scored.with_columns(pl.lit(None, dtype=pl.Float32).alias(col))
                 _valid(scored, q, allowed, split, sr)
                 _pq(scored, pp)
                 _npy(cp, ids)

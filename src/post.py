@@ -54,7 +54,9 @@ def prepare(data, roots, split, out):
     if out.exists() or out.with_suffix(".json").exists():
         raise ValueError("prepared score output already exists")
     runs = inputs(data, roots, split)
+    extra = runs[0]["manifest"]["config"].get("neural", {}).get("score_columns", [])
     cols = ["qid", "tid", "prob", "gate_prob", "neural_prob", "sr"] + (["y"] if split == "train" else [])
+    cols += extra
     scores = pl.scan_parquet([p for r in runs for p in r["parts"]], parallel="row_groups", low_memory=True).select(cols)
     ref = pl.scan_parquet(data / split / "ref.parquet").select(
         pl.col("rid").alias("qid"), "co", "fold",
@@ -73,7 +75,7 @@ def prepare(data, roots, split, out):
     d.drop("hs", "nums").sort("tid", "qid").sink_parquet(tmp, compression="zstd", row_group_size=262144)
     check = pl.scan_parquet(tmp)
     invalid = pl.col("co").is_null() | pl.col("own").is_null() | (pl.col("sr") != pl.col("actual_sr"))
-    for col in ("prob", "gate_prob", "neural_prob"):
+    for col in ("prob", "gate_prob", "neural_prob", *extra):
         invalid |= pl.col(col).is_null() | ~pl.col(col).is_finite() | ~pl.col(col).is_between(0, 1)
     if split == "train":
         invalid |= pl.col("y") != (pl.col("qid").cast(pl.Int64) == pl.col("own")).cast(pl.UInt8)
@@ -202,7 +204,7 @@ def curves(train, target, ntrain, ntarget, edges, minimum=50, transfer=True):
     return result
 
 
-def fit(train, test, out, weight=.6, unseen=True):
+def fit(train, test, out, weight=.6, unseen=True, rules=False, normalizer=None):
     train, test, out = path(train), path(test), path(out)
     if out.exists():
         raise ValueError("calibration output already exists")
@@ -234,6 +236,11 @@ def fit(train, test, out, weight=.6, unseen=True):
     if unseen and unknown:
         result.update(curves(gate_train, unknown, tr["fit_reference_counts"], te["reference_counts"], np.asarray(recipe["edges"])))
     recipe["curves"] = result
+    if rules:
+        import frule
+        if normalizer is None:
+            raise ValueError("name-pattern rules require their normalization model")
+        recipe["rules"] = frule.config(normalizer)
     validate_recipe(recipe)
     infer._write(out, recipe)
     return recipe
@@ -261,6 +268,11 @@ def validate_recipe(recipe):
         raise ValueError("invalid calibration partition")
     if recipe.get("known_score") == "stack_prob" and part != {"modulus": 3, "remainder": 1}:
         raise ValueError("stack calibration must exclude fitting and validation partitions")
+    if recipe.get("rules") is not None:
+        import frule
+        frule.validate(recipe["rules"])
+        if recipe["rules"]["country"] in recipe["countries"]:
+            raise ValueError("unlabelled-country rules cannot change labelled countries")
     for curve in recipe["curves"].values():
         if not isinstance(curve, dict):
             raise ValueError("invalid posterior curve")
@@ -286,7 +298,7 @@ def adjust(p, country, segment, recipe):
     return np.clip(out, 0, 1).astype(np.float32)
 
 
-def export(prepared, recipe_path, out, threads=12):
+def export(prepared, recipe_path, out, threads=12, normalizer=None, cache=None):
     prepared, recipe_path, out = path(prepared), path(recipe_path), path(out)
     meta, recipe = verified(prepared, "test"), infer._json(recipe_path)
     validate_recipe(recipe)
@@ -310,6 +322,10 @@ def export(prepared, recipe_path, out, threads=12):
                                 frame["raw"].to_numpy(), recipe["floor"], recipe["exact_limit"], threads)
     matches = frame.filter(pl.Series(keep)).select("qid", "tid")
     del frame
+    if recipe.get("rules"):
+        import frule
+        matches, stats["rules"] = frule.apply(prepared, data, matches, recipe["rules"], normalizer,
+                                              cache or data.parent, threads)
     refs = pl.scan_parquet(data / "test/ref.parquet").select(pl.col("rid").alias("qid"), pl.col("eid").alias("source1_entity_id"))
     targets = pl.concat([pl.scan_parquet(data / "test" / f"s{i}.parquet").select(
         pl.col("rid").alias("tid"), pl.col("eid").alias("target_entity_id")) for i in (2, 3)])
@@ -408,11 +424,15 @@ def main():
     z.add_argument("--out", type=path, required=True)
     z.add_argument("--weight", type=float, default=.6)
     z.add_argument("--blend-unseen", action="store_true")
+    z.add_argument("--france-rules", action="store_true")
+    z.add_argument("--normalizer", type=path)
     z = sub.add_parser("export")
     z.add_argument("--scores", type=path, required=True)
     z.add_argument("--recipe", type=path, required=True)
     z.add_argument("--out", type=path, required=True)
     z.add_argument("--threads", type=int, default=12)
+    z.add_argument("--normalizer", type=path)
+    z.add_argument("--cache", type=path)
     sub.add_parser("check")
     a = p.parse_args()
     if a.command == "check":
@@ -420,9 +440,9 @@ def main():
     elif a.command == "prepare":
         print(json.dumps(prepare(a.data, a.runs, a.split, a.out), indent=2))
     elif a.command == "fit":
-        print(json.dumps(fit(a.train, a.test, a.out, a.weight, not a.blend_unseen), indent=2))
+        print(json.dumps(fit(a.train, a.test, a.out, a.weight, not a.blend_unseen, a.france_rules, a.normalizer), indent=2))
     else:
-        print(json.dumps(export(a.scores, a.recipe, a.out, a.threads), indent=2))
+        print(json.dumps(export(a.scores, a.recipe, a.out, a.threads, a.normalizer, a.cache), indent=2))
 
 
 if __name__ == "__main__":

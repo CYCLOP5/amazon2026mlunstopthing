@@ -385,7 +385,11 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
                 prepared = stacked
             elif stack_dir is not None:
                 raise ValueError("unselected pairwise stack supplied")
-            result["export"] = post.export(prepared, calibration, export_out, threads)
+            normalizer = None
+            if cal.get("rules"):
+                gm = _json(path(gate_dir) / "metadata.json")
+                normalizer = path(gate_dir) / gm["normalizer"]["file"]
+            result["export"] = post.export(prepared, calibration, export_out, threads, normalizer, cache)
         else:
             if stack_dir is not None:
                 raise ValueError("legacy calibration cannot use a pairwise stack")

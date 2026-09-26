@@ -6,6 +6,7 @@ import shutil as sh
 import time
 from pathlib import Path as path
 
+import gfeat
 import lightgbm as lgb
 import numpy as np
 import polars as pl
@@ -38,22 +39,38 @@ def raw_targets(data, split):
     return d
 
 
-def matrix(frame, state, targets, threads):
+def feature_names(name_change=False, neural_columns=()):
+    import re
+    if type(name_change) is not bool or len(set(neural_columns)) != len(neural_columns) or any(
+            not isinstance(c, str) or not re.fullmatch(r"np_[a-z][a-z0-9_]*", c) for c in neural_columns):
+        raise ValueError("invalid stack feature configuration")
+    return features[:-2] + (gfeat.ff if name_change else []) + features[-2:] + ["logit_" + c for c in neural_columns]
+
+
+def matrix(frame, state, targets, threads, name_change=False, neural_columns=()):
+    fs = feature_names(name_change, neural_columns)
+    maker = gfeat if name_change else rfeat
     parts = []
     for d in frame.iter_slices(25000):
         ids = d["tid"].unique().cast(pl.UInt32)
         queries = targets.select(pl.all().gather(ids))
         pairs = d.select("qid", "tid").with_columns(pl.lit(0., pl.Float32).alias("ns"), pl.lit(0., pl.Float32).alias("ads"))
-        x, _ = rfeat.make(state, queries, pairs, threads)
+        x, _ = maker.make(state, queries, pairs, threads)
         # cached scores lack retrieval features; discard every placeholder-derived column
         parts.append(np.column_stack((x[:, 13:], post.logit(d["gate_prob"].to_numpy()),
-                                      post.logit(d["neural_prob"].to_numpy()))).astype(np.float32))
-    return np.concatenate(parts) if parts else np.empty((0, len(features)), np.float32)
+                                      post.logit(d["neural_prob"].to_numpy()),
+                                      *[post.logit(d[c].to_numpy()) for c in neural_columns])).astype(np.float32))
+    return np.concatenate(parts) if parts else np.empty((0, len(fs)), np.float32)
 
 
-def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False):
+def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False, parameters=None):
     prepared, out, cache = path(prepared), path(out), path(cache)
     source = post.verified(prepared, "train")
+    config = source.get("config") or infer._json(path(source["runs"][0]["path"]) / "manifest.json")["config"]
+    name_change = config.get("gate", {}).get("feature_backend") == "hybrid-v3"
+    neural_columns = config.get("neural", {}).get("score_columns", [])
+    fs = feature_names(name_change, neural_columns)
+    maker = gfeat if name_change else rfeat
     if source.get("stack_model") or out.exists():
         raise ValueError("stack fitting needs base scores and a new output")
     data = path(source["data"])
@@ -78,9 +95,9 @@ def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False
         raise ValueError("stack needs positive and negative fitting pairs")
     out.mkdir(parents=True)
     sh.copyfile(normalizer, out / "normalizer.json")
-    state = rfeat.prep(refs, data, "train", out / "normalizer.json", cache)
+    state = maker.prep(refs, data, "train", out / "normalizer.json", cache)
     targets = raw_targets(data, "train")
-    x = matrix(frame, state, targets, threads)
+    x = matrix(frame, state, targets, threads, name_change, neural_columns)
     del state, targets
     y, weight = frame["y"].to_numpy(), frame["weight"].to_numpy()
     own = frame["own"].to_numpy()
@@ -91,7 +108,8 @@ def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False
     if set(np.unique(y[train_mask])) != {0, 1} or set(np.unique(y[val_mask])) != {0, 1}:
         raise ValueError("inner stack split has insufficient labels")
     np.savez_compressed(out / "fit.npz", x=x, y=y, weight=weight, train=train_mask, valid=val_mask)
-    cache_info = {"version": 1, "kind": "stack-fit-cache", "features": features, "source_config_sha256": source["config_sha256"],
+    cache_info = {"version": 1, "kind": "stack-fit-cache", "features": fs, "name_change": name_change, "neural_columns": neural_columns,
+                  "source_config_sha256": source["config_sha256"],
                   "data_meta_sha256": source["data_meta_sha256"], "source_scores_sha256": source["score_sha256"],
                   "fit_pairs": len(frame), "fit_positive": int(y.sum()), "fit_sha256": infer._sha(out / "fit.npz"),
                   "normalizer_sha256": infer._sha(out / "normalizer.json")}
@@ -101,14 +119,22 @@ def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False
     params = {"objective": "binary", "metric": "binary_logloss", "learning_rate": .05, "num_leaves": 31,
               "max_depth": 6, "min_data_in_leaf": 100, "lambda_l2": 10., "bagging_fraction": .8,
               "bagging_freq": 1, "feature_fraction": .9, "seed": 19, "num_threads": threads, "verbosity": -1}
+    if parameters is not None:
+        selected = infer._json(parameters)
+        selected = selected.get("params", selected)
+        if selected.get("objective", "binary") != "binary":
+            raise ValueError("stack parameters require a binary objective")
+        params.update({k: v for k, v in selected.items() if k in params or k in ("deterministic", "force_col_wise")})
+        params["num_threads"] = threads
     start = time.monotonic()
-    train_set = lgb.Dataset(x[train_mask], label=y[train_mask], weight=weight[train_mask], feature_name=features)
-    valid_set = lgb.Dataset(x[val_mask], label=y[val_mask], weight=weight[val_mask], feature_name=features, reference=train_set)
+    train_set = lgb.Dataset(x[train_mask], label=y[train_mask], weight=weight[train_mask], feature_name=fs)
+    valid_set = lgb.Dataset(x[val_mask], label=y[val_mask], weight=weight[val_mask], feature_name=fs, reference=train_set)
     model = lgb.train(params, train_set, num_boost_round=trees, valid_sets=[valid_set], callbacks=[lgb.early_stopping(30, verbose=False)])
     rounds = model.best_iteration or trees
-    model = lgb.train(params, lgb.Dataset(x, label=y, weight=weight, feature_name=features), num_boost_round=rounds)
+    model = lgb.train(params, lgb.Dataset(x, label=y, weight=weight, feature_name=fs), num_boost_round=rounds)
     model.save_model(out / "lgb.txt")
-    metadata = {"version": 1, "kind": "postgate-pairwise-rich-stack", "features": features,
+    metadata = {"version": 1, "kind": "postgate-pairwise-rich-stack", "features": fs,
+                 "name_change": name_change, "neural_columns": neural_columns,
                 "source_config_sha256": source["config_sha256"], "data_meta_sha256": source["data_meta_sha256"],
                 "source_scores_sha256": source["score_sha256"], "fit_pairs": len(frame), "fit_positive": int(y.sum()),
                 "fit_partition": {"modulus": 3, "remainder": 0}, "calibration_partition": {"modulus": 3, "remainder": 1},
@@ -125,7 +151,8 @@ def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False
 def bundle(root):
     root = path(root)
     m = infer._json(root / "metadata.json")
-    if (m.get("version") != 1 or m.get("kind") != "postgate-pairwise-rich-stack" or m.get("features") != features or
+    if (m.get("version") != 1 or m.get("kind") != "postgate-pairwise-rich-stack" or
+            m.get("features") != feature_names(m.get("name_change", False), m.get("neural_columns", [])) or
             m.get("fit_partition") != {"modulus": 3, "remainder": 0} or set(m.get("files", {})) != {"lgb.txt", "normalizer.json"}):
         raise ValueError("invalid pairwise stack model")
     for name, sha in m["files"].items():
@@ -143,10 +170,12 @@ def score(prepared, model_dir, out, cache, threads=8):
         raise ValueError("stack input configuration mismatch or existing output")
     data, split = path(source["data"]), source["split"]
     refs = pl.read_parquet(data / split / "ref.parquet")
-    state = rfeat.prep(refs, data, split, model_dir / "normalizer.json", cache)
+    name_change, neural_columns = meta.get("name_change", False), meta.get("neural_columns", [])
+    maker = gfeat if name_change else rfeat
+    state = maker.prep(refs, data, split, model_dir / "normalizer.json", cache)
     targets = raw_targets(data, split)
     model = lgb.Booster(model_file=str(model_dir / "lgb.txt"))
-    if model.feature_name() != features:
+    if model.feature_name() != meta["features"]:
         raise ValueError("stack feature order mismatch")
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp.parquet")
@@ -158,7 +187,7 @@ def score(prepared, model_dir, out, cache, threads=8):
             mask = frame.select(active()).to_series().to_numpy()
             probs = frame["prob"].to_numpy().copy()
             if mask.any():
-                x = matrix(frame.filter(pl.Series(mask)), state, targets, threads)
+                x = matrix(frame.filter(pl.Series(mask)), state, targets, threads, name_change, neural_columns)
                 probs[mask] = model.predict(x, num_threads=threads)
             table = frame.with_columns(pl.Series("stack_prob", probs.astype(np.float32))).to_arrow()
             if writer is None:
@@ -214,11 +243,14 @@ if __name__ == "__main__":
     p.add_argument("--out", type=path)
     p.add_argument("--cache", type=path, default=path("cache"))
     p.add_argument("--threads", type=int, default=8)
+    p.add_argument("--trees", type=int, default=400)
+    p.add_argument("--parameters", type=path)
     a = p.parse_args()
     if a.command == "check":
         check()
     elif a.command in ("fit", "cache") and a.scores:
-        print(json.dumps(fit(a.scores, a.normalizer, a.model, a.cache, a.threads, cache_only=a.command == "cache"), indent=2))
+        print(json.dumps(fit(a.scores, a.normalizer, a.model, a.cache, a.threads, trees=a.trees,
+                             cache_only=a.command == "cache", parameters=a.parameters), indent=2))
     elif a.command == "score" and a.scores and a.out:
         print(json.dumps(score(a.scores, a.model, a.out, a.cache, a.threads), indent=2))
     else:

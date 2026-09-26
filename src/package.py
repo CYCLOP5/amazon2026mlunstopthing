@@ -122,7 +122,7 @@ def gate(d, out):
         if not isinstance(n, str) or not isinstance(x, str) or path(x).name != x:
             raise ValueError("invalid gate model file")
         add(out, f"code/business_entity_resolution/models/gate/{x}", d / x)
-    if m.get("feature_backend") == "hybrid-v2":
+    if m.get("feature_backend") in ("hybrid-v2", "hybrid-v3"):
         from norm2 import load as load_normalizer
         normalizer = m.get("normalizer", {})
         name = normalizer.get("file")
@@ -133,7 +133,7 @@ def gate(d, out):
     return m
 
 
-def neural(d, out):
+def neural(d, out, prefix="code/business_entity_resolution/models/neural"):
     d = path(d)
     m = load(d / "neural_metadata.json")
     n = m.get("parameters")
@@ -144,17 +144,23 @@ def neural(d, out):
         raise ValueError("invalid neural model metadata")
     if not isinstance(s, dict) or str(s.get("license", "")).lower() not in lic:
         raise ValueError("neural model license is not mit or apache-2.0")
-    add(out, "code/business_entity_resolution/models/neural/neural_metadata.json", d / "neural_metadata.json")
+    add(out, f"{prefix}/neural_metadata.json", d / "neural_metadata.json")
+    if m.get("architecture") == "neural-ensemble-v1":
+        from neural import member_paths
+        children = [neural(folder, out, f"{prefix}/{folder.name}") for _, folder in member_paths(d, m)]
+        if sum(x["parameters"] for x in children) != n:
+            raise ValueError("packaged ensemble parameter count mismatch")
+        return {**m, "sources": [x["source"] for x in children]}
     ws = sorted(x for x in d.iterdir() if x.is_file() and not x.name.startswith(("optimizer", "rng")) and
                 (x.suffix == ".safetensors" or x.name.startswith("pytorch_model") and x.suffix == ".bin"))
     if not ws:
         raise ValueError("neural model has no inference weights")
     for p in ws:
-        add(out, f"code/business_entity_resolution/models/neural/{p.name}", p)
+        add(out, f"{prefix}/{p.name}", p)
     for n in sorted(tok):
         if (d / n).is_file():
-            add(out, f"code/business_entity_resolution/models/neural/{n}", d / n)
-    if "config.json" not in {path(x).name for x in out if x.startswith("code/business_entity_resolution/models/neural/")}:
+            add(out, f"{prefix}/{n}", d / n)
+    if f"{prefix}/config.json" not in out:
         raise ValueError("neural model has no config.json")
     return m
 
@@ -176,11 +182,10 @@ def sources(p, nn, retrievers):
         return {k: x[k] for k in ("model", "revision", "license", "parameters", "source") if k in x}
 
     rs = [one(x.get("model"), x.get("revision")) for x in retrievers]
-    s = nn["source"]
-    ns = one(s.get("model"), s.get("revision"))
+    ns = [one(s.get("model"), s.get("revision")) for s in nn.get("sources", [nn["source"]])]
     if sum(x["parameters"] for x in rs) + nn["parameters"] > lim:
         raise ValueError("selected retrieval and neural models exceed 8b parameters")
-    return rs, [*rs, ns]
+    return rs, [*rs, *ns]
 
 
 def calibration(p, gate_dir, neural_dir):
@@ -407,6 +412,13 @@ def build(matching, candidate, test_dir, repo_root, code_root, readme, methodolo
             add(out, f"code/business_entity_resolution/models/stack/{name}", path(stack_dir) / name)
     elif stack_dir is not None:
         raise ValueError("unselected pairwise stack supplied")
+    if cal.get("rules"):
+        rule_code = out.get("code/business_entity_resolution/src/frule.py")
+        if rule_code is None or sha(rule_code) != cal["rules"]["code_sha256"]:
+            raise ValueError("name-pattern rule implementation differs from calibration")
+        normalizers = [p for name, p in out.items() if name.endswith("/normalizer.json")]
+        if not any(sha(p) == cal["rules"]["normalizer_sha256"] for p in normalizers):
+            raise ValueError("name-pattern normalization model was not supplied")
     add(out, "code/business_entity_resolution/models/calibration.json", file(calibration_file, "final calibration"))
     selected, prov = sources(pp, nn, retrievers)
     specs = trained_retrievers(retrievers, trained or [], out)

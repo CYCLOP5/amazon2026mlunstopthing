@@ -148,12 +148,16 @@ def _key(data, run, p, fs):
 
 
 def _features(data, out, run, threads, fs, backend="native", normalizer=None, cache=None):
-    if backend == "hybrid-v2":
-        import rfeat
-        st = rfeat.prep(run["pool"], data, "train", normalizer, cache or data.parent)
-        make_features = rfeat.make
+    if backend in ("hybrid-v2", "hybrid-v3"):
+        if backend == "hybrid-v3":
+            import gfeat as rich
+        else:
+            import rfeat as rich
+        st = rich.prep(run["pool"], data, "train", normalizer, cache or data.parent)
+        make_features = rich.make
         run = {**run, "source_hashes": {**run["source_hashes"], "normalizer": _sha(normalizer),
-                                      "rfeat": _sha(path(rfeat.__file__))}}
+                                      **{p: _sha(path(__file__).parent / p) for p in
+                                         ("gfeat.py", "rfeat.py", "norm2.py", "tfeat.py", "tm_prep.py", "tm_rules.py")}}}
     else:
         st, make_features = prep(run["pool"]), make
     seen, xs, ys, ts, qs = set(), [], [], [], []
@@ -344,6 +348,9 @@ def predict(m, x, threads=None):
 
 
 def _contract(met):
+    if met.get("feature_backend") == "hybrid-v3":
+        import gfeat
+        return gfeat.contract(met)
     if met.get("feature_backend") == "hybrid-v2":
         import rfeat
         return rfeat.contract(met)
@@ -386,7 +393,7 @@ def load_models(out):
     for name in met["models"]:
         p = out / met["model_files"][name]
         if name == "lgb":
-            if met.get("feature_backend") in ("teammate-v1-nos1", "hybrid-v2"):
+            if met.get("feature_backend") in ("teammate-v1-nos1", "hybrid-v2", "hybrid-v3"):
                 import lightgbm as lgb
                 z[name] = lgb.Booster(model_file=str(p))
                 if z[name].feature_name() != names:
@@ -409,10 +416,13 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800, backend="nati
     if threads < 1 or trees < 1:
         raise ValueError("positive threads and trees required")
     data, out = path(data).resolve(), path(out).resolve()
-    if backend not in ("native", "hybrid-v2"):
+    if backend not in ("native", "hybrid-v2", "hybrid-v3"):
         raise ValueError("unknown training feature backend")
-    if backend == "hybrid-v2":
-        import rfeat
+    if backend in ("hybrid-v2", "hybrid-v3"):
+        if backend == "hybrid-v3":
+            import gfeat as rich
+        else:
+            import rfeat as rich
         if normalizer is None or model != "lgb" or (out / "metadata.json").exists():
             raise ValueError("rich training needs a normalization model, lightgbm and a new output")
         normalizer = path(normalizer).resolve()
@@ -429,7 +439,7 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800, backend="nati
     ds = tr[0]["dense_features"]
     if any(r["dense_features"] != ds for r in tr + va):
         raise ValueError("mixed dense feature schemas")
-    fs = rfeat.names(ds) if backend == "hybrid-v2" else list(ff) + ds
+    fs = rich.names(ds) if backend in ("hybrid-v2", "hybrid-v3") else list(ff) + ds
     svs = {r["met"].get("score_version", 1) for r in tr + va}
     if len(svs) != 1:
         raise ValueError("mixed candidate score versions")
@@ -467,7 +477,7 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800, backend="nati
         for dec, key in (("plain_threshold", "plain_selected"), ("target_top1_then_threshold", "top1_selected")):
             keep = raw[-1][key].to_numpy()
             per.append(anchor_f05(anchors, qid, vy, keep).with_columns(pl.lit(name).alias("model"), pl.lit(dec).alias("decoder")))
-        if name == "lgb" and backend == "hybrid-v2":
+        if name == "lgb" and backend in ("hybrid-v2", "hybrid-v3"):
             p = "lgb.txt"
             m.booster_.save_model(out / p)
         elif name == "lgb":
@@ -486,7 +496,7 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800, backend="nati
            "validation": {"label": "sampled-query estimate, not official/full-pool validation",
                           "warning": "validation queries contain selected anchor aliases and sampled orphans, not every target in the full corpus",
                           "anchors": len(anchors), "queries": sum(len(r["queries"]) for r in va), "models": res}}
-    if backend == "hybrid-v2":
+    if backend in ("hybrid-v2", "hybrid-v3"):
         met["feature_backend"] = backend
         met["normalizer"] = {"file": "normalizer.json", "sha256": _sha(normalizer)}
     _save_json(out / "metadata.json", met)
@@ -621,7 +631,7 @@ def main():
     pa.add_argument("--model", choices=["lgb", "cat", "both"], default="lgb")
     pa.add_argument("--threads", type=int, default=min(os.cpu_count() or 1, 8))
     pa.add_argument("--trees", type=int, default=800)
-    pa.add_argument("--backend", choices=("native", "hybrid-v2"), default="native")
+    pa.add_argument("--backend", choices=("native", "hybrid-v2", "hybrid-v3"), default="native")
     pa.add_argument("--normalizer", type=path)
     pa.add_argument("--cache", type=path, default=root / "cache")
     pa.add_argument("--check", action="store_true")

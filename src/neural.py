@@ -365,6 +365,28 @@ def train(trains, vals, out, model=mod0, revision=rev0, sources=src0, batch=8, e
     return m
 
 
+def member_paths(root, meta):
+    import re
+    root = path(root)
+    members = meta.get("members", [])
+    if not isinstance(members, list) or not members:
+        raise ValueError("ensemble has no members")
+    result, names = [], set()
+    for member in members:
+        name, directory = member.get("name"), member.get("directory")
+        if (not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", name) or name in names or
+                not isinstance(directory, str) or path(directory).name != directory):
+            raise ValueError("invalid ensemble member")
+        target = root / directory
+        if _sha(target / "neural_metadata.json") != member.get("metadata_sha256"):
+            raise ValueError("ensemble member metadata changed")
+        if _json(target / "neural_metadata.json").get("architecture") == "neural-ensemble-v1":
+            raise ValueError("nested neural ensembles are unsupported")
+        result.append((name, target))
+        names.add(name)
+    return result
+
+
 def load(model_dir, device="auto"):
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     d = path(model_dir).resolve()
@@ -372,8 +394,19 @@ def load(model_dir, device="auto"):
     if m.get("problem_type") != "multi_label_classification" or m.get("parameters", 8_000_000_001) > 8_000_000_000:
         raise ValueError("invalid neural model metadata")
     dev = _device(device)
+    if m.get("architecture") == "neural-ensemble-v1":
+        children = {name: load(folder, dev) for name, folder in member_paths(d, m)}
+        if sum(x["metadata"]["parameters"] for x in children.values()) != m["parameters"]:
+            raise ValueError("ensemble parameter count mismatch")
+        return {"members": children, "device": dev, "maxlen": m["configuration"]["maxlen"], "metadata": m}
     tok = AutoTokenizer.from_pretrained(d, local_files_only=True)
-    net = AutoModelForSequenceClassification.from_pretrained(d, local_files_only=True)
+    if m.get("architecture") == "mean-pooled-cross-encoder-v1":
+        from ce import load as load_mean
+        net = load_mean(d)
+        if str(dev).startswith("cuda"):
+            net.half()
+    else:
+        net = AutoModelForSequenceClassification.from_pretrained(d, local_files_only=True)
     net.to(dev).eval()
     return {"model": net, "tokenizer": tok, "device": dev, "maxlen": m["configuration"]["maxlen"], "metadata": m}
 
@@ -382,6 +415,8 @@ def predict(bundle, d, batch=32):
     if batch < 1:
         raise ValueError("positive batch required")
     _need(d, {"text_a", "text_b"}, "score pairs")
+    if "members" in bundle:
+        return aggregate(predict_members(bundle, d, batch))
     import torch
     out = []
     net, tok, dev, maxlen = (bundle[x] for x in ("model", "tokenizer", "device", "maxlen"))
@@ -394,6 +429,37 @@ def predict(bundle, d, batch=32):
             z = {k: v.to(dev) for k, v in z.items()}
             out.append(torch.sigmoid(net(**z).logits[:, 0].float()).cpu().numpy())
     return np.concatenate(out).astype(np.float32, copy=False) if out else np.empty(0, np.float32)
+
+
+def predict_members(bundle, d, batch=32):
+    if "members" not in bundle:
+        raise ValueError("per-member scoring requires an ensemble")
+    scores = {}
+    for name, child in bundle["members"].items():
+        upper = next(m.get("upper_gate", 1.) for m in bundle["metadata"]["members"] if m["name"] == name)
+        if not isinstance(upper, (int, float)) or not 0 < upper <= 1:
+            raise ValueError("invalid selective neural threshold")
+        if upper < 1:
+            if "gate_prob" not in d.columns:
+                raise ValueError("selective ensemble requires gate probabilities")
+            value = d["gate_prob"].to_numpy().astype(np.float32).copy()
+            use = value < upper
+            if use.any():
+                value[use] = predict(child, d.filter(pl.Series(use)), batch)
+        else:
+            value = predict(child, d, batch)
+        scores["np_" + name] = value
+    return scores
+
+
+def aggregate(values):
+    if not values:
+        raise ValueError("empty neural score ensemble")
+    columns = [np.asarray(x, dtype=np.float64) for x in values.values()]
+    if any(x.ndim != 1 or x.shape != columns[0].shape or not np.isfinite(x).all() or ((x < 0) | (x > 1)).any() for x in columns):
+        raise ValueError("invalid neural member scores")
+    logits = np.mean([np.log(np.clip(x, 1e-6, 1 - 1e-6) / np.clip(1 - x, 1e-6, 1)) for x in columns], axis=0)
+    return (1 / (1 + np.exp(-logits))).astype(np.float32)
 
 
 def score(pair_file, model_dir, out, batch=32, device="auto"):

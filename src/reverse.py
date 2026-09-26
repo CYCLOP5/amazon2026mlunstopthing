@@ -40,9 +40,11 @@ def build(data, cache, checkpoint, root, split, country, k=40, probes=64, batch=
                 "countries": {s: sorted(pl.read_parquet(data / s / "ref.parquet", columns=["co"])["co"].unique().to_list())
                               for s in ("train", "test")}}
     root.mkdir(parents=True, exist_ok=True)
-    if (root / "config.json").exists() and infer._json(root / "config.json") != contract:
-        raise ValueError("reverse root uses different settings")
-    infer._write(root / "config.json", contract)
+    if (root / "config.json").exists():
+        if infer._json(root / "config.json") != contract:
+            raise ValueError("reverse root uses different settings")
+    else:
+        infer._write(root / "config.json", contract)
     out = root / f"{split}_{hybrid.tag(country)}"
     if out.exists():
         raise ValueError("reverse country output already exists")
@@ -53,8 +55,19 @@ def build(data, cache, checkpoint, root, split, country, k=40, probes=64, batch=
     if blank_only:
         targets = targets.filter(pl.col("ad").fill_null("").str.strip_chars() == "")
     targets = targets.sort("rid").collect(engine="streaming")
-    if not len(refs) or not len(targets):
+    if not len(refs):
         raise ValueError("reverse retrieval needs reference and target records")
+    if not len(targets):
+        out.mkdir()
+        np.save(out / "qids.npy", np.empty(0, np.uint32), allow_pickle=False)
+        np.save(out / "ranks.npy", np.empty(0, np.uint16), allow_pickle=False)
+        np.save(out / "offsets.npy", np.zeros(total + 1, np.uint64), allow_pickle=False)
+        meta = {"contract_sha256": infer._sha(root / "config.json"), "split": split, "country": country,
+                "references": len(refs), "targets": 0, "total_targets": total, "pairs": 0,
+                "clusters": 0, "effective_probes": 0, "source_model": model_meta["model"],
+                "files": {n: infer._sha(out / n) for n in ("qids.npy", "ranks.npy", "offsets.npy")}}
+        infer._write(out / "metadata.json", meta)
+        return meta
     spec = hybrid.specs([{"model": retr.model_id, "revision": retr.revision, "checkpoint": str(checkpoint)}])[0]
     model, _, parameters, _ = hybrid.load(spec, device)
     rv = hybrid.refs(data, cache, spec, model, batch, refs, country, split, parameters)[0]

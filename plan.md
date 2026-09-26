@@ -2,6 +2,12 @@
 
 research date 2026-09-26
 
+## updated model integration
+
+the updated teammate repo adds hard-pair cross-encoders, generator-aware name features and france-specific handling. these are integrated with explicit feature/model contracts and owner-isolated validation. [implementation and checks](reports/updated-repo-integration.md). [remaining-gain research](reports/next-gains-research.md).
+
+the full plan trains a new dense/name-aware gate and 16 multilingual cross-encoder variants, followed by complete scoring, an individual-logit stack and calibrated entity decoding. the validated optuna archive remains the frozen fallback until the new output passes comparison and validation.
+
 ## decision
 
 build a precision focused entity matcher with complementary lexical and multilingual retrieval
