@@ -128,7 +128,7 @@ def _owner(data, gate, neural, split, countries, lo, hi, klex, kdense, kgate, re
 
 
 def _command(data, cache, gate, neural, out, split, co, lo, hi, klex, kdense, kgate, retrievers, device, threads,
-             encoder_batch, neural_batch, query_batch, neural_weight, retrievers_file=None, neural_floor=None):
+              encoder_batch, neural_batch, query_batch, neural_weight, retrievers_file=None, neural_floor=None, gate_floor=None):
     z = [sys.executable, str(path(__file__).with_name("match.py")), "--data", str(data), "--cache", str(cache),
          "--gate", str(gate), "--neural", str(neural), "--out", str(out), "--split", split, "--country", co,
          "--k-lex", str(klex), "--k-dense", str(kdense), "--k-gate", str(kgate), "--retrievers", *retrievers,
@@ -142,6 +142,8 @@ def _command(data, cache, gate, neural, out, split, co, lo, hi, klex, kdense, kg
         z.extend(("--retrievers-file", str(retrievers_file)))
     if neural_floor is not None:
         z.extend(("--neural-floor", str(neural_floor)))
+    if gate_floor is not None:
+        z.extend(("--gate-floor", str(gate_floor)))
     return z
 
 
@@ -204,7 +206,7 @@ def _check_args(countries, workers, threads, lo, hi, klex, kdense, kgate, encode
 def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=None, rid_stop=None, workers=1,
         threads=1, k_lex=10, k_dense=50, k_gate=20, retrievers=("e5",), device="auto", encoder_batch=64,
         neural_batch=32, query_batch=4096, neural_weight=1.0, calibration_out=None, audit=False, calibration=None,
-        export_out=None, runner=None, shard_size=None, gpu_ids=None, retrievers_file=None, neural_floor=None, stack_dir=None):
+        export_out=None, runner=None, shard_size=None, gpu_ids=None, retrievers_file=None, neural_floor=None, stack_dir=None, gate_floor=None):
     data, cache, gate, neural, out = (path(x).resolve() for x in (data, cache, gate, neural, out))
     if split not in {"train", "test"}:
         raise ValueError("split must be train or test")
@@ -213,6 +215,8 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
                  query_batch, neural_weight, shard_size, gpu_ids, device)
     if neural_floor is not None and (not math.isfinite(neural_floor) or not 0 <= neural_floor <= 1):
         raise ValueError("neural floor must be finite and in [0,1]")
+    if gate_floor is not None and (not math.isfinite(gate_floor) or not 0 <= gate_floor <= 1):
+        raise ValueError("gate floor must be finite and in [0,1]")
     selected = hybrid.configs(retrievers, retrievers_file) if retrievers_file else None
     if selected is not None:
         retrievers = tuple(embed.family(x["model"]) for x in selected)
@@ -232,6 +236,8 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
         retrievers_file = out / "retrievers.json"
     if neural_floor is not None:
         owner["neural_floor"] = neural_floor
+    if gate_floor is not None:
+        owner["gate_floor"] = gate_floor
     out.mkdir(parents=True, exist_ok=True)
     z = _index(out, owner, full)
     old = {}
@@ -258,7 +264,7 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
         if rd.parent != runroot.resolve():
             raise ValueError("unsafe country directory")
         cmd = _command(data, cache, gate, neural, rd, split, co, lo, hi, k_lex, k_dense, k_gate, retrievers,
-                       device, threads, encoder_batch, neural_batch, query_batch, neural_weight, retrievers_file, neural_floor)
+                       device, threads, encoder_batch, neural_batch, query_batch, neural_weight, retrievers_file, neural_floor, gate_floor)
         rec = {"country": co, "rid_start": lo, "rid_stop": hi, "runpath": _runrel(name), "childstatus": "pending",
                "config": owner, "command": cmd}
         if _key(co, lo, hi) in old:
@@ -471,6 +477,9 @@ def check():
         injected = _command(data, root / "cache", gate, neural, root / "x", "test", "x; touch bad",
                             None, None, 1, 1, 1, ("e5",), "cpu", 1, 1, 1, 1, 1.)
         assert injected[injected.index("--country") + 1] == "x; touch bad"
+        adaptive = _command(data, root / "cache", gate, neural, root / "x", "test", "us",
+                            None, None, 10, 50, 50, ("e5-small",), "cpu", 1, 1, 1, 1, 1., gate_floor=.01)
+        assert adaptive[adaptive.index("--gate-floor") + 1] == "0.01"
         try:
             run(data, root / "cache", gate, neural, root / "shard", countries=["us"],
                 calibration_out=root / "calibration.json", runner=runner)
@@ -597,6 +606,7 @@ def main():
     p.add_argument("--query-batch", type=int, default=4096)
     p.add_argument("--neural-weight", type=float, default=1.0)
     p.add_argument("--neural-floor", type=float)
+    p.add_argument("--gate-floor", type=float)
     p.add_argument("--stack-model-dir", type=path)
     p.add_argument("--calibration-out", type=path)
     p.add_argument("--audit", action="store_true")
@@ -615,7 +625,7 @@ def main():
                  a.threads, a.k_lex, a.k_dense, a.k_gate, a.retrievers, a.device, a.encoder_batch, a.neural_batch,
                  a.query_batch, a.neural_weight, a.calibration_out, a.audit, a.calibration, a.export_out,
                  shard_size=a.shard_size, gpu_ids=a.gpu_ids, retrievers_file=a.retrievers_file, neural_floor=a.neural_floor,
-                 stack_dir=a.stack_model_dir)
+                 stack_dir=a.stack_model_dir, gate_floor=a.gate_floor)
         print(json.dumps(z, indent=2))
     else:
         p.error("use --check, --cache-only --country, or --gate --neural --out")

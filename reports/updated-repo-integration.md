@@ -54,3 +54,11 @@ final postprocessing retains `tuning-cache/` with the fitting and evaluation mat
 ```
 
 new hyperparameters require rescoring and recalibration with the supplied prepared data before exporting a new matching file. fixed candidates and cached neural probabilities require no new encoder pass. changing retrieval or neural weights requires regenerated gpu-dependent scores. improved leaderboard accuracy is never assumed from a lower pair loss or another search trial alone.
+
+## candidate-budget audit
+
+the completed gate holdout contains 10,000 reference owners, all 34,563 of their true aliases and sampled orphan targets. fixed top-3 filtering retains 0.990365 of true links, versus 0.992420 at top 5 and 0.995920 at top 20. the gate's sampled pair threshold at 0.017682 retains 0.995313 with 44,119 selected pairs from 44,563 queries. these are candidate and sampled-pair diagnostics, not full-population matching scores.
+
+`gateprobe.py` audits fixed and score-adaptive budgets against the same owner-complete holdout. the adaptive policy keeps at least the highest-ranked candidate, adds candidates above the recorded gate floor and applies an explicit maximum. production selection is frozen before full scoring and recorded in the source configuration. `--gate-floor` is distinct from the later `--neural-floor`.
+
+multi-node inference also uses explicit within-country shards, so the configured gpu workers process independent query ranges after a shared cache warmup. regression checks cover the adaptive cap/minimum, deterministic ties, cli forwarding, shard ownership and resumed manifests.

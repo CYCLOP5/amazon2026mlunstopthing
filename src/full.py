@@ -109,7 +109,8 @@ def gate(assets, out, work, gpu_count=4, threads=80, previous=None):
     return {"gate": str(out / "gate"), "reverse": str(reverse_root)}
 
 
-def score(assets, gate_root, neural_root, split, out, work, gpu_count=4, threads=80, country=None, lo=None, hi=None):
+def score(assets, gate_root, neural_root, split, out, work, gpu_count=4, threads=80, country=None, lo=None, hi=None,
+          k_gate=3, gate_floor=None):
     threads = limits(gpu_count, threads)
     workers = gpu_count * min(2, max(1, (os.cpu_count() or 1) // gpu_count))
     worker_threads = max(1, threads // workers)
@@ -126,9 +127,11 @@ def score(assets, gate_root, neural_root, split, out, work, gpu_count=4, threads
         extra += ["--rid-start", lo]
     if hi is not None:
         extra += ["--rid-stop", hi]
+    if gate_floor is not None:
+        extra += ["--gate-floor", gate_floor]
     command("run.py", ["--data", data, "--cache", work / "cache", "--split", split, "--gate", gate_root / "gate",
                        "--neural", neural_root, "--out", out / split, "--retrievers-file", config,
-                       "--k-lex", 10, "--k-dense", 50, "--k-gate", 3, "--neural-floor", .01,
+                       "--k-lex", 10, "--k-dense", 50, "--k-gate", k_gate, "--neural-floor", .01, "--shard-size", 200000,
                        "--workers", workers, "--gpu-ids", *range(gpu_count), "--threads", worker_threads,
                        "--query-batch", 2048, "--encoder-batch", 512, "--neural-batch", 128, "--device", "cuda", *extra],
             out / "inference.log", threads=worker_threads)
@@ -218,6 +221,8 @@ if __name__ == "__main__":
     p.add_argument("--country")
     p.add_argument("--rid-start", type=int)
     p.add_argument("--rid-stop", type=int)
+    p.add_argument("--k-gate", type=int, default=3)
+    p.add_argument("--gate-floor", type=float)
     p.add_argument("--out", type=path, required=True)
     p.add_argument("--work", type=path, default=path("work/learned"))
     p.add_argument("--gpus", type=int, default=4)
@@ -226,7 +231,8 @@ if __name__ == "__main__":
     if a.stage == "gate":
         print(gate(a.assets, a.out, a.work, a.gpus, a.threads, a.previous), flush=True)
     elif a.stage == "score":
-        print(score(a.assets, a.gate, a.neural, a.split, a.out, a.work, a.gpus, a.threads, a.country, a.rid_start, a.rid_stop), flush=True)
+        print(score(a.assets, a.gate, a.neural, a.split, a.out, a.work, a.gpus, a.threads, a.country, a.rid_start, a.rid_stop,
+                    a.k_gate, a.gate_floor), flush=True)
     elif a.stage == "finish":
         print(finish(a.assets, a.gate, a.train_runs, a.test_runs, a.out, a.work, a.threads, a.stack_parameters, a.optuna_trials), flush=True)
     else:

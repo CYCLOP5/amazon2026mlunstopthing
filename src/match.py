@@ -129,7 +129,7 @@ def _retrievers(xs):
     return xs
 
 
-def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu", neural_floor=None):
+def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu", neural_floor=None, gate_floor=None):
     dm = _json(data / "meta.json")
     ret = []
     for x in rs:
@@ -169,14 +169,19 @@ def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu", n
                       "blend": {"method": "weighted_logit", "neural_weight": neural_weight}}}
     if neural_floor is not None:
         z["numeric"]["neural_selection"] = {"gate_floor": neural_floor, "unscored": "gate_probability"}
+    if gate_floor is not None:
+        z["numeric"]["candidate_selection"] = {"gate_floor": gate_floor, "minimum": 1, "maximum": kgate}
     z["model"] = {"sha256": hh.sha256(json.dumps(
         {"gate": gate["sha256"], "neural": nn["sha256"], "neural_weight": neural_weight}, sort_keys=True).encode()).hexdigest()}
     return z, hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
 
 
-def _top(d, k):
-    return d.sort(["tid", "gate", "qid"], descending=[False, True, False]).group_by(
-        "tid", maintain_order=True).head(k).sort("tid", "qid")
+def _top(d, k, floor=None):
+    d = d.sort(["tid", "gate", "qid"], descending=[False, True, False]).group_by("tid", maintain_order=True).head(k)
+    if floor is not None:
+        d = d.with_columns(pl.int_range(pl.len()).over("tid").alias("_gate_rank"))
+        d = d.filter((pl.col("_gate_rank") == 0) | (pl.col("gate") >= floor)).drop("_gate_rank")
+    return d.sort("tid", "qid")
 
 
 def _text(ref, q, d, fallback=False):
@@ -258,7 +263,7 @@ def _old(out, x, ids, split, q, refs):
 def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, rid_start=None, rid_stop=None,
           k_lex=10, k_dense=50, k_gate=20, device="auto", threads=4, encoder_batch=64, neural_batch=32,
            query_batch=512, retrievers=None, gate_models=None, neural_bundle=None, neural_predictor=None, neural_weight=1.0,
-           neural_floor=None):
+            neural_floor=None, gate_floor=None):
     t0 = time.perf_counter()
     tm = {"setup": 0., "retrieval": 0., "features": 0., "neural": 0., "new_queries": 0}
     if split not in {"train", "test"} or min(k_lex, k_dense, k_gate, threads, encoder_batch, neural_batch, query_batch) < 1:
@@ -269,12 +274,14 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
     neural_weight = _weight(neural_weight)
     if neural_floor is not None and (not np.isfinite(neural_floor) or not 0 <= neural_floor <= 1):
         raise ValueError("neural floor must be in [0,1]")
+    if gate_floor is not None and (not np.isfinite(gate_floor) or not 0 <= gate_floor <= 1):
+        raise ValueError("gate floor must be in [0,1]")
     device = neural._device(device)
     gm, names, dense, gi = _gate(gate_dir)
     nm, ni = _neural(neural_dir)
     rs = _retrievers(retrievers)
     cfg, ch = _cfg(data, {**gi, "feature_names": names, "dense_features": dense, "score_version": block.sv}, ni,
-                   rs, k_lex, k_dense, k_gate, neural_weight, device, neural_floor)
+                   rs, k_lex, k_dense, k_gate, neural_weight, device, neural_floor, gate_floor)
     scope = infer._scope(data, split, country, rid_start, rid_stop)
     mp = out / "manifest.json"
     if mp.exists():
@@ -365,7 +372,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                         if got != names:
                             raise ValueError("gate feature contract mismatch")
                         gp = _prob(np.mean([train.predict(m, x, threads) for m in gate_models.values()], axis=0, dtype=np.float64), "gate")
-                        post = _top(p.with_columns(pl.Series("gate", gp)), k_gate)
+                        post = _top(p.with_columns(pl.Series("gate", gp)), k_gate, gate_floor)
                         selected = np.ones(len(post), bool) if neural_floor is None else post["gate"].to_numpy() >= neural_floor
                         tx = _text(state["refs"], q, post.filter(pl.Series(selected)), state["fallback"])
                         neural_count = int(selected.sum())
@@ -666,6 +673,7 @@ def main():
     p.add_argument("--encoder-batch", type=int, default=64); p.add_argument("--neural-batch", type=int, default=32); p.add_argument("--query-batch", type=int, default=512)
     p.add_argument("--neural-weight", type=float, default=1.0)
     p.add_argument("--neural-floor", type=float)
+    p.add_argument("--gate-floor", type=float)
     a = p.parse_args()
     if a.check:
         check()
@@ -673,7 +681,7 @@ def main():
         retrievers = hybrid.configs(a.retrievers, a.retrievers_file)
         match(a.data, a.cache, a.gate, a.neural, a.out, a.split, a.country, a.rid_start, a.rid_stop, a.k_lex, a.k_dense,
               a.k_gate, a.device, a.threads, a.encoder_batch, a.neural_batch, a.query_batch, retrievers,
-              neural_weight=a.neural_weight, neural_floor=a.neural_floor)
+              neural_weight=a.neural_weight, neural_floor=a.neural_floor, gate_floor=a.gate_floor)
     else:
         p.error("use --check or --gate --neural --out")
 
