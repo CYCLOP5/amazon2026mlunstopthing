@@ -47,7 +47,7 @@ def retrievers(assets, reverse_root, out):
     return out
 
 
-def gate(assets, out, work, gpu_count=4, threads=80):
+def gate(assets, out, work, gpu_count=4, threads=80, previous=None):
     threads = limits(gpu_count, threads)
     assets, out, work = map(path, (assets, out, work))
     source = infer._json(assets / "assets.json")
@@ -66,19 +66,30 @@ def gate(assets, out, work, gpu_count=4, threads=80):
                                "--out", reverse_root, "--split", split, "--country", country, "--k", 5,
                                "--blank-only", "--batch", 1024, "--threads", max(1, threads // gpu_count)],
                 out / "logs" / f"reverse-{split}-{country}.log", gpu, max(1, threads // gpu_count))
-    index(scopes[0], 0)
-    with cf.ThreadPoolExecutor(max_workers=gpu_count) as pool:
-        futures = [pool.submit(index, item, i % gpu_count) for i, item in enumerate(scopes[1:])]
-        for future in futures:
-            future.result()
+    if previous:
+        sh.copytree(path(previous) / "reverse", reverse_root)
+    else:
+        index(scopes[0], 0)
+        with cf.ThreadPoolExecutor(max_workers=gpu_count) as pool:
+            futures = [pool.submit(index, item, i % gpu_count) for i, item in enumerate(scopes[1:])]
+            for future in futures:
+                future.result()
     for file in reverse_root.glob("*/pairs.parquet"):
         file.unlink()
     config = retrievers(assets, reverse_root, work / "retrievers.json")
     selected = source["queries"]
     def candidates(item, gpu):
+        import block
+        import embed
         label = item["directory"]
+        src = work / "queries" / label
+        sh.copytree(assets / "queries" / label, src)
+        _, _, _, country, fold = embed.load_run(data, src)
+        if country != item["country"] or fold != item["fold"]:
+            raise ValueError("gate query manifest changed")
+        infer._write(src / "metrics.json", {"country": country, "fold": fold, "score_version": block.sv})
         command("hybrid.py", ["--data", data, "--cache", work / ("fit-cache" if item["fold"] == 2 else "validation-cache"),
-                              "--run", assets / "queries" / label, "--out", work / "runs" / label,
+                              "--run", src, "--out", work / "runs" / label,
                               "--retrievers-file", config, "--k-lex", 10, "--k-dense", 50,
                               "--threads", max(1, threads // gpu_count), "--batch", 512, "--device", "cuda"],
                 out / "logs" / f"candidates-{label}.log", gpu, max(1, threads // gpu_count))
@@ -177,6 +188,7 @@ if __name__ == "__main__":
     p.add_argument("--assets", type=path)
     p.add_argument("--gate", type=path)
     p.add_argument("--neural", type=path)
+    p.add_argument("--previous", type=path)
     p.add_argument("--members", nargs="+", type=path)
     p.add_argument("--train-runs", type=path, nargs="+")
     p.add_argument("--test-runs", type=path, nargs="+")
@@ -190,7 +202,7 @@ if __name__ == "__main__":
     p.add_argument("--threads", type=int, default=80)
     a = p.parse_args()
     if a.stage == "gate":
-        print(gate(a.assets, a.out, a.work, a.gpus, a.threads), flush=True)
+        print(gate(a.assets, a.out, a.work, a.gpus, a.threads, a.previous), flush=True)
     elif a.stage == "score":
         print(score(a.assets, a.gate, a.neural, a.split, a.out, a.work, a.gpus, a.threads, a.country, a.rid_start, a.rid_stop), flush=True)
     elif a.stage == "finish":

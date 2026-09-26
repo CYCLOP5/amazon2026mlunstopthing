@@ -8,6 +8,7 @@ from pathlib import Path as path
 
 import polars as pl
 
+import block
 import embed
 import infer
 import post
@@ -51,6 +52,7 @@ def queries(data, encoder, out, fit=30000, validation=5000):
             infer._pq(anchors, dest / "anchors.parquet")
             infer._pq(frame, dest / "queries.parquet")
             embed.load_run(path(data), dest)
+            infer._write(dest / "metrics.json", {"country": country, "fold": fold, "score_version": block.sv})
             results.append({"directory": dest.name, "fold": fold, "country": country,
                             "anchors": len(anchors), "queries": len(frame), "positive": len(positive),
                             "encoder_owners_excluded": fold == 2})
