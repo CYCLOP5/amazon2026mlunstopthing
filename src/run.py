@@ -393,8 +393,8 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
                 raise ValueError("unselected pairwise stack supplied")
             normalizer = None
             if cal.get("rules"):
-                gm = _json(path(gate_dir) / "metadata.json")
-                normalizer = path(gate_dir) / gm["normalizer"]["file"]
+                gm = _json(gate / "metadata.json")
+                normalizer = gate / gm["normalizer"]["file"]
             result["export"] = post.export(prepared, calibration, export_out, threads, normalizer, cache)
         else:
             if stack_dir is not None:
@@ -575,6 +575,18 @@ def check():
         resumed = run(partial / "data", partial / "new-cache", partial / "gate", partial / "neural", partial / "out",
                       workers=1, threads=1, shard_size=1, gpu_ids=(9,), device="cuda", runner=runner)
         assert resumed["full"] and _json(partial / "out/runs.json")["complete"]
+        import post
+        from unittest.mock import patch
+        normalizer = gate / "normalizer.json"
+        _write(normalizer, {})
+        _write(gate / "metadata.json", {"normalizer": {"file": normalizer.name}})
+        rule_cal = root / "rule-calibration.json"
+        _write(rule_cal, {"kind": "segmented-postprocessor", "rules": {"enabled": True}})
+        runner, _ = fake(data)
+        with patch.object(post, "prepare"), patch.object(post, "export", return_value={}) as export:
+            run(data, root / "cache", gate, neural, root / "rules-run", device="cpu",
+                calibration=rule_cal, export_out=root / "rules-export", runner=runner)
+        assert export.call_args.args[4] == normalizer
     print("checks passed")
 
 

@@ -1,0 +1,31 @@
+{
+  "candidate_selection_sha256": "7f05103aad911afecda39c0e680202333860099d895f813a90b9fcd318c0fae6",
+  "excluded": [
+    {
+      "checkpoint": "artifacts/bge21-preempted/output/model",
+      "name": "bge21",
+      "reason": "low-priority run returned to queue at step35300/36154; preserve periodic checkpoint separately"
+    }
+  ],
+  "included": [
+    "large21",
+    "large41",
+    "large51",
+    "large160",
+    "large96",
+    "large160b",
+    "bge51",
+    "bge131",
+    "bge160",
+    "base71",
+    "base21",
+    "base160",
+    "base160b",
+    "small21",
+    "small71"
+  ],
+  "neural_metadata_sha256": "0d6ccf096b3e23a82ddcd15f6e702a818b3f9cba4ac9e5c843bb2f8fc2cc7759",
+  "neural_parameters": 6397997583,
+  "retriever_parameters": 117653760,
+  "total_parameters": 6515651343
+}

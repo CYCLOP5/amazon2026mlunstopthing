@@ -1,0 +1,26 @@
+[
+  {
+    "aggregation": "mean_logit",
+    "file": "score00.parquet",
+    "max_probability_roundtrip_delta": 2.9801611400870343e-08,
+    "members": 15,
+    "neural_scored": 2285,
+    "pairs": 2452
+  },
+  {
+    "aggregation": "mean_logit",
+    "file": "score03.parquet",
+    "max_probability_roundtrip_delta": 2.9792184164101343e-08,
+    "members": 15,
+    "neural_scored": 2737,
+    "pairs": 2866
+  },
+  {
+    "aggregation": "mean_logit",
+    "file": "score12.parquet",
+    "max_probability_roundtrip_delta": 2.973212420709359e-08,
+    "members": 15,
+    "neural_scored": 4500,
+    "pairs": 4525
+  }
+]
