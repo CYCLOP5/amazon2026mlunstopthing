@@ -169,6 +169,10 @@ def check():
         recovered = hybrid.search(runtime, queries, k_lex=1, k_dense=1, threads=1)
     assert recovered.filter(pl.col("y") == 1)["qid"].to_list() == [1]
     assert recovered.filter(pl.col("qid") == 1)[field][0] == 1.
+    encoder.pop("reverse")
+    with patch.object(block, "search", return_value=pl.DataFrame(schema=block.schema)), patch.object(block, "rescore", side_effect=lambda q, p, i: p):
+        fallback = hybrid.search(runtime, queries, k_lex=1, k_dense=1, threads=1)
+    assert fallback["qid"].to_list() == [0] and fallback[field].to_list() == [0.]
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         root = path(tmp)
@@ -209,6 +213,7 @@ if __name__ == "__main__":
     p.add_argument("--country")
     p.add_argument("--k", type=int, default=40)
     p.add_argument("--probes", type=int, default=64)
+    p.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     p.add_argument("--threads", type=int, default=8)
     p.add_argument("--batch", type=int, default=128)
     p.add_argument("--blank-only", action="store_true")
@@ -217,6 +222,7 @@ if __name__ == "__main__":
     if a.check:
         check()
     elif a.checkpoint and a.out and a.country:
-        print(build(a.data, a.cache, a.checkpoint, a.out, a.split, a.country, a.k, a.probes, a.batch, a.threads, blank_only=a.blank_only))
+        print(build(a.data, a.cache, a.checkpoint, a.out, a.split, a.country, a.k, a.probes, a.batch, a.threads,
+                    device=a.device, blank_only=a.blank_only))
     else:
         p.error("checkpoint, out and country are required")

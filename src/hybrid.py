@@ -273,11 +273,13 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
             fi.add(z)
         es.append({"spec": d, "model": m, "device": dev, "params": n, "source": src, "refs": a, "rows": ri,
                    "index": fi, "cache": str(cp), "cache_kind": kind, "core": c, "feature": feat(d)})
-        if d.get("reverse_root"):
+        if d.get("reverse_root") and not fallback:
             import reverse
             es[-1]["reverse"] = reverse.load(d["reverse_root"], data, split, country, d)
+        elif d.get("reverse_root"):
+            es[-1]["reverse_skipped"] = True
     fs = [x["feature"] for x in es]
-    if any("reverse" in e for e in es):
+    if any(e["spec"].get("reverse_root") for e in es):
         fs.append("rr_e5_small")
     if len(set(fs)) != len(fs):
         raise ValueError("dense feature names collide")
@@ -288,7 +290,7 @@ def setup(data, cache, country, split="train", fold=0, models=None, device="cuda
             "reference_cache": x["cache"], "cache_kind": x["cache_kind"], "maxlen": x["core"]["maxlen"],
             "encoding_corpus": x["core"]["inputs"]["references"],
              "search_pool": {"rows": len(r), "rid_sha256": ridfp(r)},
-             "reverse": x.get("reverse", {}).get("metadata")} for x in es],
+             "reverse": x.get("reverse", {}).get("metadata"), "reverse_skipped": x.get("reverse_skipped", False)} for x in es],
             "total_params": total, "reference_rows": len(r), "encoding_reference_rows": len(allr), "fallback": fallback,
             "search_reference_rows": len(r), "maxlen": max(x["core"]["maxlen"] for x in es), "pair_chunk": pc}}
 
@@ -388,6 +390,8 @@ def search(state, queries, k_lex=10, k_dense=50, threads=8):
         if reverse_pairs is not None:
             p = p.join(reverse_pairs, on=["qid", "tid"], how="left", maintain_order="left", validate="1:1").with_columns(
                 pl.col("rr_e5_small").fill_null(0.))
+        elif "rr_e5_small" in state["dense_features"]:
+            p = p.with_columns(pl.lit(0., pl.Float32).alias("rr_e5_small"))
         for e in state["encoders"]:
             p = cos(p, qb["rid"].to_numpy(), qv[e["feature"]], state["refs"], e["refs"], e["rows"], e["feature"])
         fs.append(p.sort("tid", "qid"))

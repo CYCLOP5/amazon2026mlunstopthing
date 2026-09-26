@@ -17,6 +17,8 @@ learned retriever manifests bind the model files to reference-cache identity. pa
 
 reverse indexes bind their data, encoder, implementation and country coverage. cached postprocessing in the normal runner is checked against current run-manifest hashes and the selected base-score parent. the corpus-statistics cache includes its own builder implementation in invalidation.
 
+target-only country labels use the existing global reference fallback with zero reciprocal-rank evidence. the reverse builder accepts `--device cpu` or `--device cuda`.
+
 ## evaluation boundaries
 
 base models use the existing fold2 fitting boundary. the new pairwise stack splits fold0 reference identities into three deterministic partitions: fitting, calibration/search, and development comparison. known aliases follow their owner for supervised fitting. full-target negative competition is retained during evaluation.
