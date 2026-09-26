@@ -62,12 +62,19 @@ def _gate(d):
         raise ValueError("gate metadata has no models")
     if any(not isinstance(fs.get(n), str) or path(fs[n]).name != fs[n] for n in m["models"]):
         raise ValueError("invalid gate model file name")
-    f = _files(d, [fs[n] for n in m["models"]])
+    files = [fs[n] for n in m["models"]]
+    if m.get("feature_backend") == "hybrid-v2":
+        normalizer = m.get("normalizer", {})
+        name = normalizer.get("file")
+        if not isinstance(name, str) or path(name).name != name or _sha(d / name) != normalizer.get("sha256"):
+            raise ValueError("rich gate normalization model changed")
+        files.append(name)
+    f = _files(d, files)
     z = {"metadata_sha256": _sha(d / "metadata.json"), "files": f}
-    if m.get("feature_backend") == tfeat.backend:
+    if m.get("feature_backend") in (tfeat.backend, "hybrid-v2"):
         if m["models"] != ["lgb"]:
             raise ValueError("teammate gate requires its validated lightgbm booster")
-        z["feature_backend"] = tfeat.backend
+        z["feature_backend"] = m["feature_backend"]
     z["sha256"] = hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
     return m, names, dense, z
 
@@ -102,24 +109,32 @@ def _retrievers(xs):
     else:
         xs = hybrid.specs(xs)
     fs = [embed.family(x["model"]) for x in xs]
-    if fs not in (["e5"], ["e5", "qwen3"], ["e5", "qwen3", "e5-large"]):
-        raise ValueError("retrievers must be e5 optionally followed by qwen3 and e5-large")
+    if fs not in (["e5"], ["e5", "qwen3"], ["e5", "qwen3", "e5-large"], ["e5-small"], ["e5-small", "qwen3"]):
+        raise ValueError("retrievers need e5 or e5-small, optionally followed by supported complements")
     return xs
 
 
-def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu"):
+def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu", neural_floor=None):
     dm = _json(data / "meta.json")
     ret = []
     for x in rs:
         f = embed.family(x["model"])
         ret.append({"model": x["model"], "revision": x["revision"], "feature": hybrid.feat(x),
-                    "format": embed.fmt if f == "e5" else embed.rawfmt, "family": f})
+                     "format": embed.fmt if f == "e5" else embed.rawfmt, "family": f})
+        if f == "e5-small":
+            ret[-1]["format"] = "query: {nm} | {ad}"
+        if x.get("checkpoint_sha256"):
+            ret[-1]["checkpoint_sha256"] = x["checkpoint_sha256"]
     import torch
     precision = "bf16" if device == "cuda" and torch.cuda.is_bf16_supported() else "fp16" if device == "cuda" else "fp32"
     src = path(__file__).resolve().parent
     srcs = ["data.py", "block.py", "embed.py", "hybrid.py", "feat.py", "train.py", "neural.py", "match.py"]
-    if gate.get("feature_backend") == tfeat.backend:
+    if gate.get("feature_backend") in (tfeat.backend, "hybrid-v2"):
         srcs += ["tfeat.py", "tm_prep.py", "tm_rules.py"]
+    if gate.get("feature_backend") == "hybrid-v2":
+        srcs += ["rfeat.py", "norm2.py"]
+    if any(x.get("checkpoint_sha256") for x in rs):
+        srcs += ["retr.py"]
     z = {"version": ver, "data_meta_sha256": _sha(data / "meta.json"), "data_version": dm.get("version"),
          "normalization": dm.get("normalization", "data.norm"), "retriever_sources_sha256": _sha(embed.src0),
          "gate": gate, "neural": nn, "retrievers": ret,
@@ -128,7 +143,9 @@ def _cfg(data, gate, nn, rs, klex, kdense, kgate, neural_weight, device="cpu"):
          "text_format": neural.fmt, "k": {"lexical": klex, "dense": kdense, "gate": kgate},
           "numeric": {"gate": "mean_probability", "neural": "sigmoid_probability", "topk_ties": "qid_asc",
                       "device": device, "neural_precision": precision, "retrieval_precision": "fp16" if device == "cuda" else "fp32",
-                     "blend": {"method": "weighted_logit", "neural_weight": neural_weight}}}
+                      "blend": {"method": "weighted_logit", "neural_weight": neural_weight}}}
+    if neural_floor is not None:
+        z["numeric"]["neural_selection"] = {"gate_floor": neural_floor, "unscored": "gate_probability"}
     z["model"] = {"sha256": hh.sha256(json.dumps(
         {"gate": gate["sha256"], "neural": nn["sha256"], "neural_weight": neural_weight}, sort_keys=True).encode()).hexdigest()}
     return z, hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
@@ -204,19 +221,21 @@ def _valid(d, q, refs, split, sr):
 
 def _old(out, x, ids, split, q, refs):
     _, got = infer._part(out, x, split)
-    if not np.array_equal(got, ids) or x.get("neural_pairs") != x.get("pairs"):
+    if not np.array_equal(got, ids):
         raise ValueError("resume part mismatch")
     d = pl.read_parquet(out / x["name"])
     if "sr" not in d.columns:
         raise ValueError("resume part has no target source")
     _valid(d, q, refs, split, x["source"])
-    if x.get("neural_input_sha256") != _pairs(d):
+    scored = d.filter(pl.col("neural_scored")) if "neural_scored" in d.columns else d
+    if x.get("neural_pairs") != len(scored) or x.get("neural_input_sha256") != _pairs(scored):
         raise ValueError("resume neural candidate mismatch")
 
 
 def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, rid_start=None, rid_stop=None,
           k_lex=10, k_dense=50, k_gate=20, device="auto", threads=4, encoder_batch=64, neural_batch=32,
-          query_batch=512, retrievers=None, gate_models=None, neural_bundle=None, neural_predictor=None, neural_weight=1.0):
+           query_batch=512, retrievers=None, gate_models=None, neural_bundle=None, neural_predictor=None, neural_weight=1.0,
+           neural_floor=None):
     t0 = time.perf_counter()
     tm = {"setup": 0., "retrieval": 0., "features": 0., "neural": 0., "new_queries": 0}
     if split not in {"train", "test"} or min(k_lex, k_dense, k_gate, threads, encoder_batch, neural_batch, query_batch) < 1:
@@ -225,12 +244,14 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
         raise ValueError("rid start must be below rid stop")
     data, cache, out = (path(x).resolve() for x in (data, cache, out))
     neural_weight = _weight(neural_weight)
+    if neural_floor is not None and (not np.isfinite(neural_floor) or not 0 <= neural_floor <= 1):
+        raise ValueError("neural floor must be in [0,1]")
     device = neural._device(device)
     gm, names, dense, gi = _gate(gate_dir)
     nm, ni = _neural(neural_dir)
     rs = _retrievers(retrievers)
     cfg, ch = _cfg(data, {**gi, "feature_names": names, "dense_features": dense, "score_version": block.sv}, ni,
-                   rs, k_lex, k_dense, k_gate, neural_weight, device)
+                   rs, k_lex, k_dense, k_gate, neural_weight, device, neural_floor)
     scope = infer._scope(data, split, country, rid_start, rid_stop)
     mp = out / "manifest.json"
     if mp.exists():
@@ -257,7 +278,11 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
             raise ValueError("gate metadata changed while loading")
     if not gate_models:
         raise ValueError("no loaded gate models")
-    ft = tfeat if gm.get("feature_backend") == tfeat.backend else feat
+    if gm.get("feature_backend") == "hybrid-v2":
+        import rfeat
+        ft = rfeat
+    else:
+        ft = tfeat if gm.get("feature_backend") == tfeat.backend else feat
     if neural_bundle is None and neural_predictor is None:
         neural_bundle = neural.load(neural_dir, device)
     n, nq, npair, seen = 0, 0, 0, set()
@@ -275,7 +300,8 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                 raise ValueError("gate needs unavailable dense features")
             man["provenance"]["countries"][co] = {"status": "ready", "retrieval": state["config"],
                                                        "references": state["config"]["reference_rows"]}
-            fst = ft.prep(state["refs"])
+            fst = (ft.prep(state["refs"], data, split, path(gate_dir) / gm["normalizer"]["file"], cache)
+                   if gm.get("feature_backend") == "hybrid-v2" else ft.prep(state["refs"]))
             allowed = state["refs"]
             tm["setup"] += time.perf_counter() - t1
         else:
@@ -295,6 +321,7 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                 pp, cp = out / name, out / cov
                 if pp.exists() or cp.exists():
                     raise ValueError(f"unlisted inference artifact {name}")
+                retrieved_true = kept_true = neural_count = 0
                 if state is None:
                     scored, before = _empty(split, sr), 0
                 else:
@@ -302,6 +329,8 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                     p = hybrid.search(state, q, k_lex, k_dense, threads)
                     tm["retrieval"] += time.perf_counter() - t1
                     before = len(p)
+                    if split == "train":
+                        retrieved_true = int(p["y"].sum())
                     if p.is_empty():
                         scored = _empty(split, sr)
                     else:
@@ -311,23 +340,40 @@ def match(data, cache, gate_dir, neural_dir, out, split="test", country=None, ri
                             raise ValueError("gate feature contract mismatch")
                         gp = _prob(np.mean([train.predict(m, x, threads) for m in gate_models.values()], axis=0, dtype=np.float64), "gate")
                         post = _top(p.with_columns(pl.Series("gate", gp)), k_gate)
-                        tx = _text(state["refs"], q, post, state["fallback"])
+                        selected = np.ones(len(post), bool) if neural_floor is None else post["gate"].to_numpy() >= neural_floor
+                        tx = _text(state["refs"], q, post.filter(pl.Series(selected)), state["fallback"])
+                        neural_count = int(selected.sum())
+                        if split == "train":
+                            kept_true = int(post["y"].sum())
                         tm["features"] += time.perf_counter() - t1
                         t1 = time.perf_counter()
-                        npb = neural_predictor(tx) if neural_predictor is not None else neural.predict(neural_bundle, tx, neural_batch)
+                        raw = post["gate"].to_numpy().copy()
+                        if len(tx):
+                            npb = neural_predictor(tx) if neural_predictor is not None else neural.predict(neural_bundle, tx, neural_batch)
+                            raw[selected] = _prob(npb, "neural")
                         tm["neural"] += time.perf_counter() - t1
-                        raw = _prob(npb, "neural")
+                        raw = _prob(raw, "neural")
                         npb = _blend(raw, post["gate"].to_numpy(), neural_weight)
                         scored = post.select("qid", "tid", "sr", *(["y"] if split == "train" else [])).with_columns(
                             pl.Series("prob", npb), pl.Series("gate_prob", post["gate"].to_numpy()),
                             pl.Series("neural_prob", raw)).select("qid", "tid", "prob", "sr", "gate_prob", "neural_prob",
-                                                                 *(["y"] if split == "train" else [])).sort("tid", "qid")
+                                                                  *(["y"] if split == "train" else [])).sort("tid", "qid")
+                        if neural_floor is not None:
+                            flags = post.select("qid", "tid").with_columns(pl.Series("neural_scored", selected))
+                            scored = scored.join(flags, on=["qid", "tid"], how="left", maintain_order="left", validate="1:1")
+                if neural_floor is not None and "neural_scored" not in scored.columns:
+                    scored = scored.with_columns(pl.lit(False).alias("neural_scored"))
                 _valid(scored, q, allowed, split, sr)
                 _pq(scored, pp)
                 _npy(cp, ids)
                 z = {"name": name, "coverage": cov, "queries": len(ids), "pairs": len(scored),
                      "pair_sha256": _sha(pp), "coverage_sha256": _sha(cp), "country": co, "source": sr,
-                     "retrieved_pairs": before, "neural_pairs": len(scored), "neural_input_sha256": _pairs(scored)}
+                      "retrieved_pairs": before, "neural_pairs": neural_count,
+                      "neural_input_sha256": _pairs(scored.filter(pl.col("neural_scored"))) if neural_floor is not None else _pairs(scored)}
+                if split == "train":
+                    eligible = int(q.filter(pl.col("own") >= 0).height)
+                    z["recall_stages"] = {"true_queries": eligible, "retrieved_true": retrieved_true, "kept_true": kept_true,
+                                          "retrieval_misses": eligible - retrieved_true, "gate_pruned_true": retrieved_true - kept_true}
                 man["parts"].append(z)
                 _write(mp, man)
                 tm["new_queries"] += len(ids)
@@ -372,8 +418,11 @@ def _data(root):
 
 def check():
     class gate:
+        def __init__(self, constant=None):
+            self.constant = constant
+
         def predict_proba(self, x):
-            p = np.clip(x[:, feat.ff.index("ns")], 0, 1)
+            p = np.clip(x[:, feat.ff.index("ns")], 0, 1) if self.constant is None else np.full(len(x), self.constant)
             return np.column_stack([1 - p, p])
 
     class enc:
@@ -455,6 +504,46 @@ def check():
         cal = infer.calibrate(data, [tr], root / "cal.json")
         ex = infer.export(data, [te], root / "cal.json", root / "out")
         assert "S1-empty\t" in (root / "out/matching_results.tsv").read_text() and ex["source1"] == 4
+        old_calls = len(calls)
+        for _ in range(2):
+            match(data, root / "cache", gd, nd, root / "selective", "train", k_lex=2, k_dense=2, k_gate=1,
+                  device="cpu", threads=1, encoder_batch=2, neural_batch=2, query_batch=1, retrievers=rs,
+                  gate_models={"fake": gate(.1)}, neural_predictor=pred, neural_floor=.5)
+        selective = _json(root / "selective/manifest.json")
+        assert len(calls) == old_calls and sum(p["pairs"] for p in selective["parts"]) > 0
+        for part in selective["parts"]:
+            assert part["neural_pairs"] == 0
+            stages = part["recall_stages"]
+            assert stages["true_queries"] == stages["retrieved_true"] + stages["retrieval_misses"]
+            assert stages["retrieved_true"] == stages["kept_true"] + stages["gate_pruned_true"]
+        import norm2
+        import retr
+        import rfeat
+        rich_data = infer._check_data(root / "rich-data")
+        for split in ("train", "test"):
+            for sr in (2, 3):
+                p = rich_data / split / f"s{sr}.parquet"
+                d = pl.read_parquet(p).with_columns(pl.Series("rid", np.arange((sr - 2) * 2, (sr - 1) * 2, dtype=np.uint32)))
+                d.write_parquet(p)
+        rg = root / "rich-gate"
+        rg.mkdir()
+        norm2.fit(rich_data, rg / "normalizer.json")
+        rr = pl.read_parquet(rich_data / "train/ref.parquet")
+        qq = pl.read_parquet(rich_data / "train/s2.parquet")
+        state = rfeat.prep(rr, rich_data, "train", rg / "normalizer.json", root / "rich-cache")
+        pp = pl.DataFrame({"qid": [0, 1], "tid": [0, 0], "ns": [1., 0.], "ads": [1., 0.], "ds_e5_small": [1., 0.]})
+        x, fs = rfeat.make(state, qq, pp, dense=["ds_e5_small"])
+        tx, ty = np.tile(x, (60, 1)), np.tile(np.array([1, 0]), 60)
+        model = train._fit_lgb(tx, ty, tx.copy(), ty.copy(), 5, 1, fs)
+        model.booster_.save_model(rg / "lgb.txt")
+        _write(rg / "metadata.json", {"feature_backend": rfeat.backend, "feature_names": fs,
+               "dense_features": ["ds_e5_small"], "score_version": block.sv, "models": ["lgb"], "model_files": {"lgb": "lgb.txt"},
+               "normalizer": {"file": "normalizer.json", "sha256": _sha(rg / "normalizer.json")}})
+        small = [{"model": retr.model_id, "revision": retr.revision, "encoder": enc(), "params": 2}]
+        result = match(rich_data, root / "rich-cache", rg, nd, root / "rich-match", "train", k_lex=2, k_dense=2,
+                       k_gate=1, device="cpu", threads=1, encoder_batch=2, neural_batch=2, query_batch=1,
+                       retrievers=small, neural_predictor=pred)
+        assert result["queries"] == 4 and result["pairs"] > 0
         try:
             match(data, root / "cache", gd, nd, te, "test", k_lex=2, k_dense=2, k_gate=1, device="cpu", threads=1,
                   retrievers=rs, gate_models={"fake": gate()}, neural_predictor=pred, neural_weight=.6)
@@ -525,19 +614,21 @@ def main():
     p.add_argument("--country")
     p.add_argument("--rid-start", type=int); p.add_argument("--rid-stop", type=int)
     p.add_argument("--k-lex", type=int, default=10); p.add_argument("--k-dense", type=int, default=50); p.add_argument("--k-gate", type=int, default=20)
-    p.add_argument("--retrievers", choices=("e5", "qwen3", "e5-large"), nargs="+", default=["e5"])
+    p.add_argument("--retrievers", choices=("e5", "qwen3", "e5-large", "e5-small"), nargs="+", default=["e5"])
+    p.add_argument("--retrievers-file", type=path)
     p.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     p.add_argument("--threads", type=int, default=min(os.cpu_count() or 1, 8))
     p.add_argument("--encoder-batch", type=int, default=64); p.add_argument("--neural-batch", type=int, default=32); p.add_argument("--query-batch", type=int, default=512)
     p.add_argument("--neural-weight", type=float, default=1.0)
+    p.add_argument("--neural-floor", type=float)
     a = p.parse_args()
     if a.check:
         check()
     elif a.gate and a.neural and a.out:
-        allx = {embed.family(x["model"]): x for x in hybrid.specs()}
+        retrievers = hybrid.configs(a.retrievers, a.retrievers_file)
         match(a.data, a.cache, a.gate, a.neural, a.out, a.split, a.country, a.rid_start, a.rid_stop, a.k_lex, a.k_dense,
-              a.k_gate, a.device, a.threads, a.encoder_batch, a.neural_batch, a.query_batch, [allx[x] for x in a.retrievers],
-              neural_weight=a.neural_weight)
+              a.k_gate, a.device, a.threads, a.encoder_batch, a.neural_batch, a.query_batch, retrievers,
+              neural_weight=a.neural_weight, neural_floor=a.neural_floor)
     else:
         p.error("use --check or --gate --neural --out")
 

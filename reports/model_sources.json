@@ -28,5 +28,13 @@
     "parameters": 559890432,
     "parameter_basis": "verified sentence transformer runtime parameter count",
     "source": "https://huggingface.co/intfloat/multilingual-e5-large-instruct"
+  },
+  {
+    "model": "intfloat/multilingual-e5-small",
+    "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+    "license": "mit",
+    "parameters": 117654272,
+    "parameter_basis": "safetensors elements including buffers",
+    "source": "https://huggingface.co/intfloat/multilingual-e5-small"
   }
 ]

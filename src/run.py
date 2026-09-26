@@ -80,15 +80,15 @@ def _key(co, lo, hi):
     return co, lo, hi
 
 
-def _warm_command(data, cache, split, co, retrievers, device, encoder_batch):
-    return [sys.executable, str(path(__file__).resolve()), "--cache-only", "--data", str(data), "--cache",
-            str(cache), "--split", split, "--country", co, "--retrievers", *retrievers, "--device", device,
-            "--encoder-batch", str(encoder_batch)]
+def _warm_command(data, cache, split, co, retrievers, device, encoder_batch, retrievers_file=None):
+    command = [sys.executable, str(path(__file__).resolve()), "--cache-only", "--data", str(data), "--cache",
+             str(cache), "--split", split, "--country", co, "--retrievers", *retrievers, "--device", device,
+             "--encoder-batch", str(encoder_batch)]
+    return command + (["--retrievers-file", str(retrievers_file)] if retrievers_file else [])
 
 
-def _cache_only(data, cache, split, co, retrievers, device, encoder_batch):
-    allx = {embed.family(x["model"]): x for x in hybrid.specs()}
-    hybrid.setup(data, cache, co, split, 0, [allx[x] for x in retrievers], device, encoder_batch)
+def _cache_only(data, cache, split, co, retrievers, device, encoder_batch, retrievers_file=None):
+    hybrid.setup(data, cache, co, split, 0, hybrid.configs(retrievers, retrievers_file), device, encoder_batch)
 
 
 def _tree(p):
@@ -128,7 +128,7 @@ def _owner(data, gate, neural, split, countries, lo, hi, klex, kdense, kgate, re
 
 
 def _command(data, cache, gate, neural, out, split, co, lo, hi, klex, kdense, kgate, retrievers, device, threads,
-             encoder_batch, neural_batch, query_batch, neural_weight):
+             encoder_batch, neural_batch, query_batch, neural_weight, retrievers_file=None, neural_floor=None):
     z = [sys.executable, str(path(__file__).with_name("match.py")), "--data", str(data), "--cache", str(cache),
          "--gate", str(gate), "--neural", str(neural), "--out", str(out), "--split", split, "--country", co,
          "--k-lex", str(klex), "--k-dense", str(kdense), "--k-gate", str(kgate), "--retrievers", *retrievers,
@@ -138,6 +138,10 @@ def _command(data, cache, gate, neural, out, split, co, lo, hi, klex, kdense, kg
         z.extend(("--rid-start", str(lo)))
     if hi is not None:
         z.extend(("--rid-stop", str(hi)))
+    if retrievers_file is not None:
+        z.extend(("--retrievers-file", str(retrievers_file)))
+    if neural_floor is not None:
+        z.extend(("--neural-floor", str(neural_floor)))
     return z
 
 
@@ -200,13 +204,18 @@ def _check_args(countries, workers, threads, lo, hi, klex, kdense, kgate, encode
 def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=None, rid_stop=None, workers=1,
         threads=1, k_lex=10, k_dense=50, k_gate=20, retrievers=("e5",), device="auto", encoder_batch=64,
         neural_batch=32, query_batch=4096, neural_weight=1.0, calibration_out=None, audit=False, calibration=None,
-        export_out=None, runner=None, shard_size=None, gpu_ids=None):
+        export_out=None, runner=None, shard_size=None, gpu_ids=None, retrievers_file=None, neural_floor=None, stack_dir=None):
     data, cache, gate, neural, out = (path(x).resolve() for x in (data, cache, gate, neural, out))
     if split not in {"train", "test"}:
         raise ValueError("split must be train or test")
     countries = _countries(data, split, countries)
     _check_args(countries, workers, threads, rid_start, rid_stop, k_lex, k_dense, k_gate, encoder_batch, neural_batch,
-                query_batch, neural_weight, shard_size, gpu_ids, device)
+                 query_batch, neural_weight, shard_size, gpu_ids, device)
+    if neural_floor is not None and (not math.isfinite(neural_floor) or not 0 <= neural_floor <= 1):
+        raise ValueError("neural floor must be finite and in [0,1]")
+    selected = hybrid.configs(retrievers, retrievers_file) if retrievers_file else None
+    if selected is not None:
+        retrievers = tuple(embed.family(x["model"]) for x in selected)
     full = countries == infer._countries(data, split, None) and rid_start is None and rid_stop is None
     if calibration_out is not None and (split != "train" or not full):
         raise ValueError("calibration requires complete full training coverage")
@@ -217,7 +226,12 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
     if calibration is not None and (split != "test" or not full):
         raise ValueError("export requires complete full test coverage")
     owner = _owner(data, gate, neural, split, countries, rid_start, rid_stop, k_lex, k_dense, k_gate, retrievers,
-                   device, threads, encoder_batch, neural_batch, query_batch, neural_weight, shard_size)
+                    device, threads, encoder_batch, neural_batch, query_batch, neural_weight, shard_size)
+    if selected is not None:
+        owner["retriever_specs"] = selected
+        retrievers_file = out / "retrievers.json"
+    if neural_floor is not None:
+        owner["neural_floor"] = neural_floor
     out.mkdir(parents=True, exist_ok=True)
     z = _index(out, owner, full)
     old = {}
@@ -244,7 +258,7 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
         if rd.parent != runroot.resolve():
             raise ValueError("unsafe country directory")
         cmd = _command(data, cache, gate, neural, rd, split, co, lo, hi, k_lex, k_dense, k_gate, retrievers,
-                       device, threads, encoder_batch, neural_batch, query_batch, neural_weight)
+                       device, threads, encoder_batch, neural_batch, query_batch, neural_weight, retrievers_file, neural_floor)
         rec = {"country": co, "rid_start": lo, "rid_stop": hi, "runpath": _runrel(name), "childstatus": "pending",
                "config": owner, "command": cmd}
         if _key(co, lo, hi) in old:
@@ -257,6 +271,8 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
     z.pop("verification", None)
     z.pop("warmups", None)
     _write(out / "runs.json", z)
+    if selected is not None:
+        _write(retrievers_file, selected)
     runner = _child if runner is None else runner
 
     slots = None
@@ -278,7 +294,7 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
     warm = []
     for co in countries:
         if sum(x[0] == co for x in jobs) > 1:
-            cmd = _warm_command(data, cache, split, co, retrievers, device, encoder_batch)
+            cmd = _warm_command(data, cache, split, co, retrievers, device, encoder_batch, retrievers_file)
             rec = {"country": co, "childstatus": "running", "command": cmd}
             warm.append(rec)
             z["warmups"] = warm
@@ -345,7 +361,31 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
     if calibration_out is not None:
         result["calibration"] = infer.calibrate(data, paths, calibration_out, audit=audit)
     if calibration is not None:
-        result["export"] = infer.export(data, paths, calibration, export_out)
+        cal = _json(path(calibration))
+        if cal.get("kind") == "segmented-postprocessor":
+            import post
+            prepared = out / "post-base.parquet"
+            if not prepared.exists():
+                post.prepare(data, paths, "test", prepared)
+            else:
+                meta = post.verified(prepared, "test")
+                if meta["config_sha256"] != _json(paths[0] / "manifest.json")["config_sha256"]:
+                    raise ValueError("cached postprocessor scores use different inference runs")
+            if cal.get("stack_model"):
+                import stack2
+                if stack_dir is None or stack2.bundle(stack_dir)[1] != cal["stack_model"]["sha256"]:
+                    raise ValueError("postprocessor requires its selected pairwise stack model")
+                stacked = out / "post-stacked.parquet"
+                if not stacked.exists():
+                    stack2.score(prepared, stack_dir, stacked, cache, threads)
+                prepared = stacked
+            elif stack_dir is not None:
+                raise ValueError("unselected pairwise stack supplied")
+            result["export"] = post.export(prepared, calibration, export_out, threads)
+        else:
+            if stack_dir is not None:
+                raise ValueError("legacy calibration cannot use a pairwise stack")
+            result["export"] = infer.export(data, paths, calibration, export_out)
     return result
 
 
@@ -540,13 +580,16 @@ def main():
     p.add_argument("--k-lex", type=int, default=10)
     p.add_argument("--k-dense", type=int, default=50)
     p.add_argument("--k-gate", type=int, default=20)
-    p.add_argument("--retrievers", choices=("e5", "qwen3", "e5-large"), nargs="+", default=["e5"])
+    p.add_argument("--retrievers", choices=("e5", "qwen3", "e5-large", "e5-small"), nargs="+", default=["e5"])
+    p.add_argument("--retrievers-file", type=path)
     p.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     p.add_argument("--gpu-ids", type=int, nargs="+")
     p.add_argument("--encoder-batch", type=int, default=64)
     p.add_argument("--neural-batch", type=int, default=32)
     p.add_argument("--query-batch", type=int, default=4096)
     p.add_argument("--neural-weight", type=float, default=1.0)
+    p.add_argument("--neural-floor", type=float)
+    p.add_argument("--stack-model-dir", type=path)
     p.add_argument("--calibration-out", type=path)
     p.add_argument("--audit", action="store_true")
     p.add_argument("--calibration", type=path)
@@ -558,12 +601,13 @@ def main():
     elif a.cache_only and a.country and len(a.country) == 1:
         _check_args(a.country, a.workers, a.threads, a.rid_start, a.rid_stop, a.k_lex, a.k_dense, a.k_gate,
                     a.encoder_batch, a.neural_batch, a.query_batch, a.neural_weight, a.shard_size, a.gpu_ids, a.device)
-        _cache_only(a.data, a.cache, a.split, a.country[0], a.retrievers, a.device, a.encoder_batch)
+        _cache_only(a.data, a.cache, a.split, a.country[0], a.retrievers, a.device, a.encoder_batch, a.retrievers_file)
     elif a.gate and a.neural and a.out:
         z = run(a.data, a.cache, a.gate, a.neural, a.out, a.split, a.country, a.rid_start, a.rid_stop, a.workers,
                  a.threads, a.k_lex, a.k_dense, a.k_gate, a.retrievers, a.device, a.encoder_batch, a.neural_batch,
                  a.query_batch, a.neural_weight, a.calibration_out, a.audit, a.calibration, a.export_out,
-                 shard_size=a.shard_size, gpu_ids=a.gpu_ids)
+                 shard_size=a.shard_size, gpu_ids=a.gpu_ids, retrievers_file=a.retrievers_file, neural_floor=a.neural_floor,
+                 stack_dir=a.stack_model_dir)
         print(json.dumps(z, indent=2))
     else:
         p.error("use --check, --cache-only --country, or --gate --neural --out")

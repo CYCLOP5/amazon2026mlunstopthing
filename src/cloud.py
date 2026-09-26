@@ -21,6 +21,7 @@ pr = "amazon-ml-2026"
 im = "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04@sha256:7481fbfbbc1c7d7ab0e9e4633180c809413bd77e108b605d6e4d3a60aa35bf67"
 pf = {
     "cpu": ("Standard_E16ds_v4", "dedicated", False),
+    "cpu64": ("Standard_E64ds_v4", "dedicated", False),
     "gpu": ("Standard_NC24ads_A100_v4", "low_priority", True),
     "gpu2": ("Standard_NC48ads_A100_v4", "low_priority", True),
     "gpu4": ("Standard_NC96ads_A100_v4", "low_priority", True),
@@ -76,7 +77,7 @@ def pairs(xs):
 def spec(a, run, ins):
     try:
         hrs = bd.num(a.hours, True)
-        rate = bd.num(a.rate, True)
+        rate = None if getattr(a, "uncapped", False) else bd.num(a.rate, True)
         fixed = bd.num(a.fixed)
     except bd.err as e:
         die(str(e))
@@ -182,6 +183,8 @@ def reserve(a, s):
 
 
 def close(a, j):
+    if j.get("uncapped"):
+        return
     with bd.lock(a.ledger):
         ld = bd.load(a.ledger)
         for x in ld["items"]:
@@ -337,17 +340,20 @@ def run(a):
         "subscription": a.subscription, "group": a.group, "workspace": a.workspace, "state": "new",
         "ledger": str(a.ledger), "out": str(a.out),
     }
+    if getattr(a, "uncapped", False):
+        j["uncapped"] = True
     write(jp, j)
     code = snapshot(root, jp.parent / (run + "-code"))
     ml = client(a)
     ds = ml.datastores.get_default()
     s["out_uri"] = "azureml://datastores/" + ds.name + "/paths/" + pr + "/" + run + "/out/"
     j["out_uri"] = s["out_uri"]
-    reserve(a, s)
+    if not j.get("uncapped"):
+        reserve(a, s)
     due = time.monotonic() + (float(s["hours"]) + 1) * 3600
-    j["state"] = "reserved"
+    j["state"] = "planned" if j.get("uncapped") else "reserved"
     write(jp, j)
-    print("reserved", run, "creating", s["compute"], flush=True)
+    print(j["state"], run, "creating", s["compute"], flush=True)
     primary = clean = None
     try:
         comp, job = entities(s, code)
@@ -437,6 +443,9 @@ def check():
     assert j.component.outputs["out"]["mode"] == "upload" and j.limits.timeout == 7200
     assert "--group cloud" not in shell(s) and "--group neural" in shell(s)
     assert s["hours"] + dc("1") == dc("3") and im.startswith("mcr.microsoft.com/")
+    cpu = spec(ns(profile="cpu64", hours="2", rate=None, fixed="0", neural=False, command="true", uncapped=True), "check", {})
+    assert cpu["size"] == "Standard_E64ds_v4" and cpu["rate"] is None and not cpu["neural"]
+    close(ns(), {"uncapped": True})
     ld = bd.new("500")
     try:
         bd.new("500.01")
@@ -491,7 +500,8 @@ def main():
     common(r, False)
     r.add_argument("--profile", choices=tuple(pf), required=True)
     r.add_argument("--hours", required=True, help="runtime limit, at most 12")
-    r.add_argument("--rate", required=True, help="current usd per hour estimate")
+    r.add_argument("--rate", help="current usd per hour estimate for budgeted runs")
+    r.add_argument("--uncapped", action="store_true", help="explicitly authorized run without a monetary cap")
     r.add_argument("--fixed", default="10", help="staging/storage/egress allowance")
     r.add_argument("--cap", default="500")
     r.add_argument("--final", action="store_true", help="allow the reserved final inference allocation within the same hard cap")

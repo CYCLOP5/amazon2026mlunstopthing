@@ -3,7 +3,7 @@
 ## scope
 
 reference checkout: `/home/cyclops/Downloads/Amazon-ML-Challenge-hmm`
-reported public score: 0.984, supplied by the user
+teammate-reported public score: 0.984
 comparison: submitted upgraded v1 and the frozen overnight experiments in this repository
 
 the checkout contains source and experiment prose, but no trained models or scored outputs. its final 0.9930–0.9934 values are explicitly label-free projections, not leaderboard results. the 0.984 result is not tied to a checkpoint in the supplied experiment log. the implementation differences below are verified in source; their individual leaderboard contributions are not measured ablations against this pipeline.

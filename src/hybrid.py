@@ -43,12 +43,41 @@ def specs(xs=None):
         embed.family(d["model"])
         if not d.get("revision"):
             raise ValueError("model revision required")
+        if d.get("checkpoint"):
+            from retr import bundle
+            meta, checkpoint_sha = bundle(d["checkpoint"])
+            if d["model"] != meta["model"] or d["revision"] != meta["base_revision"]:
+                raise ValueError("trained retriever origin mismatch")
+            if d.get("checkpoint_sha256", checkpoint_sha) != checkpoint_sha:
+                raise ValueError("trained retriever checkpoint changed")
+            d["checkpoint"] = str(path(d["checkpoint"]).resolve())
+            d["checkpoint_sha256"] = checkpoint_sha
+            d["length"] = meta["length"]
         out.append(d)
     if not 1 <= len(out) <= 3:
         raise ValueError("one to three retrieval models required")
     if len({(x["model"], x["revision"]) for x in out}) != len(out):
         raise ValueError("duplicate retrieval model")
     return out
+
+
+def configs(names, file=None):
+    if file is not None:
+        file = path(file).resolve()
+        rows = json.loads(file.read_text())
+        if isinstance(rows, dict) and rows.get("format") == 2:
+            rows = rows.get("retriever_specs")
+        if not isinstance(rows, list) or any(not isinstance(d, dict) or "encoder" in d for d in rows):
+            raise ValueError("invalid serialized retriever configuration")
+        for d in rows:
+            if d.get("checkpoint") and not path(d["checkpoint"]).is_absolute():
+                d["checkpoint"] = str(file.parent / d["checkpoint"])
+        return specs(rows)
+    allx = {embed.family(x["model"]): x for x in specs()}
+    if "e5-small" in names:
+        from retr import model_id, revision
+        allx["e5-small"] = {"model": model_id, "revision": revision}
+    return specs([allx[n] for n in names])
 
 
 def feat(d):
@@ -62,7 +91,8 @@ def load(d, dev):
         n = int(d.get("params", 0))
         z = d.get("device", dev)
     else:
-        m, z, n = embed.model_load(d["model"], d["revision"], dev, 512 if d["model"] == embed.large0 else ln)
+        m, z, n = embed.model_load(d["model"], d["revision"], dev,
+                                  d.get("length", 512 if d["model"] == embed.large0 else ln), d.get("checkpoint"))
     if n < 0:
         raise ValueError("invalid model parameter count")
     return m, z, n, src
@@ -85,9 +115,14 @@ def core(data, d, refs, txt, dim, co, pars, fallback=False):
     if fallback:
         out["scope"] = "global"
     if f != "e5":
-        out["serialization"] = {"family": f, "reference": embed.rawfmt}
+        out["serialization"] = {"family": f, "reference": "query: {nm} | {ad}" if f == "e5-small" else embed.rawfmt}
         out["encoding"] = {"normalize": True, "precision": "float32"}
         out["padding_side"] = "left" if f == "qwen3" else None
+    if f == "e5-small":
+        out["prefixes"] = {"reference": "query"}
+        out["maxlen"] = d.get("length", ln)
+    if d.get("checkpoint_sha256"):
+        out["checkpoint_sha256"] = d["checkpoint_sha256"]
     return out
 
 
@@ -112,6 +147,8 @@ def oldok(p, c):
         raise ValueError("stale embedding reference cache")
     if c.get("scope") and o.get("scope") != c["scope"]:
         raise ValueError("stale embedding reference cache")
+    if c.get("checkpoint_sha256") != o.get("checkpoint_sha256"):
+        raise ValueError("stale trained embedding reference cache")
     if c.get("serialization") and any(o.get("serialization", {}).get(k) != v
                                         for k, v in c["serialization"].items()):
         raise ValueError("stale embedding serialization metadata")
@@ -134,7 +171,8 @@ def oldok(p, c):
 
 
 def dirs(cache, d, co, sp, fallback=False):
-    x = f"{embed.family(d['model'])}_{tag(d['revision'])}_{sp}_{'global_' if fallback else 'all_'}{tag(co)}"
+    revision = d["revision"] + ("_" + d["checkpoint_sha256"] if d.get("checkpoint_sha256") else "")
+    x = f"{embed.family(d['model'])}_{tag(revision)}_{sp}_{'global_' if fallback else 'all_'}{tag(co)}"
     return cache / "hybrid" / x, [cache / "embed-local", cache]
 
 
@@ -462,12 +500,14 @@ def main():
     a.add_argument("--k-lex", type=int, default=10)
     a.add_argument("--k-dense", type=int, default=50)
     a.add_argument("--threads", type=int, default=8)
+    a.add_argument("--retrievers-file", type=path)
     a.add_argument("--check", action="store_true")
     x = a.parse_args()
     if x.check:
         check()
     elif x.run and x.out:
-        print(json.dumps(probe(x.data, x.cache, x.run, x.out, device=x.device, batch=x.batch,
+        models = configs([], x.retrievers_file) if x.retrievers_file else None
+        print(json.dumps(probe(x.data, x.cache, x.run, x.out, models=models, device=x.device, batch=x.batch,
                                k_lex=x.k_lex, k_dense=x.k_dense, threads=x.threads), indent=2))
     else:
         raise ValueError("use --check or --run and --out")

@@ -824,3 +824,13 @@ the supplied reference repository has a user-reported public score of 0.984. sou
 the current safe gate explicitly declares no dense features, although hybrid retrieval computes dense similarities before the top-3 gate. the reference's learned dictionary and french suffix/department normalization add further differences; french legal forms and first-house-number membership already exist locally. the reference's projected 0.993x test scores are not leaderboard measurements, and its learned dictionary consumes all training labels, so its holdout is not an independent dictionary audit. current fold1 remains consumed.
 
 the [source-grounded comparison](reports/reference-repo-gap.md) records code locations, verified normalization examples, actual submission country counts, candidate-size tradeoffs and ranked follow-up experiments. no new matching score is claimed from this comparison.
+
+## teammate method integration
+
+the new path adds fold-safe token normalization, dense-aware gate features, full-corpus ambiguity/idf statistics, numeric-distance features, country/house posterior correction, selective neural scoring and source1 set decoding. a compact contrastive retriever is fitting locally. the rich pairwise stack is fitted from out-of-sample base scores and uses separate fitting, calibration/search and development reference partitions.
+
+on the same 73,752 development references, the rich stack with empirical calibration and set decoding scored 0.983963 macro f0.5 versus v1's 0.976006. its extra-orphan stress score with density correction was 0.982302 versus 0.974118. these are development results on cached inference, not public leaderboard scores.
+
+the azure search uses a 64-vcpu `standard_e64ds_v4` node, eight trial processes, eight threads each and 64 optuna trials. its cache preserves all competing candidates for every target touching the 73,522 search references. final comparison references are excluded from search labels. the first two-thread smoke trial completed in 36.1 seconds with search macro f0.5 0.984374.
+
+implementation, scope and reproduction commands: [teammate integration](reports/teammate-integration.md).

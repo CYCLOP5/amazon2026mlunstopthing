@@ -2,6 +2,7 @@ import argparse as ap
 import hashlib as hh
 import json
 import os
+import shutil as sh
 import tempfile as tf
 from pathlib import Path as path
 
@@ -146,8 +147,15 @@ def _key(data, run, p, fs):
     return hh.sha256(json.dumps(z, sort_keys=True).encode()).hexdigest()
 
 
-def _features(data, out, run, threads, fs):
-    st = prep(run["pool"])
+def _features(data, out, run, threads, fs, backend="native", normalizer=None, cache=None):
+    if backend == "hybrid-v2":
+        import rfeat
+        st = rfeat.prep(run["pool"], data, "train", normalizer, cache or data.parent)
+        make_features = rfeat.make
+        run = {**run, "source_hashes": {**run["source_hashes"], "normalizer": _sha(normalizer),
+                                      "rfeat": _sha(path(rfeat.__file__))}}
+    else:
+        st, make_features = prep(run["pool"]), make
     seen, xs, ys, ts, qs = set(), [], [], [], []
     for p in run["parts"]:
         k = _key(data, run, p, fs)
@@ -157,7 +165,7 @@ def _features(data, out, run, threads, fs):
             z = np.load(cp, allow_pickle=False)
             x, y, tid, qid = z["x"], z["y"], z["tid"], z["qid"]
         else:
-            x, got = make(st, run["queries"], d, threads, run["dense_features"])
+            x, got = make_features(st, run["queries"], d, threads, run["dense_features"])
             if got != fs:
                 raise ValueError("unexpected feature names")
             y = d["y"].to_numpy().astype(np.uint8, copy=False)
@@ -207,6 +215,8 @@ def _scores(anchors, qid, tid, y, prob, keep):
 
 
 def _tops(tid, qid, prob):
+    if not len(tid):
+        return np.empty(0, dtype=np.intp)
     o = np.lexsort((qid, -prob, tid))
     return o[np.r_[True, tid[o][1:] != tid[o][:-1]]]
 
@@ -219,18 +229,39 @@ def _thresholds(prob):
 
 
 def evaluate(anchors, qid, tid, y, prob):
+    if not len(anchors):
+        raise ValueError("evaluation needs reference anchors")
+    refs = anchors.sort("rid")
+    rid, degree = refs["rid"].to_numpy(), refs["deg"].to_numpy()
+    base = float((degree == 0).sum())
     out = {}
     for name, ix in (("plain_threshold", np.arange(len(prob))), ("target_top1_then_threshold", _tops(tid, qid, prob))):
-        best = None
-        for th in _thresholds(prob):
-            keep = np.zeros(len(prob), dtype=bool)
-            keep[ix] = prob[ix] >= th
-            z = _scores(anchors, qid, tid, y, prob, keep)
-            z["threshold"] = float(th)
-            if best is None or (z["macro_f05"], z["pair_precision"], z["threshold"]) > (
-                    best["macro_f05"], best["pair_precision"], best["threshold"]):
-                best = z
-        out[name] = best
+        th = float(np.nextafter(1., 2.))
+        if len(ix):
+            order = ix[np.lexsort((-prob[ix], qid[ix]))]
+            q, p, labels = qid[order], prob[order], y[order]
+            starts = np.r_[0, np.flatnonzero(q[1:] != q[:-1]) + 1]
+            sizes = np.diff(np.r_[starts, len(order)])
+            where = np.searchsorted(rid, q)
+            inside = where < len(rid)
+            where = np.minimum(where, len(rid) - 1)
+            inside &= rid[where] == q
+            d = degree[where]
+            count = np.arange(len(order)) - np.repeat(starts, sizes) + 1
+            total = np.cumsum(labels, dtype=np.float64)
+            true = total - np.repeat(np.r_[0., total[:-1]][starts], sizes)
+            after = np.where(inside & (d > 0), 1.25 * true / (count + .25 * d), 0.)
+            before = np.r_[0., after[:-1]]
+            before[starts] = (inside[starts] & (d[starts] == 0)).astype(float)
+            ranked = np.argsort(-p, kind="stable")
+            ends = np.flatnonzero(np.r_[p[ranked][1:] != p[ranked][:-1], True])
+            macro = np.r_[base / len(anchors), (base + np.cumsum((after - before)[ranked])[ends]) / len(anchors)]
+            precision = np.r_[1., np.cumsum(labels[ranked])[ends] / (ends + 1)]
+            thresholds = np.r_[th, p[ranked][ends]]
+            th = float(thresholds[np.lexsort((thresholds, precision, macro.round(12)))[-1]])
+        keep = np.zeros(len(prob), dtype=bool)
+        keep[ix] = prob[ix] >= th
+        out[name] = {**_scores(anchors, qid, tid, y, prob, keep), "threshold": th}
     return out
 
 
@@ -275,12 +306,12 @@ def blocking(q, qid, tid, prob):
     return z
 
 
-def _fit_lgb(x, y, xv, yv, trees, threads):
+def _fit_lgb(x, y, xv, yv, trees, threads, names=None):
     import lightgbm as lgb
 
     m = lgb.LGBMClassifier(n_estimators=trees, learning_rate=0.05, num_leaves=31, min_child_samples=20,
-                            subsample=0.8, colsample_bytree=0.9, random_state=42, n_jobs=threads, verbosity=-1)
-    m.fit(x, y, eval_X=xv, eval_y=yv, eval_metric="binary_logloss",
+                            subsample=0.8, subsample_freq=1, colsample_bytree=0.9, random_state=42, n_jobs=threads, verbosity=-1)
+    m.fit(x, y, eval_set=[(xv, yv)], eval_metric="binary_logloss", feature_name=names or "auto",
           callbacks=[lgb.early_stopping(50, verbose=False)])
     return m
 
@@ -313,6 +344,9 @@ def predict(m, x, threads=None):
 
 
 def _contract(met):
+    if met.get("feature_backend") == "hybrid-v2":
+        import rfeat
+        return rfeat.contract(met)
     if met.get("feature_backend") == "teammate-v1-nos1":
         try:
             import tfeat
@@ -352,7 +386,7 @@ def load_models(out):
     for name in met["models"]:
         p = out / met["model_files"][name]
         if name == "lgb":
-            if met.get("feature_backend") == "teammate-v1-nos1":
+            if met.get("feature_backend") in ("teammate-v1-nos1", "hybrid-v2"):
                 import lightgbm as lgb
                 z[name] = lgb.Booster(model_file=str(p))
                 if z[name].feature_name() != names:
@@ -371,10 +405,21 @@ def load_models(out):
     return z, met
 
 
-def train(data, trs, vals, out, model="lgb", threads=8, trees=800):
+def train(data, trs, vals, out, model="lgb", threads=8, trees=800, backend="native", normalizer=None, cache=None):
     if threads < 1 or trees < 1:
         raise ValueError("positive threads and trees required")
     data, out = path(data).resolve(), path(out).resolve()
+    if backend not in ("native", "hybrid-v2"):
+        raise ValueError("unknown training feature backend")
+    if backend == "hybrid-v2":
+        import rfeat
+        if normalizer is None or model != "lgb" or (out / "metadata.json").exists():
+            raise ValueError("rich training needs a normalization model, lightgbm and a new output")
+        normalizer = path(normalizer).resolve()
+        out.mkdir(parents=True, exist_ok=True)
+        if normalizer != out / "normalizer.json":
+            sh.copyfile(normalizer, out / "normalizer.json")
+        normalizer = out / "normalizer.json"
     if not (data / "meta.json").is_file():
         raise ValueError(f"missing prepared data {data}")
     if not trs or not vals:
@@ -384,15 +429,15 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800):
     ds = tr[0]["dense_features"]
     if any(r["dense_features"] != ds for r in tr + va):
         raise ValueError("mixed dense feature schemas")
-    fs = list(ff) + ds
+    fs = rfeat.names(ds) if backend == "hybrid-v2" else list(ff) + ds
     svs = {r["met"].get("score_version", 1) for r in tr + va}
     if len(svs) != 1:
         raise ValueError("mixed candidate score versions")
     sv = svs.pop()
     if len({r["dir"] for r in tr + va}) != len(tr) + len(va):
         raise ValueError("run cannot be both training and validation")
-    xa = [_features(data, out, r, threads, fs) for r in tr]
-    xv = [_features(data, out, r, threads, fs) for r in va]
+    xa = [_features(data, out, r, threads, fs, backend, normalizer, cache) for r in tr]
+    xv = [_features(data, out, r, threads, fs, backend, normalizer, cache) for r in va]
     x, y = np.concatenate([z[0] for z in xa]), np.concatenate([z[1] for z in xa])
     vx, vy = np.concatenate([z[0] for z in xv]), np.concatenate([z[1] for z in xv])
     tid, qid = np.concatenate([z[2] for z in xv]), np.concatenate([z[3] for z in xv])
@@ -410,7 +455,7 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800):
     out.mkdir(parents=True, exist_ok=True)
     res, files, raw, per = {}, {}, [], []
     for name in names:
-        m = fitters[name](x, y, vx, vy, trees, threads)
+        m = _fit_lgb(x, y, vx, vy, trees, threads, fs) if name == "lgb" else fitters[name](x, y, vx, vy, trees, threads)
         prob = predict(m, vx)
         met = evaluate(anchors, qid, tid, vy, prob)
         met["blocking_filter"] = blocking(vq, qid, tid, prob)
@@ -422,7 +467,10 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800):
         for dec, key in (("plain_threshold", "plain_selected"), ("target_top1_then_threshold", "top1_selected")):
             keep = raw[-1][key].to_numpy()
             per.append(anchor_f05(anchors, qid, vy, keep).with_columns(pl.lit(name).alias("model"), pl.lit(dec).alias("decoder")))
-        if name == "lgb":
+        if name == "lgb" and backend == "hybrid-v2":
+            p = "lgb.txt"
+            m.booster_.save_model(out / p)
+        elif name == "lgb":
             p = "lgb.joblib"
             jl.dump(m, out / p)
         else:
@@ -438,6 +486,9 @@ def train(data, trs, vals, out, model="lgb", threads=8, trees=800):
            "validation": {"label": "sampled-query estimate, not official/full-pool validation",
                           "warning": "validation queries contain selected anchor aliases and sampled orphans, not every target in the full corpus",
                           "anchors": len(anchors), "queries": sum(len(r["queries"]) for r in va), "models": res}}
+    if backend == "hybrid-v2":
+        met["feature_backend"] = backend
+        met["normalizer"] = {"file": "normalizer.json", "sha256": _sha(normalizer)}
     _save_json(out / "metadata.json", met)
     print(json.dumps(met["validation"], indent=2), flush=True)
     return met
@@ -542,6 +593,21 @@ def check():
         else:
             raise AssertionError("locked fold accepted")
         assert f05(_frame([[1, 1]], ["rid", "deg"]), np.array([1]), np.array([1]), np.array([True])) == 1.0
+    a = pl.DataFrame({"rid": [0, 1, 2], "deg": [3, 2, 0]})
+    q, t = np.repeat(np.arange(4), 6), np.tile(np.arange(6), 4)
+    y = (q == np.array([0, 1, 0, -1, 0, 1])[t]).astype(np.uint8)
+    rng = np.random.default_rng(17)
+    for _ in range(8):
+        p = rng.choice([.1, .3, .5, .8, .95], len(q))
+        fast = evaluate(a, q, t, y, p)
+        for name, ix in (("plain_threshold", np.arange(len(p))), ("target_top1_then_threshold", _tops(t, q, p))):
+            candidates = []
+            for threshold in _thresholds(p):
+                keep = np.zeros(len(p), bool)
+                keep[ix] = p[ix] >= threshold
+                candidates.append({**_scores(a, q, t, y, p, keep), "threshold": float(threshold)})
+            best = max(candidates, key=lambda z: (round(z["macro_f05"], 12), z["pair_precision"], z["threshold"]))
+            assert fast[name] == best
     print("checks passed")
 
 
@@ -555,12 +621,15 @@ def main():
     pa.add_argument("--model", choices=["lgb", "cat", "both"], default="lgb")
     pa.add_argument("--threads", type=int, default=min(os.cpu_count() or 1, 8))
     pa.add_argument("--trees", type=int, default=800)
+    pa.add_argument("--backend", choices=("native", "hybrid-v2"), default="native")
+    pa.add_argument("--normalizer", type=path)
+    pa.add_argument("--cache", type=path, default=root / "cache")
     pa.add_argument("--check", action="store_true")
     a = pa.parse_args()
     if a.check:
         check()
     else:
-        train(a.data, a.train, a.val, a.out, a.model, a.threads, a.trees)
+        train(a.data, a.train, a.val, a.out, a.model, a.threads, a.trees, a.backend, a.normalizer, a.cache)
 
 
 if __name__ == "__main__":

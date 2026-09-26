@@ -122,6 +122,14 @@ def gate(d, out):
         if not isinstance(n, str) or not isinstance(x, str) or path(x).name != x:
             raise ValueError("invalid gate model file")
         add(out, f"code/business_entity_resolution/models/gate/{x}", d / x)
+    if m.get("feature_backend") == "hybrid-v2":
+        from norm2 import load as load_normalizer
+        normalizer = m.get("normalizer", {})
+        name = normalizer.get("file")
+        if not isinstance(name, str) or path(name).name != name or sha(d / name) != normalizer.get("sha256"):
+            raise ValueError("invalid packaged gate normalizer")
+        load_normalizer(d / name)
+        add(out, f"code/business_entity_resolution/models/gate/{name}", d / name)
     return m
 
 
@@ -184,12 +192,21 @@ def calibration(p, gate_dir, neural_dir):
     cal = load(file(p, "final calibration"))
     if not isinstance(cal, dict):
         raise ValueError("final calibration is not an object")
+    segmented = cal.get("kind") == "segmented-postprocessor"
     tune = cal.get("tune")
     cov, sel, cfg = cal.get("train_coverage"), tune.get("selected") if isinstance(tune, dict) else None, cal.get("config")
-    if (cal.get("kind") != "full-corpus-calibration" or not isinstance(cov, dict) or cov.get("complete") is not True or
+    if segmented:
+        from post import validate_recipe
+        validate_recipe(cal)
+        sel = {"decoder": "expected_f05", "threshold": cal.get("floor")}
+        if (cal.get("version") != 1 or not isinstance(cal.get("exact_limit"), int) or not 1 <= cal["exact_limit"] <= 256 or
+                not isinstance(cal.get("curves"), dict) or not cal["curves"]):
+            raise ValueError("invalid segmented postprocessor")
+    if (cal.get("kind") not in ("full-corpus-calibration", "segmented-postprocessor") or not isinstance(cov, dict) or cov.get("complete") is not True or
             not isinstance(cov.get("targets"), int) or cov["targets"] < 1):
         raise ValueError("calibration does not declare complete full-target training coverage")
-    if (not isinstance(sel, dict) or sel.get("decoder") not in {"plain_threshold", "target_top1_then_threshold"} or
+    decoders = {"expected_f05"} if segmented else {"plain_threshold", "target_top1_then_threshold"}
+    if (not isinstance(sel, dict) or sel.get("decoder") not in decoders or
             isinstance(sel.get("threshold"), bool) or not isinstance(sel.get("threshold"), (int, float)) or
             not math.isfinite(sel["threshold"])):
         raise ValueError("calibration has no selected decoder and finite cutoff")
@@ -206,6 +223,10 @@ def calibration(p, gate_dir, neural_dir):
     if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not math.isfinite(weight) or not 0 <= weight <= 1:
         raise ValueError("calibration has an invalid neural weight")
     model = {"sha256": jsha({"gate": gi["sha256"], "neural": ni["sha256"], "neural_weight": weight})}
+    if cfg.get("stack"):
+        if cal.get("stack_model", cfg["stack"]).get("sha256") != cfg["stack"]["sha256"]:
+            raise ValueError("stack model and calibration configuration differ")
+        model = {"sha256": jsha({"base": model["sha256"], "stack": cfg["stack"]["sha256"]})}
     if cfg.get("model") != model or cal.get("model_sha256") != model["sha256"]:
         raise ValueError("calibration model fingerprint mismatch")
     retrievers = cfg.get("retrievers")
@@ -244,9 +265,39 @@ def hf(cache, xs, out):
             raise ValueError(f"empty hf snapshot {d}")
 
 
-def manifest(files, prov, offline):
+def trained_retrievers(retrievers, roots, out):
+    from retr import bundle
+    trained = {}
+    for root in roots:
+        meta, digest = bundle(root)
+        if digest in trained:
+            raise ValueError("duplicate trained retriever")
+        trained[digest] = path(root), meta
+    specs, used = [], set()
+    for row in retrievers:
+        spec = {"model": row["model"], "revision": row["revision"]}
+        digest = row.get("checkpoint_sha256")
+        if digest:
+            if digest not in trained:
+                raise ValueError("selected trained retriever weights were not supplied")
+            root, meta = trained[digest]
+            if meta["model"] != row["model"] or meta["base_revision"] != row["revision"]:
+                raise ValueError("trained retriever origin mismatch")
+            folder = f"code/business_entity_resolution/models/retrievers/{digest}"
+            for name in [*meta["files"], "retriever.json"]:
+                add(out, f"{folder}/{name}", root / name)
+            spec.update({"checkpoint": folder, "checkpoint_sha256": digest})
+            used.add(digest)
+        specs.append(spec)
+    if set(trained) != used:
+        raise ValueError("unselected trained retriever supplied")
+    return specs
+
+
+def manifest(files, prov, offline, retrievers=None):
     z = {"format": 2, "archive_root": "code/business_entity_resolution", "calibration": "models/calibration.json",
-         "files": [], "offline_retriever_weights": offline, "selected_model_provenance": prov}
+          "files": [], "offline_retriever_weights": offline, "selected_model_provenance": prov,
+          "retriever_specs": retrievers or []}
     for n, p in sorted(files.items()):
         z["files"].append({"path": n, "size": p.stat().st_size, "sha256": sha(p)})
     z["package_manifest"] = {"path": "package_manifest.json", "sha256": "excluded"}
@@ -277,7 +328,7 @@ def write(dst, files, man):
 
 
 def build(matching, candidate, test_dir, repo_root, code_root, readme, methodology, gate_dir,
-          neural_dir, calibration_file, output_zip, team_name=None, hf_cache=None):
+          neural_dir, calibration_file, output_zip, team_name=None, hf_cache=None, trained=None, stack_dir=None):
     matching, candidate, test_dir = map(path, (matching, candidate, test_dir))
     repo, code, dst = map(path, (repo_root, code_root, output_zip))
     if team_name and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", team_name):
@@ -295,13 +346,33 @@ def build(matching, candidate, test_dir, repo_root, code_root, readme, methodolo
     add(out, "code/business_entity_resolution/reports/model_sources.json", file(pp, "model source report"))
     gate(gate_dir, out)
     nn = neural(neural_dir, out)
-    _, retrievers = calibration(calibration_file, gate_dir, neural_dir)
+    cal, retrievers = calibration(calibration_file, gate_dir, neural_dir)
+    selected_stack = cal.get("stack_model") or cal.get("config", {}).get("stack")
+    if selected_stack:
+        from stack2 import bundle
+        if stack_dir is None:
+            raise ValueError("selected pairwise stack weights were not supplied")
+        stack, digest = bundle(stack_dir)
+        if digest != selected_stack["sha256"]:
+            raise ValueError("pairwise stack weights differ from calibration")
+        base = dict(cal["config"])
+        base.pop("stack")
+        base["model"] = {"sha256": jsha({"gate": base["gate"]["sha256"], "neural": base["neural"]["sha256"],
+                                        "neural_weight": base["numeric"]["blend"]["neural_weight"]})}
+        if jsha(base) != stack["source_config_sha256"] or base["data_meta_sha256"] != stack["data_meta_sha256"]:
+            raise ValueError("pairwise stack was fitted to different base scores")
+        for name in [*stack["files"], "metadata.json"]:
+            add(out, f"code/business_entity_resolution/models/stack/{name}", path(stack_dir) / name)
+    elif stack_dir is not None:
+        raise ValueError("unselected pairwise stack supplied")
     add(out, "code/business_entity_resolution/models/calibration.json", file(calibration_file, "final calibration"))
     selected, prov = sources(pp, nn, retrievers)
-    if selected and hf_cache is None:
+    specs = trained_retrievers(retrievers, trained or [], out)
+    frozen = [s for s, r in zip(selected, retrievers) if not r.get("checkpoint_sha256")]
+    if frozen and hf_cache is None:
         raise ValueError("hf cache is required for selected retrievers")
-    if selected:
-        hf(hf_cache, selected, out)
+    if frozen:
+        hf(hf_cache, frozen, out)
     if (repo / "plan.md").is_file():
         add(out, "plan.md", repo / "plan.md")
     for name in ("readme.md", "e5-mit.txt", "qwen3-apache-2.0.txt"):
@@ -309,7 +380,7 @@ def build(matching, candidate, test_dir, repo_root, code_root, readme, methodolo
         if p.is_file():
             add(out, "code/business_entity_resolution/licenses/" + name, p)
     add(out, "Documentation_template.md", doc(methodology, "methodology document", filled=True))
-    man = manifest(out, prov, bool(selected))
+    man = manifest(out, prov, bool(selected), specs)
     dst.parent.mkdir(parents=True, exist_ok=True)
     write(dst, out, man)
     return {"zip": str(dst), "sha256": sha(dst), "files": len(out) + 1,
@@ -491,6 +562,8 @@ def main(argv=None):
     p.add_argument("--output-zip", type=path)
     p.add_argument("--team-name")
     p.add_argument("--hf-cache", type=path)
+    p.add_argument("--trained-retriever", type=path, action="append", default=[])
+    p.add_argument("--stack-model-dir", type=path)
     a = p.parse_args(argv)
     if a.check:
         check()
@@ -501,7 +574,7 @@ def main(argv=None):
         p.error("all package inputs are required")
     print(json.dumps(build(a.matching, a.candidate, a.test_dir, a.repo_root, a.code_root, a.readme, a.methodology,
                             a.gate_model_dir, a.neural_model_dir, a.calibration, a.output_zip, a.team_name,
-                            a.hf_cache), indent=2))
+                            a.hf_cache, a.trained_retriever, a.stack_model_dir), indent=2))
     return 0
 
 

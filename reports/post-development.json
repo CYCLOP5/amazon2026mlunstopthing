@@ -1,0 +1,83 @@
+{
+  "anchors": 110335,
+  "public_score": null,
+  "results": {
+    "empirical_expected_double_orphans": {
+      "approximate_groups": 4,
+      "exact_limit": 64,
+      "groups": 110253,
+      "macro_f05": 0.9750921965426351,
+      "pair_precision": 0.9868132226375728,
+      "pair_recall": 0.9509376071709997,
+      "pairs": 368096,
+      "true_pairs": 381983
+    },
+    "empirical_expected_original": {
+      "approximate_groups": 0,
+      "exact_limit": 64,
+      "groups": 110253,
+      "macro_f05": 0.97822006841946,
+      "pair_precision": 0.9932348364903185,
+      "pair_recall": 0.950887866737525,
+      "pairs": 365697,
+      "true_pairs": 381983
+    },
+    "raw_expected_double_orphans": {
+      "approximate_groups": 4,
+      "exact_limit": 64,
+      "groups": 110254,
+      "macro_f05": 0.9741237102623804,
+      "pair_precision": 0.9866858493811118,
+      "pair_recall": 0.9461808509802793,
+      "pairs": 366302,
+      "true_pairs": 381983
+    },
+    "raw_expected_original": {
+      "approximate_groups": 0,
+      "exact_limit": 64,
+      "groups": 110254,
+      "macro_f05": 0.9770268920782447,
+      "pair_precision": 0.9932446545374595,
+      "pair_recall": 0.9461206388765993,
+      "pairs": 363860,
+      "true_pairs": 381983
+    },
+    "shift_corrected_expected_double_orphans": {
+      "approximate_groups": 4,
+      "exact_limit": 64,
+      "groups": 110252,
+      "macro_f05": 0.9754291798647506,
+      "pair_precision": 0.9892752440990575,
+      "pair_recall": 0.9461284926292531,
+      "pairs": 365323,
+      "true_pairs": 381983
+    },
+    "shift_corrected_expected_original": {
+      "approximate_groups": 0,
+      "exact_limit": 64,
+      "groups": 110252,
+      "macro_f05": 0.9778827469651928,
+      "pair_precision": 0.9944169587972109,
+      "pair_recall": 0.9460970776186375,
+      "pairs": 363422,
+      "true_pairs": 381983
+    },
+    "v1_double_orphans": {
+      "macro_f05": 0.973867216107032,
+      "pair_precision": 0.9893095204689946,
+      "pair_recall": 0.9414424202124179,
+      "pairs": 363501,
+      "true_pairs": 381983
+    },
+    "v1_original": {
+      "macro_f05": 0.9757572877807476,
+      "pair_precision": 0.9942218105915042,
+      "pair_recall": 0.9414424202124179,
+      "pairs": 361705,
+      "true_pairs": 381983
+    }
+  },
+  "scope": "fold0 held-out reference development, full-target competitors; transductive target reuse; no fold1 audit",
+  "source_score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+  "stress": "duplicate every orphan target once with a distinct synthetic id; true links unchanged; not real test labels"
+}

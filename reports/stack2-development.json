@@ -1,0 +1,88 @@
+{
+  "anchors": 73752,
+  "known_score": "stack_prob",
+  "public_score": null,
+  "results": {
+    "empirical_expected_double_orphans": {
+      "approximate_groups": 6,
+      "exact_limit": 64,
+      "groups": 73693,
+      "macro_f05": 0.9820863551179222,
+      "pair_precision": 0.9922806363511115,
+      "pair_recall": 0.9611953070108297,
+      "pairs": 246782,
+      "true_pairs": 254763
+    },
+    "empirical_expected_original": {
+      "approximate_groups": 2,
+      "exact_limit": 64,
+      "groups": 73693,
+      "macro_f05": 0.9839631386508543,
+      "pair_precision": 0.9960340865179279,
+      "pair_recall": 0.961167830493439,
+      "pairs": 245845,
+      "true_pairs": 254763
+    },
+    "raw_expected_double_orphans": {
+      "approximate_groups": 6,
+      "exact_limit": 64,
+      "groups": 73697,
+      "macro_f05": 0.9799307522866212,
+      "pair_precision": 0.9874187090536349,
+      "pair_recall": 0.9660861271063694,
+      "pairs": 249259,
+      "true_pairs": 254763
+    },
+    "raw_expected_original": {
+      "approximate_groups": 3,
+      "exact_limit": 64,
+      "groups": 73697,
+      "macro_f05": 0.9827830330920859,
+      "pair_precision": 0.9935849818328624,
+      "pair_recall": 0.9660390245051282,
+      "pairs": 247700,
+      "true_pairs": 254763
+    },
+    "shift_corrected_expected_double_orphans": {
+      "approximate_groups": 5,
+      "exact_limit": 64,
+      "groups": 73692,
+      "macro_f05": 0.9823022773952811,
+      "pair_precision": 0.9938769274642006,
+      "pair_recall": 0.9576037336661917,
+      "pairs": 245465,
+      "true_pairs": 254763
+    },
+    "shift_corrected_expected_original": {
+      "approximate_groups": 2,
+      "exact_limit": 64,
+      "groups": 73692,
+      "macro_f05": 0.9837532676682201,
+      "pair_precision": 0.9968006341527197,
+      "pair_recall": 0.9575684067152609,
+      "pairs": 244736,
+      "true_pairs": 254763
+    },
+    "v1_double_orphans": {
+      "macro_f05": 0.9741179166963494,
+      "pair_precision": 0.9892810026385225,
+      "pair_recall": 0.941895016152267,
+      "pairs": 242560,
+      "true_pairs": 254763
+    },
+    "v1_original": {
+      "macro_f05": 0.9760060394610788,
+      "pair_precision": 0.9941912977187792,
+      "pair_recall": 0.941895016152267,
+      "pairs": 241362,
+      "true_pairs": 254763
+    }
+  },
+  "scope": "fold0 held-out reference development, full-target competitors; transductive target reuse; no fold1 audit",
+  "source_score_sha256": "8500053b6d355c681a927c0702804f4072be745358ef0c7c5194a66aeb7fd3f9",
+  "stress": "duplicate every orphan target once with a distinct synthetic id; true links unchanged; not real test labels",
+  "validation_partition": {
+    "modulus": 3,
+    "remainder": 2
+  }
+}

@@ -36,6 +36,8 @@ def atom(p, obj):
 
 
 def family(model):
+    if model == "intfloat/multilingual-e5-small":
+        return "e5-small"
     if model == mod0:
         return "e5"
     if model == qwen0:
@@ -51,6 +53,8 @@ def serial(d, role, model=mod0):
     if role not in ("query", "passage"):
         raise ValueError("invalid e5 role" if model == mod0 else "invalid embedding role")
     f = family(model)
+    if f == "e5-small":
+        return [f"query: {str(n)} | {str(a)}" for n, a in d.select("nm", "ad").iter_rows()]
     if f == "e5":
         return [fmt.format(role=role, nm=str(n), ad=str(a), co=str(c))
                 for n, a, c in d.select("nm", "ad", "co").iter_rows()]
@@ -130,7 +134,7 @@ def hf_cache():
     return p if p.is_dir() else None
 
 
-def model_load(model, rev, dev, maxlen):
+def model_load(model, rev, dev, maxlen, checkpoint=None):
     import torch
     from sentence_transformers import SentenceTransformer
 
@@ -145,7 +149,8 @@ def model_load(model, rev, dev, maxlen):
     cache = hf_cache()
     if cache is not None:
         kw.update(cache_folder=str(cache), local_files_only=True)
-    m = SentenceTransformer(model, revision=rev, trust_remote_code=False, device=use, **kw)
+    m = SentenceTransformer(str(checkpoint) if checkpoint else model, revision=None if checkpoint else rev,
+                            trust_remote_code=False, device=use, **kw)
     if family(model) == "qwen3" and m.tokenizer.padding_side != "left":
         raise ValueError("qwen requires left tokenizer padding")
     m.max_seq_length = maxlen
