@@ -14,16 +14,27 @@ at 07:43 ist, gpu scoring completed all 20,289,808 train/test targets
 all 10,320,219 training and 9,969,589 test targets are cached locally with verified coverage and hashes across 106 manifests and 9,950 parts
 all 15 member columns are retained: [train verification](../reports/learned-local-train-scores.json) · [test verification](../reports/learned-local-test-scores.json)
 the saved test pool contains 14,146,782 candidate pairs, 52.7% fewer than the earlier 29,908,767
-per-source1 mean / p50 / p95 / p99 / max: 8.1653 / 7 / 15 / 30 / 298, before final tsv validation
+validated per-source1 mean / p50 / p95 / p99 / max: 8.1653 / 7 / 15 / 30 / 298
 [complete candidate counts](../reports/learned-candidate-counts.json)
 
 the 64-core cpu handoff completed all 64 optuna trials in 216.4 seconds
 best search macro f0.5: 0.9905527681, versus 0.9903537691 for the previous winning parameters on the same new scores
 selected stack: 101 features, 182 trees; partition2 was excluded from search: [search result](../reports/learned-optuna-search.json)
-full-population stack scoring, development comparison, calibration and output validation follow
-the working first-archive estimate is 08:00–09:00 ist; development and public scores are still pending
-the historical optuna development baseline is 0.9845466096 on the same 73,752 business ids: [bound comparison](../reports/learned-comparison-baseline.json)
-real-model packaging preflight passed; local score relocation preserves data/model hashes and reproduces identical exports in its check
+full-population stack scoring, calibration and both output validators completed
+development macro f0.5 improved from 0.9845466096 to 0.9903538925 on identical 73,752 business ids: [comparison](../reports/learned-development-comparison.json)
+the archive variant adds bounded france rules: 5,823,095 matches and 14,146,782 actual candidates
+france rules change 29,986 reference rows; their isolated score effect is unmeasured because france labels are unavailable
+all other countries and the candidate file match the plain learned export: [rule delta](../reports/learned-france-rule-delta.json)
+
+ready archive: `artifacts/submission-learned/Amazites_submission.zip`, 12,393,792,563 bytes
+sha256: `db8d69c13dfd0d1584cf4f36b8f1d94afe28f122eba1e831b1c3028949b120eb`
+all 196 manifest-listed files, archive crcs, frozen scoring sources and output-file hashes passed verification
+strict and official id-enabled validators passed: [release evidence](../reports/submission-learned.json)
+public leaderboard feedback is not yet available
+
+all gpu scores, four prepared score caches, fitting/evaluation matrices, 64 trial models and the study journal are verified locally
+the complete local inventory covers 20,843 files and 30,936,099,215 logical bytes: [cpu cache check](../reports/learned-local-cpu-cache.json)
+local score relocation preserves data/model hashes and reproduces identical exports in its check
 
 ## model comparison
 

@@ -2,6 +2,19 @@
 
 research date 2026-09-26
 
+## completed learned checkpoint
+
+the learned pipeline completed all 20,289,808 train/test targets and the 64-trial cpu search
+the selected 101-feature, 182-tree stack improves development macro f0.5 from 0.9845466096 to 0.9903538925 on identical 73,752 businesses with full-target competition
+the archive uses calibrated expected-f0.5 decoding and bounded france rules: 5,823,095 matches and 14,146,782 actual pre-matcher candidates
+the candidate pool is 52.7% smaller; per-source1 mean / p99 / max are 8.1653 / 30 / 298
+france rule effects remain unmeasured without france labels; other countries and candidate files are unchanged between the two exports
+`artifacts/submission-learned/Amazites_submission.zip` passed strict and official id-enabled validation, per-file sha256 checks, archive crc checks and frozen-source verification
+all gpu scores, cpu matrices, 64 trial models, study journal and supporting assets are locally verified for further cpu-only experiments
+public leaderboard feedback is pending; the latest source update's evaluation hazards were reproduced before considering its untested additions
+
+[release](reports/submission-learned.json) · [development](reports/learned-development-comparison.json) · [search](reports/learned-optuna-search.json) · [latest source review](reports/teammate-latest-review.md)
+
 ## updated model integration
 
 the updated teammate repo adds hard-pair cross-encoders, generator-aware name features and france-specific handling. these are integrated with explicit feature/model contracts and owner-isolated validation. [implementation and checks](reports/updated-repo-integration.md). [remaining-gain research](reports/next-gains-research.md).

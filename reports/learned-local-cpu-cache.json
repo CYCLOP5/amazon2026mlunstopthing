@@ -1,0 +1,13 @@
+{
+  "best_value": 0.9905527680579262,
+  "complete": true,
+  "complete_trials": 64,
+  "feature_cache_files_verified": true,
+  "features": 101,
+  "fit_pairs": 322009,
+  "four_score_caches_rebased_and_verified": true,
+  "local_trial_models": 64,
+  "search_pairs": 2370853,
+  "search_references": 73522,
+  "stack_files_verified": true
+}

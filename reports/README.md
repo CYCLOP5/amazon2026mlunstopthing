@@ -4,6 +4,20 @@
 > only complete full-pool calibration supports a final cutoff claim
 > team-reported leaderboard results are labeled separately from offline metrics
 
+## completed learned submission
+
+- [release evidence](submission-learned.json): validated archive, output hashes, candidate counts and local-cache inventory
+- [development comparison](learned-development-comparison.json): 0.9845466096 to 0.9903538925 macro f0.5 on identical 73,752 businesses
+- [development details](learned-development.json): full-target competition and doubled-orphan stress comparisons
+- [64-trial search](learned-optuna-search.json): 0.9905527681 search macro f0.5; development references excluded
+- [candidate counts](learned-candidate-counts.json): 14,146,782 actual candidates, 52.7% fewer than the previous pool
+- [france rule delta](learned-france-rule-delta.json): changed rows restricted to france; identical candidate files
+- [local training scores](learned-local-train-scores.json), [local test scores](learned-local-test-scores.json), [local cpu cache](learned-local-cpu-cache.json): complete reusable experiment assets
+- [latest source review](teammate-latest-review.md): unvalidated additions and reproduced evaluation risks
+
+the ready archive is `artifacts/submission-learned/Amazites_submission.zip`
+the bounded france-rule variant contains 5,823,095 matches; public performance and the isolated france-rule score effect remain unmeasured
+
 ## reported results and upgraded v1
 
 upgraded v1 received a **team-reported** public leaderboard f0.5 of **0.969**
@@ -103,11 +117,10 @@ the first 13 and extended four cached gate variants did not displace the existin
 passing a smoke test establishes executable wiring and output contracts
 it does not establish competition accuracy
 
-## remaining evidence and release work
+## remaining feedback and experiments
 
-- decide whether to submit the offline logistic selection; no public score exists for it
-- if submitted, record its exact model/configuration, threshold, full test coverage, and validated matching and candidate tsvs
-- portal feedback and the updated submission-attempt count
-- finalized reproducibility artifacts and selected-model provenance
+- portal result for the learned archive and updated submission-attempt count
+- controlled cpu-only composition, calibration and france-rule comparisons using the retained scores
+- preserve per-variant output hashes and distinguish development metrics from leaderboard feedback
 
 see [arch](../docs/arch.md), [ops](../docs/ops.md), and [status](../docs/status.md)

@@ -3,11 +3,11 @@
 - **team:** amazites
 - **members:** varun jhaveri, shivsharan sanjawad, raj mathuria, aastha singh
 - **doc revision:** 2026-09-27
-- **submission date:** pending actual upload
+- **artifact date:** 2026-09-27; upload status is recorded separately
 - **submission planning cutoff:** 2026-09-27 21:00 ist / 15:30 utc
 
-> implementation-method draft
-> final variant cutoff full-pool score candidate count and archive hash must be populated from completed artifacts
+> learned pipeline archive methodology
+> development metrics and output counts below are measured from the completed run
 
 ## 1. executive summary
 
@@ -18,7 +18,7 @@ full-pool calibration selects the decoder and acceptance threshold
 the learned pipeline uses a task-trained multilingual-e5-small retriever with lexical and reverse-rank evidence
 a 103-feature lightgbm gate feeds 15 fine-tuned cross-encoders and a cpu-trained rich lightgbm stack
 the cross-encoder pool contains e5-small e5-base e5-large-instruct and bge-reranker-v2-m3 variants
-the final submitted decoder and rule variant are selected from completed artifacts
+the archive uses calibrated expected-f0.5 decoding with bounded france rules
 
 ## 2. data and problem analysis
 
@@ -76,9 +76,11 @@ dense search is exact and chunked: memory is bounded, but the reference pool is 
 billion-record approximate indexing is not claimed
 the final candidate file is the complete post-gate input to the neural matcher, including links later rejected
 
-**actual candidate pairs:** pending completed export
+**actual candidate pairs:** 14,146,782
 
-**per-s1 mean / p50 / p95 / p99 / max:** pending strict validation report
+**per-s1 mean / p50 / p95 / p99 / max:** 8.1653 / 7 / 15 / 30 / 298
+
+this is 52.7% fewer candidates than the preceding 29,908,767-pair export
 
 per-target limits are distinct from candidate counts per source1 business
 the final source1 distribution is measured directly from the output
@@ -92,15 +94,21 @@ the effective member probabilities are combined by mean logits and retained as s
 
 the rich lightgbm stack learns from raw-text features gate evidence and all 15 member columns
 cpu optuna starts from the previous selected parameters and compares 64 trials on cached features
+all 64 trials completed in 216.4 seconds; trial 31 selected 182 trees over 101 features
+the selected learning rate is 0.0537027, leaf count 63, minimum leaf size 101 and l2 penalty 5.71615
 selection uses per-reference macro f0.5 with complete truth degrees and full-target competition
 country/house-segment calibration supports density transfer and unseen-country routing
 one reference owner is selected per target before per-reference expected-f0.5 set decoding
 normal-sized sets use exact expectations; oversized groups use a bounded approximation recorded in the output metrics
 bounded france rules cover verified name transformations and soft address-number evidence; a plain export is retained for comparison
 
-**final decoder / cutoff:** pending full-pool calibration
+**final decoder / cutoff:** expected f0.5 with calibrated probability floor 0.05 and exact-set limit 64; no approximate groups were required in the final test export
 
-**final submitted variant:** pending complete variant comparison
+**archive variant:** learned stack with bounded france rules; 5,823,095 predicted links
+
+the rule layer changes 29,986 france reference rows, adding 11,737 links and dropping 22,669
+other countries and the candidate file are identical to the plain learned export
+the france-specific score effect is unmeasured because france has no labeled training counterpart
 
 ## 6. results and limitations
 
@@ -111,16 +119,19 @@ bounded france rules cover verified name transformations and soft address-number
 | adaptive gate true-link retention: about 99.77% versus 99.04% for fixed top 3 | gate holdout |
 | mean retained candidates: about 1.35 versus 3 per query | same gate holdout; final per-source1 counts measured separately |
 | prior optuna stack: macro f0.5 0.9845466096 on 73,752 businesses | earlier full-target development comparison |
+| learned stack: macro f0.5 0.9903538925 | identical 73,752 development business ids with full-target competition |
+| pair precision / recall: 0.9985613656 / 0.9726490895 | same learned development comparison |
+| learned search macro f0.5: 0.9905527681 | 73,522 search references; development partition excluded |
 | live india/us/france member-score and mean-logit checks passed | functional scoring checks |
 
-these figures are not an official or full-pool matching score
+development figures use held-out reference groups and full-target competition; they are not public leaderboard scores
 repeated generic names shared addresses and near-copy records cause false merges
 script changes shortened names weak addresses and edited numbers cause missed links
 number conflicts remain soft evidence because true pairs can contain number noise
 
-**full-pool macro f0.5:** pending
+**held-out reference macro f0.5 with full-target competition:** 0.9903538925 with empirical calibration; 0.9903176504 in the shift-corrected comparison
 
-**selected stack development:** pending
+**selected stack development:** +0.5807 percentage points over the prior empirical result on identical business ids; the doubled-orphan stress score is 0.9899530124
 
 **leaderboard feedback:** learned submission not yet uploaded; upgraded v1 previously reported public f0.5 of 0.969
 
@@ -149,7 +160,7 @@ it also reports candidate count distributions for the organizer's additional ran
 the final archive includes source uv lock local selected model snapshots tokenizer files calibration model provenance and upstream notices
 raw datasets credentials cloud caches and training feature matrices are excluded
 
-**upgraded v1 output checksums:** recorded in `reports/submission_v1.json`; both output validators passed with id checks enabled
+**output verification:** strict and official validators passed with id checks enabled for all 1,732,544 reference rows, 5,823,095 final links and 14,146,782 candidate links
 
 **final archive hash:** emitted in the external packaging receipt; the archive contains a per-file hash manifest
 
