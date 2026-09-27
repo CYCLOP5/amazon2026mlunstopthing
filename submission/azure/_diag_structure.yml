@@ -1,0 +1,32 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: amazites-diag-structure-france
+experiment_name: amazon-ml-2026
+compute: azureml:aml26-cpu-e16
+code: ..
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+environment_variables:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+inputs:
+  data:
+    type: uri_folder
+    mode: download
+    path: azureml://datastores/workspaceblobstore/paths/LocalUpload/87666a896e8207989c312af14d2bbf86d6b80b6c532449d1ae8f178d617249bf/data/
+  run6:
+    type: uri_folder
+    mode: download
+    path: azureml://datastores/workspaceblobstore/paths/azureml/tough_band_bt1xq058cg/out/experiments/stack_run6_swap_only/stack/
+outputs:
+  out:
+    type: uri_folder
+    mode: upload
+command: |
+  set -eu
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  uv venv -q --python 3.13 /tmp/venv
+  uv pip install -q --python /tmp/venv/bin/python -r requirements.txt
+  nproc; free -g
+  /tmp/venv/bin/python -u src/er/stack/diag_structure.py "${{inputs.data}}" "${{inputs.run6}}" "${{outputs.out}}"

@@ -1,0 +1,48 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: amazites-alias-graph-ranker
+experiment_name: amazon-ml-2026
+compute: azureml:amazites-graph64
+# Upload the uv project, using the repository-root .amlignore.
+code: ../..
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+environment_variables:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+inputs:
+  data:
+    type: uri_folder
+    mode: download
+    path: azureml://datastores/workspaceblobstore/paths/LocalUpload/87666a896e8207989c312af14d2bbf86d6b80b6c532449d1ae8f178d617249bf/data/
+  scores:
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/amazon-ml-2026/
+  lex:
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/azureml/clever_neck_n4rvnz0z3m/work/
+outputs:
+  out:
+    type: uri_folder
+    mode: rw_mount
+limits:
+  timeout: 21600
+resources:
+  instance_count: 1
+  shm_size: 32g
+command: >-
+  set -eu;
+  curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh;
+  export PATH="$HOME/.local/bin:$PATH";
+  uv sync --frozen;
+  ER_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen pytest business_entity_resolution/tests/test_graph.py -q --disable-warnings;
+  uv run --frozen python business_entity_resolution/scripts/run_graph.py
+  --data "${{inputs.data}}"
+  --scores "${{inputs.scores}}"
+  --lexical "${{inputs.lex}}"
+  --output "${{outputs.out}}"
+  --work "$PWD/graphwork";
+  uv run --frozen python business_entity_resolution/scripts/validate_outputs.py
+  --data "${{inputs.data}}" --output "${{outputs.out}}/output"

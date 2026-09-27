@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "files": {
+    "collective.parquet": {
+      "sha256": "88511789e4f86807b6783108f4ed33da036555cfb7c8080777483d1d8a6b3465",
+      "bytes": 171164776,
+      "rows": 20177322,
+      "columns": [
+        "qid",
+        "tid",
+        "p"
+      ],
+      "source": "azureml://datastores/workspaceblobstore/paths/azureml/amazites-model-collective-graph-20260927-04/out/test_predictions.parquet",
+      "projection": "complete test candidate pool"
+    },
+    "france.parquet": {
+      "sha256": "3fe7e3f8a0034dfa102ab9b1d19ac95cf7fee53c8d4c10328f4584eb89d296a7",
+      "bytes": 61409138,
+      "rows": 4840519,
+      "columns": [
+        "qid",
+        "tid",
+        "co",
+        "newest",
+        "friend",
+        "graph"
+      ],
+      "source": "azureml://datastores/workspaceblobstore/paths/azureml/e1279250-583f-4921-a2cf-b310ffaef6ec/out/prepared-test.parquet",
+      "source_etag": "\"0x8DF1C4F22B3F22A\"",
+      "source_bytes": 2471947742,
+      "projection": "all France candidate pairs"
+    },
+    "swap-pool.parquet": {
+      "sha256": "79bf797f99724aa7e43b1bb99e78b33aa51fe3b54322387c55774deb7fc64746",
+      "bytes": 79150832,
+      "rows": 7269734,
+      "columns": [
+        "qid",
+        "tid",
+        "p2"
+      ],
+      "source": "azureml://datastores/workspaceblobstore/paths/azureml/jolly_heart_lfccvw0y0k/out/experiments/stack_upgraded_lex/stack/test_pred.parquet",
+      "source_etag": "\"0x8DF1B664232735C\"",
+      "source_bytes": 789959364,
+      "projection": "all France candidate pairs"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+$schema: https://azuremlschemas.azureedge.net/latest/amlCompute.schema.json
+name: amazites-cpu-v4
+type: amlcompute
+size: Standard_E64ds_v4
+tier: dedicated
+min_instances: 0
+max_instances: 1
+idle_time_before_scale_down: 120

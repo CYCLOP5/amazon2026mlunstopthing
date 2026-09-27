@@ -1,0 +1,268 @@
+{
+  "scope": "read-only cached-data eda; all prevalence uses every train/test source record; labeled associations use fold0 only",
+  "constraints": {
+    "cpu_only": true,
+    "polars_streaming": true,
+    "threads": 6,
+    "memory_cap_gib": 3.75,
+    "no_fold1_inspection": true,
+    "peak_rss_gib": 1.807830810546875
+  },
+  "fullpool_context": {
+    "postgate_oracle_macro_f05": 0.9955514140602323,
+    "postgate_oracle_below_target_0_998": true,
+    "fold0_target_blank_losses": [
+      {
+        "blank_address": false,
+        "cutoff_lost": 14739,
+        "gate_lost": 2999,
+        "linked_targets": 730095,
+        "postgate_recall": 0.9958923153836144,
+        "postgate_true_targets": 727096,
+        "wrong_top1": 709,
+        "gate_loss_rate": 0.004107684616385539,
+        "wrong_top1_rate_after_gate": 0.0009751119522043856
+      },
+      {
+        "blank_address": true,
+        "cutoff_lost": 14860,
+        "gate_lost": 8081,
+        "linked_targets": 33646,
+        "postgate_recall": 0.7598228615585805,
+        "postgate_true_targets": 25565,
+        "wrong_top1": 3664,
+        "gate_loss_rate": 0.2401771384414195,
+        "wrong_top1_rate_after_gate": 0.14332094660668884
+      }
+    ]
+  },
+  "splits": {
+    "train": {
+      "reference_normalized_name_collisions_by_country": [
+        {
+          "co": "india",
+          "normalized_name_groups": 559665,
+          "reference_records": 883188,
+          "colliding_name_groups": 68593,
+          "reference_records_in_name_collisions": 392116
+        },
+        {
+          "co": "us",
+          "normalized_name_groups": 961759,
+          "reference_records": 1323633,
+          "colliding_name_groups": 112151,
+          "reference_records_in_name_collisions": 474025
+        }
+      ],
+      "target_prevalence_by_source_country": [
+        {
+          "co": "india",
+          "target_records": 2017799,
+          "blank_address_records": 57846,
+          "normalized_name_groups": 1547942,
+          "colliding_name_groups": 168216,
+          "target_records_in_name_collisions": 638073,
+          "blank_targets": 57846,
+          "blank_targets_with_reference_name": 16264,
+          "blank_targets_with_colliding_reference_name": 5351,
+          "blank_address_rate": 0.028667870288368664,
+          "normalized_name_collision_rate": 0.31622227982073536,
+          "blank_reference_name_collision_rate": 0.09250423538360475,
+          "source": 2
+        },
+        {
+          "co": "us",
+          "target_records": 3016817,
+          "blank_address_records": 111121,
+          "normalized_name_groups": 2387819,
+          "colliding_name_groups": 255758,
+          "target_records_in_name_collisions": 884756,
+          "blank_targets": 111121,
+          "blank_targets_with_reference_name": 41714,
+          "blank_targets_with_colliding_reference_name": 15129,
+          "blank_address_rate": 0.03683385502004265,
+          "normalized_name_collision_rate": 0.2932746666436844,
+          "blank_reference_name_collision_rate": 0.1361488827494353,
+          "source": 2
+        },
+        {
+          "co": "india",
+          "target_records": 2115547,
+          "blank_address_records": 64948,
+          "normalized_name_groups": 1668695,
+          "colliding_name_groups": 173366,
+          "target_records_in_name_collisions": 620218,
+          "blank_targets": 64948,
+          "blank_targets_with_reference_name": 18845,
+          "blank_targets_with_colliding_reference_name": 6913,
+          "blank_address_rate": 0.030700334239797084,
+          "normalized_name_collision_rate": 0.29317145872911354,
+          "blank_reference_name_collision_rate": 0.10643899735172753,
+          "source": 3
+        },
+        {
+          "co": "us",
+          "target_records": 3170056,
+          "blank_address_records": 110968,
+          "normalized_name_groups": 2514806,
+          "colliding_name_groups": 263075,
+          "target_records_in_name_collisions": 918325,
+          "blank_targets": 110968,
+          "blank_targets_with_reference_name": 41260,
+          "blank_targets_with_colliding_reference_name": 13226,
+          "blank_address_rate": 0.035005059847523196,
+          "normalized_name_collision_rate": 0.28968731151752525,
+          "blank_reference_name_collision_rate": 0.11918751351741043,
+          "source": 3
+        }
+      ]
+    },
+    "test": {
+      "reference_normalized_name_collisions_by_country": [
+        {
+          "co": "france",
+          "normalized_name_groups": 192254,
+          "reference_records": 259452,
+          "colliding_name_groups": 22069,
+          "reference_records_in_name_collisions": 89267
+        },
+        {
+          "co": "india",
+          "normalized_name_groups": 518593,
+          "reference_records": 809986,
+          "colliding_name_groups": 63025,
+          "reference_records_in_name_collisions": 354418
+        },
+        {
+          "co": "us",
+          "normalized_name_groups": 517095,
+          "reference_records": 663106,
+          "colliding_name_groups": 47122,
+          "reference_records_in_name_collisions": 193133
+        }
+      ],
+      "target_prevalence_by_source_country": [
+        {
+          "co": "france",
+          "target_records": 703378,
+          "blank_address_records": 21537,
+          "normalized_name_groups": 527452,
+          "colliding_name_groups": 75075,
+          "target_records_in_name_collisions": 251001,
+          "blank_targets": 21537,
+          "blank_targets_with_reference_name": 12153,
+          "blank_targets_with_colliding_reference_name": 4263,
+          "blank_address_rate": 0.0306193824657581,
+          "normalized_name_collision_rate": 0.3568507971531666,
+          "blank_reference_name_collision_rate": 0.19793843153642568,
+          "source": 2
+        },
+        {
+          "co": "india",
+          "target_records": 2312565,
+          "blank_address_records": 52764,
+          "normalized_name_groups": 1824775,
+          "colliding_name_groups": 173331,
+          "target_records_in_name_collisions": 661121,
+          "blank_targets": 52764,
+          "blank_targets_with_reference_name": 14733,
+          "blank_targets_with_colliding_reference_name": 4702,
+          "blank_address_rate": 0.022816223543986873,
+          "normalized_name_collision_rate": 0.28588212655644274,
+          "blank_reference_name_collision_rate": 0.08911378970510196,
+          "source": 2
+        },
+        {
+          "co": "us",
+          "target_records": 1871330,
+          "blank_address_records": 55107,
+          "normalized_name_groups": 1567919,
+          "colliding_name_groups": 136644,
+          "target_records_in_name_collisions": 440055,
+          "blank_targets": 55107,
+          "blank_targets_with_reference_name": 20009,
+          "blank_targets_with_colliding_reference_name": 5704,
+          "blank_address_rate": 0.029448039629568275,
+          "normalized_name_collision_rate": 0.2351562792238675,
+          "blank_reference_name_collision_rate": 0.10350772134211625,
+          "source": 2
+        },
+        {
+          "co": "france",
+          "target_records": 731615,
+          "blank_address_records": 21541,
+          "normalized_name_groups": 547140,
+          "colliding_name_groups": 76208,
+          "target_records_in_name_collisions": 260683,
+          "blank_targets": 21541,
+          "blank_targets_with_reference_name": 11530,
+          "blank_targets_with_colliding_reference_name": 3512,
+          "blank_address_rate": 0.029443081402103565,
+          "normalized_name_collision_rate": 0.356311721328841,
+          "blank_reference_name_collision_rate": 0.16303792767281,
+          "source": 3
+        },
+        {
+          "co": "india",
+          "target_records": 2405000,
+          "blank_address_records": 59240,
+          "normalized_name_groups": 1944710,
+          "colliding_name_groups": 176688,
+          "target_records_in_name_collisions": 636978,
+          "blank_targets": 59240,
+          "blank_targets_with_reference_name": 17166,
+          "blank_targets_with_colliding_reference_name": 6160,
+          "blank_address_rate": 0.024632016632016633,
+          "normalized_name_collision_rate": 0.26485571725571727,
+          "blank_reference_name_collision_rate": 0.10398379473328832,
+          "source": 3
+        },
+        {
+          "co": "us",
+          "target_records": 1945701,
+          "blank_address_records": 55317,
+          "normalized_name_groups": 1630205,
+          "colliding_name_groups": 140550,
+          "target_records_in_name_collisions": 456046,
+          "blank_targets": 55317,
+          "blank_targets_with_reference_name": 20184,
+          "blank_targets_with_colliding_reference_name": 4911,
+          "blank_address_rate": 0.028430370339533155,
+          "normalized_name_collision_rate": 0.23438647561984086,
+          "blank_reference_name_collision_rate": 0.08877921796192852,
+          "source": 3
+        }
+      ]
+    }
+  },
+  "fold0_labeled_input_associations": {
+    "exact_raw_target_input_multiple_owner_groups_by_source_country": [],
+    "linked_blank_target_reference_name_collisions_by_source_country": [
+      {
+        "co": "india",
+        "fold0_linked_blank_targets": 5696,
+        "fold0_linked_blank_targets_with_colliding_reference_name": 530,
+        "source": 2
+      },
+      {
+        "co": "us",
+        "fold0_linked_blank_targets": 10809,
+        "fold0_linked_blank_targets_with_colliding_reference_name": 1463,
+        "source": 2
+      },
+      {
+        "co": "india",
+        "fold0_linked_blank_targets": 6311,
+        "fold0_linked_blank_targets_with_colliding_reference_name": 707,
+        "source": 3
+      },
+      {
+        "co": "us",
+        "fold0_linked_blank_targets": 10830,
+        "fold0_linked_blank_targets_with_colliding_reference_name": 1315,
+        "source": 3
+      }
+    ],
+    "interpretation": "an exact group has equal country, source, raw name, and raw address across targets but multiple labeled owners. it proves target-only ambiguity; it does not alone prove identical full candidate-pair features or a global model ceiling."
+  }
+}

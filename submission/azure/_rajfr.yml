@@ -1,0 +1,41 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: amazites-targeted-rule-on-raj-fusion
+experiment_name: amazon-ml-2026
+compute: azureml:aml26-cpu-e16
+code: ..
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+environment_variables:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+inputs:
+  acc:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/azureml/1e2ecccd-ac04-456e-8266-ddae08ce5f26/out/accepted_test.parquet
+  cand:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/azureml/1e2ecccd-ac04-456e-8266-ddae08ce5f26/out/output/candidate_pairs.tsv
+  pool:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/azureml/jolly_heart_lfccvw0y0k/out/experiments/stack_upgraded_lex/stack/test_pred.parquet
+  ds:
+    type: uri_folder
+    path: _scan_inputs/ds
+  ref:
+    type: uri_file
+    path: _scan_inputs/test_ref.parquet
+outputs:
+  out:
+    type: uri_folder
+    mode: upload
+command: |
+  set -eu
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  uv venv -q --python 3.13 /tmp/venv
+  uv pip install -q --python /tmp/venv/bin/python -r requirements.txt
+  nproc; free -g
+  /tmp/venv/bin/python -u src/er/stack/france_swaps.py --accepted "${{inputs.acc}}" --pool-pred "${{inputs.pool}}" \
+    --dataset "${{inputs.ds}}" --test-ref "${{inputs.ref}}" --candidates "${{inputs.cand}}" --out "${{outputs.out}}" --level 1
+  md5sum "${{outputs.out}}/matching_results.tsv"

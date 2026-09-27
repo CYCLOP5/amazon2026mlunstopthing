@@ -1,0 +1,69 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: amazites-france-v2stack-mix
+experiment_name: amazon-ml-2026
+compute: azureml:amazites-shiv-e32
+code: ..
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+environment_variables:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+inputs:
+  train:
+    type: uri_file
+    mode: download
+    path: azureml://datastores/workspaceblobstore/paths/azureml/c4da719f-d934-45ca-84a7-738a0810e1a8/out/prepared-train.parquet
+  test:
+    type: uri_file
+    mode: download
+    path: azureml://datastores/workspaceblobstore/paths/azureml/e1279250-583f-4921-a2cf-b310ffaef6ec/out/prepared-test.parquet
+  data:
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/LocalUpload/34424852455351d9d8c06dba0370c88bccc8b762e34f31033722ffd91d6c7a36/learned-assets/data/
+  run6:
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/azureml/tough_band_bt1xq058cg/out/experiments/stack_run6_swap_only/stack/
+  fus:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/azureml/1e2ecccd-ac04-456e-8266-ddae08ce5f26/out/accepted_test.parquet
+  cand:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/azureml/1e2ecccd-ac04-456e-8266-ddae08ce5f26/out/output/candidate_pairs.tsv
+  pool:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/azureml/jolly_heart_lfccvw0y0k/out/experiments/stack_upgraded_lex/stack/test_pred.parquet
+  targeted:
+    type: uri_file
+    path: _scan_inputs/targeted_accepted.parquet
+  ds:
+    type: uri_folder
+    path: _scan_inputs/ds
+  ref:
+    type: uri_file
+    path: _scan_inputs/test_ref.parquet
+outputs:
+  out:
+    type: uri_folder
+    mode: upload
+resources:
+  instance_count: 1
+  shm_size: 32g
+command: |
+  set -eu
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  uv venv -q --python 3.13 /tmp/venv
+  uv pip install -q --python /tmp/venv/bin/python -r requirements.txt
+  nproc; free -g
+  O="${{outputs.out}}"
+  /tmp/venv/bin/python -u src/er/stack/france_mix.py --train "${{inputs.train}}" --test "${{inputs.test}}" \
+    --data "${{inputs.data}}" --run6 "${{inputs.run6}}" --fusion-accepted "${{inputs.fus}}" \
+    --targeted "${{inputs.targeted}}" --out "$O"
+  for v in v2 mix mix3 run6; do
+    /tmp/venv/bin/python -u src/er/stack/france_swaps.py --accepted "$O/accepted_$v.parquet" --pool-pred "${{inputs.pool}}" \
+      --dataset "${{inputs.ds}}" --test-ref "${{inputs.ref}}" --candidates "${{inputs.cand}}" --out "$O/rule_$v" --level 1
+    md5sum "$O/rule_$v/matching_results.tsv"
+  done

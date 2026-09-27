@@ -1,4 +1,4 @@
-"""out-of-sample pairwise stack with raw-text and full-corpus evidence"""
+'out-of-sample pairwise stack with raw-text and full-corpus evidence'
 import argparse as ap
 import hashlib as hh
 import json
@@ -56,7 +56,7 @@ def matrix(frame, state, targets, threads, name_change=False, neural_columns=())
         queries = targets.select(pl.all().gather(ids))
         pairs = d.select("qid", "tid").with_columns(pl.lit(0., pl.Float32).alias("ns"), pl.lit(0., pl.Float32).alias("ads"))
         x, _ = maker.make(state, queries, pairs, threads)
-        # cached scores lack retrieval features; discard every placeholder-derived column
+
         parts.append(np.column_stack((x[:, 13:], post.logit(d["gate_prob"].to_numpy()),
                                       post.logit(d["neural_prob"].to_numpy()),
                                       *[post.logit(d[c].to_numpy()) for c in neural_columns])).astype(np.float32))
@@ -68,19 +68,19 @@ def fit_params(threads, file=None):
               "max_depth": 6, "min_data_in_leaf": 100, "lambda_l2": 10., "bagging_fraction": .8,
               "bagging_freq": 1, "feature_fraction": .9, "seed": 19, "num_threads": threads, "verbosity": -1}
     if file is not None:
-        selected = infer._json(file)
-        if "best" in selected:
-            selected = selected["best"]["details"]["training_params"]
+        sel = infer._json(file)
+        if "best" in sel:
+            sel = sel["best"]["details"]["training_params"]
         else:
-            selected = selected.get("params", selected)
+            sel = sel.get("params", sel)
         allowed = set(params) | {"deterministic", "force_col_wise", "lambda_l1", "min_gain_to_split",
                                  "min_sum_hessian_in_leaf", "scale_pos_weight", "feature_fraction_bynode",
                                  "max_bin", "path_smooth", "extra_trees", "feature_contri"}
-        if not isinstance(selected, dict) or not selected or set(selected) - allowed:
+        if not isinstance(sel, dict) or not sel or set(sel) - allowed:
             raise ValueError("invalid or unsupported stack parameters")
-        if selected.get("objective", "binary") != "binary":
+        if sel.get("objective", "binary") != "binary":
             raise ValueError("stack parameters require a binary objective")
-        params.update(selected)
+        params.update(sel)
         params["num_threads"] = threads
     return params
 
@@ -88,15 +88,15 @@ def fit_params(threads, file=None):
 def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False, parameters=None):
     params = fit_params(threads, parameters)
     prepared, out, cache = path(prepared), path(out), path(cache)
-    source = post.verified(prepared, "train")
-    config = source.get("config") or infer._json(path(source["runs"][0]["path"]) / "manifest.json")["config"]
+    src = post.verified(prepared, "train")
+    config = src.get("config") or infer._json(path(src["runs"][0]["path"]) / "manifest.json")["config"]
     name_change = config.get("gate", {}).get("feature_backend") == "hybrid-v3"
     neural_columns = config.get("neural", {}).get("score_columns", [])
     fs = feature_names(name_change, neural_columns)
     maker = gfeat if name_change else rfeat
-    if source.get("stack_model") or out.exists():
+    if src.get("stack_model") or out.exists():
         raise ValueError("stack fitting needs base scores and a new output")
-    data = path(source["data"])
+    data = path(src["data"])
     refs = pl.read_parquet(data / "train/ref.parquet")
     folds = refs["fold"].to_numpy()
     fit_refs = refs.filter((pl.col("fold") == 0) & pl.Series(post.partition(refs["rid"].to_numpy(), 3) == 0)).select(
@@ -111,7 +111,7 @@ def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False
     sample = sample_targets(tid)
     take = eligible & ((label == 1) | hard | sample)
     frame = frame.filter(pl.Series(take)).sort("qid", "tid")
-    # align weights after the deterministic pair sort
+
     frame = frame.with_columns(pl.when((pl.col("y") == 0) & (pl.max_horizontal("gate_prob", "neural_prob") < .1))
                                .then(20.).otherwise(1.).alias("weight"))
     if frame["y"].n_unique() != 2:
@@ -132,8 +132,8 @@ def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False
         raise ValueError("inner stack split has insufficient labels")
     np.savez_compressed(out / "fit.npz", x=x, y=y, weight=weight, train=train_mask, valid=val_mask)
     cache_info = {"version": 1, "kind": "stack-fit-cache", "features": fs, "name_change": name_change, "neural_columns": neural_columns,
-                  "source_config_sha256": source["config_sha256"],
-                  "data_meta_sha256": source["data_meta_sha256"], "source_scores_sha256": source["score_sha256"],
+                  "source_config_sha256": src["config_sha256"],
+                  "data_meta_sha256": src["data_meta_sha256"], "source_scores_sha256": src["score_sha256"],
                   "fit_pairs": len(frame), "fit_positive": int(y.sum()), "fit_sha256": infer._sha(out / "fit.npz"),
                   "normalizer_sha256": infer._sha(out / "normalizer.json")}
     infer._write(out / "cache.json", cache_info)
@@ -148,8 +148,8 @@ def fit(prepared, normalizer, out, cache, threads=8, trees=400, cache_only=False
     model.save_model(out / "lgb.txt")
     metadata = {"version": 1, "kind": "postgate-pairwise-rich-stack", "features": fs,
                  "name_change": name_change, "neural_columns": neural_columns,
-                "source_config_sha256": source["config_sha256"], "data_meta_sha256": source["data_meta_sha256"],
-                "source_scores_sha256": source["score_sha256"], "fit_pairs": len(frame), "fit_positive": int(y.sum()),
+                "source_config_sha256": src["config_sha256"], "data_meta_sha256": src["data_meta_sha256"],
+                "source_scores_sha256": src["score_sha256"], "fit_pairs": len(frame), "fit_positive": int(y.sum()),
                 "fit_partition": {"modulus": 3, "remainder": 0}, "calibration_partition": {"modulus": 3, "remainder": 1},
                 "validation_partition": {"modulus": 3, "remainder": 2}, "base_development_reuse": "fold0 used in prior base-model development",
                 "inner_split": "owner/reference disjoint 1-in-5 groups inside fitting partition; refit fitting partition after early stopping",
@@ -177,12 +177,12 @@ def bundle(root):
 
 def score(prepared, model_dir, out, cache, threads=8):
     prepared, model_dir, out = path(prepared), path(model_dir), path(out)
-    source = post.verified(prepared)
+    src = post.verified(prepared)
     meta, digest = bundle(model_dir)
-    if (source.get("stack_model") or source["config_sha256"] != meta["source_config_sha256"] or
-            source["data_meta_sha256"] != meta["data_meta_sha256"] or out.exists()):
+    if (src.get("stack_model") or src["config_sha256"] != meta["source_config_sha256"] or
+            src["data_meta_sha256"] != meta["data_meta_sha256"] or out.exists()):
         raise ValueError("stack input configuration mismatch or existing output")
-    data, split = path(source["data"]), source["split"]
+    data, split = path(src["data"]), src["split"]
     refs = pl.read_parquet(data / split / "ref.parquet")
     name_change, neural_columns = meta.get("name_change", False), meta.get("neural_columns", [])
     maker = gfeat if name_change else rfeat
@@ -214,27 +214,27 @@ def score(prepared, model_dir, out, cache, threads=8):
     finally:
         if writer is not None:
             writer.close()
-    if rows != source["pairs"]:
+    if rows != src["pairs"]:
         raise ValueError("stack score coverage changed")
     tmp.replace(out)
-    config = source.get("config") or infer._json(path(source["runs"][0]["path"]) / "manifest.json")["config"]
+    config = src.get("config") or infer._json(path(src["runs"][0]["path"]) / "manifest.json")["config"]
     config = {**config, "stack": {"sha256": digest, "kind": meta["kind"]}}
     config["model"] = {"sha256": hh.sha256(json.dumps({"base": config["model"]["sha256"], "stack": digest}, sort_keys=True).encode()).hexdigest()}
-    source = {**source, "config": config, "config_sha256": hh.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest(),
-              "parent_scores_sha256": source["score_sha256"], "score_sha256": infer._sha(out),
+    src = {**src, "config": config, "config_sha256": hh.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest(),
+              "parent_scores_sha256": src["score_sha256"], "score_sha256": infer._sha(out),
               "stack_model": {"sha256": digest, "kind": meta["kind"]}, "calibration_partition": meta["calibration_partition"],
               "validation_partition": meta["validation_partition"], "rescored_pairs": scored, "rescore_seconds": time.monotonic() - start}
     if split == "train":
         fit_refs = refs.filter((pl.col("fold") == 0) & pl.Series(post.partition(refs["rid"].to_numpy(), 3) == 1))
-        source["fit_reference_counts"] = dict(fit_refs.group_by("co").len().iter_rows())
-    infer._write(out.with_suffix(".json"), source)
-    return source
+        src["fit_reference_counts"] = dict(fit_refs.group_by("co").len().iter_rows())
+    infer._write(out.with_suffix(".json"), src)
+    return src
 
 
 def check():
-    selected = path(__file__).resolve().parents[1] / "reports/optuna-search.json"
-    expected = infer._json(selected)["best"]["details"]["training_params"]
-    assert fit_params(12, selected) == {**expected, "num_threads": 12}
+    sel = path(__file__).resolve().parents[1] / "reports/optuna-search.json"
+    exp = infer._json(sel)["best"]["details"]["training_params"]
+    assert fit_params(12, sel) == {**exp, "num_threads": 12}
     assert fit_params(12)["num_leaves"] == 31
     q = np.arange(1000)
     a, b, c = (set(q[post.partition(q, 3) == i]) for i in range(3))

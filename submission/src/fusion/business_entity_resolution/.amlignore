@@ -1,0 +1,6 @@
+work/
+experiments/
+smoke/
+.venv/
+__pycache__/
+*.pyc

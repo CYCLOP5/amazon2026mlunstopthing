@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "training_protocol": "target_group_competition",
+  "incumbent_job": "amazites-latest-fusion-20260927-01",
+  "incumbent_matching_sha256": "1d1196df3840ced54b7b1af1f2e7649990d0c6183302f184eddcbda4da1ec00c",
+  "leaderboard_user_reported": 0.98805,
+  "countries": ["india", "us"],
+  "pool_score_floor": 0.05,
+  "minimum_fit_positive": 30,
+  "minimum_fit_negative": 100,
+  "minimum_actions": 10,
+  "minimum_family_actions": 5,
+  "minimum_head_margin": 0.02,
+  "orphan_fraction": 0.3333333333333333,
+  "folds": 3,
+  "rounds": 600,
+  "early_stopping": 40,
+  "lgbm": {
+    "objective": "binary", "metric": "binary_logloss",
+    "num_leaves": 31, "max_depth": 8, "min_data_in_leaf": 30,
+    "learning_rate": 0.035, "feature_fraction": 0.85,
+    "bagging_fraction": 0.9, "bagging_freq": 1, "lambda_l2": 25,
+    "deterministic": true, "force_col_wise": true, "verbosity": -1
+  },
+  "notes": "Preserve competition for targets owned by fit owners; protect calibration/search/check candidate owners. Group-heldout fitting with explicitly documented negative-reference reuse. Separate addressed/unique-name risk calibration. All incumbent matches and France preserved; zero observed added false positives required. Existing neural parameter-count concern is unchanged."
+}

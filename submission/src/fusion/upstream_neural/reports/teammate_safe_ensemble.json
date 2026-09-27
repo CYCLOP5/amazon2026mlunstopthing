@@ -1,0 +1,492 @@
+{
+  "scope": "fair no-S1 54-column comparison on cached rows only; full LGB_A is reported separately as potentially sampler-biased",
+  "feature_exclusion_verification": {
+    "retained_feature_count": 54,
+    "metadata_alias_violations": []
+  },
+  "fit": {
+    "lgb_a": {
+      "best_iteration": 248,
+      "round_cap": 800,
+      "early_stopping_rounds": 100
+    },
+    "lgb_b": {
+      "best_iteration": 432,
+      "round_cap": 800,
+      "early_stopping_rounds": 100
+    },
+    "xgb_a": {
+      "initial_round_cap": 800,
+      "initial_best_iteration": 753,
+      "final_round_cap": 800,
+      "best_iteration": 753,
+      "early_stopping_rounds": 100
+    }
+  },
+  "matched_precision_target_top1": {
+    "full_lgb_a_potentially_sampler_biased": {
+      "target_top1_candidates": 17827,
+      "denominator_all_selected_positive_owners": 13827,
+      "0.990": {
+        "score_cut": 0.03833290562033653,
+        "selected_pairs": 13433,
+        "true_positive_pairs": 13308,
+        "pair_precision": 0.9906945581776223,
+        "pair_recall_all_selected_positive_owners": 0.9624647428943371
+      },
+      "0.995": {
+        "score_cut": 0.13190428912639618,
+        "selected_pairs": 13358,
+        "true_positive_pairs": 13293,
+        "pair_precision": 0.9951340020961221,
+        "pair_recall_all_selected_positive_owners": 0.9613799088739423
+      },
+      "0.999": {
+        "score_cut": 0.8305726051330566,
+        "selected_pairs": 13222,
+        "true_positive_pairs": 13209,
+        "pair_precision": 0.9990167901981546,
+        "pair_recall_all_selected_positive_owners": 0.955304838359731
+      }
+    },
+    "lgb_a_no_s1_aggregate": {
+      "target_top1_candidates": 17827,
+      "denominator_all_selected_positive_owners": 13827,
+      "0.990": {
+        "score_cut": 0.6644858121871948,
+        "selected_pairs": 12943,
+        "true_positive_pairs": 12817,
+        "pair_precision": 0.9902650081124933,
+        "pair_recall_all_selected_positive_owners": 0.9269545092934114
+      },
+      "0.995": {
+        "score_cut": 0.8535693287849426,
+        "selected_pairs": 12675,
+        "true_positive_pairs": 12612,
+        "pair_precision": 0.9950295857988166,
+        "pair_recall_all_selected_positive_owners": 0.9121284443480148
+      },
+      "0.999": {
+        "score_cut": 0.9818276762962341,
+        "selected_pairs": 11756,
+        "true_positive_pairs": 11745,
+        "pair_precision": 0.9990643075876149,
+        "pair_recall_all_selected_positive_owners": 0.8494250379691907
+      }
+    },
+    "current_lgb": {
+      "target_top1_candidates": 17827,
+      "denominator_all_selected_positive_owners": 13827,
+      "0.990": {
+        "score_cut": 0.8427618145942688,
+        "selected_pairs": 12039,
+        "true_positive_pairs": 11920,
+        "pair_precision": 0.9901154580945262,
+        "pair_recall_all_selected_positive_owners": 0.8620814348737976
+      },
+      "0.995": {
+        "score_cut": 0.9502180814743042,
+        "selected_pairs": 11007,
+        "true_positive_pairs": 10952,
+        "pair_precision": 0.9950031797946761,
+        "pair_recall_all_selected_positive_owners": 0.7920734794243147
+      },
+      "0.999": {
+        "score_cut": 0.9948598146438599,
+        "selected_pairs": 5537,
+        "true_positive_pairs": 5532,
+        "pair_precision": 0.9990969839263139,
+        "pair_recall_all_selected_positive_owners": 0.4000867867216316
+      }
+    },
+    "current_cat": {
+      "target_top1_candidates": 17827,
+      "denominator_all_selected_positive_owners": 13827,
+      "0.990": {
+        "score_cut": 0.7931430339813232,
+        "selected_pairs": 12279,
+        "true_positive_pairs": 12157,
+        "pair_precision": 0.990064337486766,
+        "pair_recall_all_selected_positive_owners": 0.8792218123960367
+      },
+      "0.995": {
+        "score_cut": 0.9007845520973206,
+        "selected_pairs": 11658,
+        "true_positive_pairs": 11600,
+        "pair_precision": 0.9950248756218906,
+        "pair_recall_all_selected_positive_owners": 0.8389383091053736
+      },
+      "0.999": {
+        "score_cut": 0.9946021437644958,
+        "selected_pairs": 7848,
+        "true_positive_pairs": 7841,
+        "pair_precision": 0.9991080530071356,
+        "pair_recall_all_selected_positive_owners": 0.5670789035944167
+      }
+    },
+    "lgb_b_no_s1_aggregate": {
+      "target_top1_candidates": 17827,
+      "denominator_all_selected_positive_owners": 13827,
+      "0.990": {
+        "score_cut": 0.6702283580171343,
+        "selected_pairs": 12942,
+        "true_positive_pairs": 12816,
+        "pair_precision": 0.9902642559109874,
+        "pair_recall_all_selected_positive_owners": 0.9268821870253852
+      },
+      "0.995": {
+        "score_cut": 0.8384817339572892,
+        "selected_pairs": 12680,
+        "true_positive_pairs": 12617,
+        "pair_precision": 0.9950315457413249,
+        "pair_recall_all_selected_positive_owners": 0.9124900556881463
+      },
+      "0.999": {
+        "score_cut": 0.9783546330495497,
+        "selected_pairs": 11690,
+        "true_positive_pairs": 11679,
+        "pair_precision": 0.9990590248075278,
+        "pair_recall_all_selected_positive_owners": 0.8446517682794532
+      }
+    },
+    "xgb_a_no_s1_aggregate": {
+      "target_top1_candidates": 17827,
+      "denominator_all_selected_positive_owners": 13827,
+      "0.990": {
+        "score_cut": 0.6756157875061035,
+        "selected_pairs": 12909,
+        "true_positive_pairs": 12780,
+        "pair_precision": 0.9900069718800837,
+        "pair_recall_all_selected_positive_owners": 0.9242785853764374
+      },
+      "0.995": {
+        "score_cut": 0.8671565651893616,
+        "selected_pairs": 12573,
+        "true_positive_pairs": 12511,
+        "pair_precision": 0.9950687982184045,
+        "pair_recall_all_selected_positive_owners": 0.9048238952773558
+      },
+      "0.999": {
+        "score_cut": 0.9809896349906921,
+        "selected_pairs": 11323,
+        "true_positive_pairs": 11312,
+        "pair_precision": 0.9990285260090083,
+        "pair_recall_all_selected_positive_owners": 0.8181094959137919
+      }
+    },
+    "mean_no_s1_aggregate": {
+      "target_top1_candidates": 17827,
+      "denominator_all_selected_positive_owners": 13827,
+      "0.990": {
+        "score_cut": 0.6249333448752777,
+        "selected_pairs": 12980,
+        "true_positive_pairs": 12852,
+        "pair_precision": 0.9901386748844376,
+        "pair_recall_all_selected_positive_owners": 0.9294857886743328
+      },
+      "0.995": {
+        "score_cut": 0.8221996489685158,
+        "selected_pairs": 12681,
+        "true_positive_pairs": 12618,
+        "pair_precision": 0.9950319375443577,
+        "pair_recall_all_selected_positive_owners": 0.9125623779561727
+      },
+      "0.999": {
+        "score_cut": 0.9751820494410529,
+        "selected_pairs": 11719,
+        "true_positive_pairs": 11708,
+        "pair_precision": 0.999061353357795,
+        "pair_recall_all_selected_positive_owners": 0.8467491140522166
+      }
+    }
+  },
+  "fixed_cut_target_top1": {
+    "full_and_baselines": {
+      "full_lgb_a_potentially_sampler_biased": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13286,
+          "true_positive_pairs": 13256,
+          "pair_precision": 0.9977419840433539,
+          "pair_recall_all_selected_positive_owners": 0.9587039849569683
+        },
+        "0.80": {
+          "selected_pairs": 13224,
+          "true_positive_pairs": 13210,
+          "pair_precision": 0.9989413188142771,
+          "pair_recall_all_selected_positive_owners": 0.9553771606277572
+        },
+        "0.90": {
+          "selected_pairs": 13185,
+          "true_positive_pairs": 13174,
+          "pair_precision": 0.9991657186196435,
+          "pair_recall_all_selected_positive_owners": 0.9527735589788096
+        },
+        "0.95": {
+          "selected_pairs": 13131,
+          "true_positive_pairs": 13124,
+          "pair_precision": 0.9994669103647856,
+          "pair_recall_all_selected_positive_owners": 0.9491574455774933
+        },
+        "0.99": {
+          "selected_pairs": 12926,
+          "true_positive_pairs": 12924,
+          "pair_precision": 0.9998452730929909,
+          "pair_recall_all_selected_positive_owners": 0.9346929919722282
+        }
+      },
+      "lgb_a_no_s1_aggregate": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13133,
+          "true_positive_pairs": 12917,
+          "pair_precision": 0.983552882052844,
+          "pair_recall_all_selected_positive_owners": 0.934186736096044
+        },
+        "0.80": {
+          "selected_pairs": 12790,
+          "true_positive_pairs": 12709,
+          "pair_precision": 0.993666927286943,
+          "pair_recall_all_selected_positive_owners": 0.9191437043465683
+        },
+        "0.90": {
+          "selected_pairs": 12542,
+          "true_positive_pairs": 12491,
+          "pair_precision": 0.9959336628926806,
+          "pair_recall_all_selected_positive_owners": 0.9033774499168294
+        },
+        "0.95": {
+          "selected_pairs": 12295,
+          "true_positive_pairs": 12264,
+          "pair_precision": 0.9974786498576658,
+          "pair_recall_all_selected_positive_owners": 0.8869602950748535
+        },
+        "0.99": {
+          "selected_pairs": 11359,
+          "true_positive_pairs": 11353,
+          "pair_precision": 0.9994717844880712,
+          "pair_recall_all_selected_positive_owners": 0.8210747089028712
+        }
+      },
+      "current_lgb": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13030,
+          "true_positive_pairs": 12614,
+          "pair_precision": 0.9680736761320031,
+          "pair_recall_all_selected_positive_owners": 0.9122730888840674
+        },
+        "0.80": {
+          "selected_pairs": 12222,
+          "true_positive_pairs": 12075,
+          "pair_precision": 0.9879725085910653,
+          "pair_recall_all_selected_positive_owners": 0.8732913864178781
+        },
+        "0.90": {
+          "selected_pairs": 11686,
+          "true_positive_pairs": 11604,
+          "pair_precision": 0.9929830566489817,
+          "pair_recall_all_selected_positive_owners": 0.8392275981774788
+        },
+        "0.95": {
+          "selected_pairs": 11010,
+          "true_positive_pairs": 10954,
+          "pair_precision": 0.994913714804723,
+          "pair_recall_all_selected_positive_owners": 0.7922181239603674
+        },
+        "0.99": {
+          "selected_pairs": 8226,
+          "true_positive_pairs": 8212,
+          "pair_precision": 0.9982980792608801,
+          "pair_recall_all_selected_positive_owners": 0.5939104650321834
+        }
+      },
+      "current_cat": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13001,
+          "true_positive_pairs": 12676,
+          "pair_precision": 0.9750019229290054,
+          "pair_recall_all_selected_positive_owners": 0.9167570695016996
+        },
+        "0.80": {
+          "selected_pairs": 12245,
+          "true_positive_pairs": 12128,
+          "pair_precision": 0.9904450796243365,
+          "pair_recall_all_selected_positive_owners": 0.8771244666232733
+        },
+        "0.90": {
+          "selected_pairs": 11667,
+          "true_positive_pairs": 11607,
+          "pair_precision": 0.9948572897917203,
+          "pair_recall_all_selected_positive_owners": 0.8394445649815578
+        },
+        "0.95": {
+          "selected_pairs": 11026,
+          "true_positive_pairs": 10988,
+          "pair_precision": 0.9965536005804462,
+          "pair_recall_all_selected_positive_owners": 0.7946770810732624
+        },
+        "0.99": {
+          "selected_pairs": 8884,
+          "true_positive_pairs": 8872,
+          "pair_precision": 0.9986492570914003,
+          "pair_recall_all_selected_positive_owners": 0.6416431619295581
+        }
+      }
+    },
+    "no_s1_components_and_mean": {
+      "lgb_a_no_s1_aggregate": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13133,
+          "true_positive_pairs": 12917,
+          "pair_precision": 0.983552882052844,
+          "pair_recall_all_selected_positive_owners": 0.934186736096044
+        },
+        "0.80": {
+          "selected_pairs": 12790,
+          "true_positive_pairs": 12709,
+          "pair_precision": 0.993666927286943,
+          "pair_recall_all_selected_positive_owners": 0.9191437043465683
+        },
+        "0.90": {
+          "selected_pairs": 12542,
+          "true_positive_pairs": 12491,
+          "pair_precision": 0.9959336628926806,
+          "pair_recall_all_selected_positive_owners": 0.9033774499168294
+        },
+        "0.95": {
+          "selected_pairs": 12295,
+          "true_positive_pairs": 12264,
+          "pair_precision": 0.9974786498576658,
+          "pair_recall_all_selected_positive_owners": 0.8869602950748535
+        },
+        "0.99": {
+          "selected_pairs": 11359,
+          "true_positive_pairs": 11353,
+          "pair_precision": 0.9994717844880712,
+          "pair_recall_all_selected_positive_owners": 0.8210747089028712
+        }
+      },
+      "lgb_b_no_s1_aggregate": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13137,
+          "true_positive_pairs": 12924,
+          "pair_precision": 0.9837862525690797,
+          "pair_recall_all_selected_positive_owners": 0.9346929919722282
+        },
+        "0.80": {
+          "selected_pairs": 12766,
+          "true_positive_pairs": 12684,
+          "pair_precision": 0.9935766880777064,
+          "pair_recall_all_selected_positive_owners": 0.9173356476459101
+        },
+        "0.90": {
+          "selected_pairs": 12506,
+          "true_positive_pairs": 12460,
+          "pair_precision": 0.9963217655525348,
+          "pair_recall_all_selected_positive_owners": 0.9011354596080133
+        },
+        "0.95": {
+          "selected_pairs": 12210,
+          "true_positive_pairs": 12188,
+          "pair_precision": 0.9981981981981982,
+          "pair_recall_all_selected_positive_owners": 0.8814638027048528
+        },
+        "0.99": {
+          "selected_pairs": 11080,
+          "true_positive_pairs": 11074,
+          "pair_precision": 0.9994584837545126,
+          "pair_recall_all_selected_positive_owners": 0.8008967961235265
+        }
+      },
+      "xgb_a_no_s1_aggregate": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13108,
+          "true_positive_pairs": 12895,
+          "pair_precision": 0.9837503814464449,
+          "pair_recall_all_selected_positive_owners": 0.9325956461994648
+        },
+        "0.80": {
+          "selected_pairs": 12720,
+          "true_positive_pairs": 12636,
+          "pair_precision": 0.9933962264150943,
+          "pair_recall_all_selected_positive_owners": 0.9138641787806465
+        },
+        "0.90": {
+          "selected_pairs": 12441,
+          "true_positive_pairs": 12394,
+          "pair_precision": 0.9962221686359617,
+          "pair_recall_all_selected_positive_owners": 0.8963621899182759
+        },
+        "0.95": {
+          "selected_pairs": 12081,
+          "true_positive_pairs": 12055,
+          "pair_precision": 0.9978478602764672,
+          "pair_recall_all_selected_positive_owners": 0.8718449410573516
+        },
+        "0.99": {
+          "selected_pairs": 10650,
+          "true_positive_pairs": 10644,
+          "pair_precision": 0.9994366197183099,
+          "pair_recall_all_selected_positive_owners": 0.7697982208722065
+        }
+      },
+      "mean_no_s1_aggregate": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13127,
+          "true_positive_pairs": 12924,
+          "pair_precision": 0.9845356897996496,
+          "pair_recall_all_selected_positive_owners": 0.9346929919722282
+        },
+        "0.80": {
+          "selected_pairs": 12723,
+          "true_positive_pairs": 12650,
+          "pair_precision": 0.9942623595064057,
+          "pair_recall_all_selected_positive_owners": 0.9148766905330151
+        },
+        "0.90": {
+          "selected_pairs": 12483,
+          "true_positive_pairs": 12438,
+          "pair_precision": 0.996395097332372,
+          "pair_recall_all_selected_positive_owners": 0.8995443697114341
+        },
+        "0.95": {
+          "selected_pairs": 12154,
+          "true_positive_pairs": 12133,
+          "pair_precision": 0.9982721737699523,
+          "pair_recall_all_selected_positive_owners": 0.8774860779634049
+        },
+        "0.99": {
+          "selected_pairs": 10937,
+          "true_positive_pairs": 10931,
+          "pair_precision": 0.9994514034927311,
+          "pair_recall_all_selected_positive_owners": 0.7905547117957619
+        }
+      }
+    }
+  },
+  "optional_original_44_lgb_a": {
+    "status": "not_run",
+    "reason": "no cached exact pooled 44-column matrix; raw feature regeneration prohibited"
+  },
+  "files": {
+    "scores": "no_s1_ensemble_scores.parquet",
+    "lgb_b": "models/lgb_b_no_s1_aggregate.txt",
+    "xgb_a": "models/xgb_a_no_s1_aggregate.json",
+    "conclusions": "conclusions.md"
+  },
+  "sampler_bias_caveat": "No-S1 is safer for this sampled-query confound, but does not establish full-domain generalization or invalidate S1 aggregates recomputed over the complete corpus."
+}

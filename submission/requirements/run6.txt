@@ -1,0 +1,13 @@
+# environment for the lexical and run-6 training stages, python 3.13
+# The other two parts pin their own environments:
+#   src/neural_v2 : Python 3.11.16, pyproject.toml + uv.lock   (uv sync --frozen --group neural --group cloud)
+#   src/fusion    : Python 3.13,    pyproject.toml + uv.lock + requirements.txt (exact lockfile export)
+polars==1.44.2          # MIT        - data processing
+numpy==2.5.3            # BSD-3
+scipy==1.18.1           # BSD-3      - sparse matrices
+lightgbm==4.7.0         # MIT        - stacker
+scikit-learn==1.9.1     # BSD-3
+rapidfuzz==3.14.6       # MIT        - string similarity features
+unidecode==1.4.0        # GPL-2.0+   - transliteration utility (library, not a model)
+sparse-dot-topn==1.2.0  # Apache-2.0 - top-n sparse matrix product for blocking
+psutil==7.2.2           # BSD-3      - RAM guard

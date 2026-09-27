@@ -1,0 +1,235 @@
+{
+  "scope": "full fixed lexical benchmark candidate coverage paired with cached Azure validation neural scores; selected-query diagnostic only, not official full-pool validation",
+  "coverage": {
+    "gate_pairs": 716835,
+    "neural_pairs": 1508516,
+    "joined_pairs": 716835,
+    "missing_neural_pairs": 0,
+    "label_mismatch_pairs": 0,
+    "gate_targets": 17827,
+    "neural_targets": 17827,
+    "missing_examples": [],
+    "label_mismatch_examples": []
+  },
+  "blend": {
+    "function": "match._blend",
+    "method": "weighted_logit",
+    "neural_weight": 0.6
+  },
+  "ranking": {
+    "gate_top_k": 3,
+    "function": "match._top",
+    "ties": "gate descending then qid ascending"
+  },
+  "denominator_all_selected_positive_owners": 13827,
+  "variants": {
+    "current_mean_gate": {
+      "gate_columns": [
+        "current_lgb",
+        "current_cat"
+      ],
+      "gate_true_owner_retention_top3": 0.9602950748535474,
+      "top3_rows": 53481,
+      "top1_rows": 17827,
+      "fixed_cut_target_top1": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13195,
+          "true_positive_pairs": 13033,
+          "pair_precision": 0.9877226222053809,
+          "pair_recall_all_selected_positive_owners": 0.9425761191870977
+        },
+        "0.80": {
+          "selected_pairs": 12856,
+          "true_positive_pairs": 12780,
+          "pair_precision": 0.9940883634100809,
+          "pair_recall_all_selected_positive_owners": 0.9242785853764374
+        },
+        "0.90": {
+          "selected_pairs": 12551,
+          "true_positive_pairs": 12502,
+          "pair_precision": 0.9960959286112661,
+          "pair_recall_all_selected_positive_owners": 0.9041729948651189
+        },
+        "0.95": {
+          "selected_pairs": 12257,
+          "true_positive_pairs": 12229,
+          "pair_precision": 0.9977155910908052,
+          "pair_recall_all_selected_positive_owners": 0.8844290156939322
+        },
+        "0.99": {
+          "selected_pairs": 11230,
+          "true_positive_pairs": 11219,
+          "pair_precision": 0.9990204808548531,
+          "pair_recall_all_selected_positive_owners": 0.8113835249873436
+        }
+      },
+      "matched_precision_target_top1": {
+        "target_top1_candidates": 17827,
+        "denominator_all_selected_positive_owners": 13827,
+        "0.990": {
+          "score_cut": 0.6181092858314514,
+          "selected_pairs": 13109,
+          "true_positive_pairs": 12978,
+          "pair_precision": 0.9900068655122435,
+          "pair_recall_all_selected_positive_owners": 0.9385983944456499
+        },
+        "0.995": {
+          "score_cut": 0.8378435969352722,
+          "selected_pairs": 12769,
+          "true_positive_pairs": 12706,
+          "pair_precision": 0.9950661758947451,
+          "pair_recall_all_selected_positive_owners": 0.9189267375424893
+        },
+        "0.999": {
+          "score_cut": 0.9876422882080078,
+          "selected_pairs": 11429,
+          "true_positive_pairs": 11418,
+          "pair_precision": 0.9990375360923965,
+          "pair_recall_all_selected_positive_owners": 0.8257756563245824
+        }
+      }
+    },
+    "lgb_a_no_s1_aggregate": {
+      "gate_columns": [
+        "lgb_a_no_s1_aggregate"
+      ],
+      "gate_true_owner_retention_top3": 0.9600057857814421,
+      "top3_rows": 53481,
+      "top1_rows": 17827,
+      "fixed_cut_target_top1": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13205,
+          "true_positive_pairs": 13057,
+          "pair_precision": 0.9887921241953805,
+          "pair_recall_all_selected_positive_owners": 0.9443118536197295
+        },
+        "0.80": {
+          "selected_pairs": 12942,
+          "true_positive_pairs": 12885,
+          "pair_precision": 0.9955957348168752,
+          "pair_recall_all_selected_positive_owners": 0.9318724235192015
+        },
+        "0.90": {
+          "selected_pairs": 12752,
+          "true_positive_pairs": 12719,
+          "pair_precision": 0.9974121706398996,
+          "pair_recall_all_selected_positive_owners": 0.9198669270268316
+        },
+        "0.95": {
+          "selected_pairs": 12533,
+          "true_positive_pairs": 12509,
+          "pair_precision": 0.9980850554536025,
+          "pair_recall_all_selected_positive_owners": 0.9046792507413033
+        },
+        "0.99": {
+          "selected_pairs": 11833,
+          "true_positive_pairs": 11830,
+          "pair_precision": 0.999746471731598,
+          "pair_recall_all_selected_positive_owners": 0.8555724307514284
+        }
+      },
+      "matched_precision_target_top1": {
+        "target_top1_candidates": 17827,
+        "denominator_all_selected_positive_owners": 13827,
+        "0.990": {
+          "score_cut": 0.5540624260902405,
+          "selected_pairs": 13168,
+          "true_positive_pairs": 13037,
+          "pair_precision": 0.9900516403402188,
+          "pair_recall_all_selected_positive_owners": 0.9428654082592031
+        },
+        "0.995": {
+          "score_cut": 0.7754519581794739,
+          "selected_pairs": 12967,
+          "true_positive_pairs": 12903,
+          "pair_precision": 0.9950643942315107,
+          "pair_recall_all_selected_positive_owners": 0.9331742243436754
+        },
+        "0.999": {
+          "score_cut": 0.9773478507995605,
+          "selected_pairs": 12241,
+          "true_positive_pairs": 12229,
+          "pair_precision": 0.9990196879339923,
+          "pair_recall_all_selected_positive_owners": 0.8844290156939322
+        }
+      }
+    },
+    "mean_no_s1_aggregate": {
+      "gate_columns": [
+        "mean_no_s1_aggregate"
+      ],
+      "gate_true_owner_retention_top3": 0.9602950748535474,
+      "top3_rows": 53481,
+      "top1_rows": 17827,
+      "fixed_cut_target_top1": {
+        "top1_candidates": 17827,
+        "fixed_cuts": {},
+        "0.50": {
+          "selected_pairs": 13214,
+          "true_positive_pairs": 13066,
+          "pair_precision": 0.9887997578326018,
+          "pair_recall_all_selected_positive_owners": 0.9449627540319664
+        },
+        "0.80": {
+          "selected_pairs": 12936,
+          "true_positive_pairs": 12877,
+          "pair_precision": 0.995439084724799,
+          "pair_recall_all_selected_positive_owners": 0.9312938453749909
+        },
+        "0.90": {
+          "selected_pairs": 12700,
+          "true_positive_pairs": 12670,
+          "pair_precision": 0.9976377952755906,
+          "pair_recall_all_selected_positive_owners": 0.9163231358935416
+        },
+        "0.95": {
+          "selected_pairs": 12480,
+          "true_positive_pairs": 12456,
+          "pair_precision": 0.9980769230769231,
+          "pair_recall_all_selected_positive_owners": 0.900846170535908
+        },
+        "0.99": {
+          "selected_pairs": 11782,
+          "true_positive_pairs": 11778,
+          "pair_precision": 0.9996604990663724,
+          "pair_recall_all_selected_positive_owners": 0.8518116728140595
+        }
+      },
+      "matched_precision_target_top1": {
+        "target_top1_candidates": 17827,
+        "denominator_all_selected_positive_owners": 13827,
+        "0.990": {
+          "score_cut": 0.5441917181015015,
+          "selected_pairs": 13177,
+          "true_positive_pairs": 13046,
+          "pair_precision": 0.9900584351521591,
+          "pair_recall_all_selected_positive_owners": 0.94351630867144
+        },
+        "0.995": {
+          "score_cut": 0.7797121405601501,
+          "selected_pairs": 12960,
+          "true_positive_pairs": 12896,
+          "pair_precision": 0.9950617283950617,
+          "pair_recall_all_selected_positive_owners": 0.9326679684674911
+        },
+        "0.999": {
+          "score_cut": 0.9795762300491333,
+          "selected_pairs": 12141,
+          "true_positive_pairs": 12129,
+          "pair_precision": 0.9990116135408945,
+          "pair_recall_all_selected_positive_owners": 0.8771967888912996
+        }
+      }
+    }
+  },
+  "safe_gate_note": "The no-S1 variants are scores from the 54-column no-S1 model space; no global S1 sample aggregate fields enter this comparison.",
+  "files": {
+    "paired_rows": "neural_gate_paired_scores.parquet",
+    "top3_blends": "neural_gate_blended_top3.parquet",
+    "conclusions": "neural_gate_conclusions.md"
+  }
+}

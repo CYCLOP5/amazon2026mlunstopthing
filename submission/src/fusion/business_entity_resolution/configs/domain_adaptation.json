@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "incumbent_job": "amazites-latest-fusion-20260927-01",
+  "incumbent_matching_sha256": "1d1196df3840ced54b7b1af1f2e7649990d0c6183302f184eddcbda4da1ec00c",
+  "incumbent_leaderboard_user_reported": 0.98805,
+  "incumbent_method": "residual_0.5",
+  "strengths": [
+    0.5
+  ],
+  "heads": [
+    {
+      "name": "uniform_control",
+      "rounds": 300,
+      "weight_mode": "uniform",
+      "params": {
+        "num_leaves": 31,
+        "min_data_in_leaf": 100,
+        "learning_rate": 0.04,
+        "lambda_l2": 40.0,
+        "feature_fraction": 1.0,
+        "seed": 2709
+      }
+    },
+    {
+      "name": "domain_weighted",
+      "rounds": 300,
+      "weight_mode": "domain_ratio",
+      "params": {
+        "num_leaves": 31,
+        "min_data_in_leaf": 100,
+        "learning_rate": 0.04,
+        "lambda_l2": 40.0,
+        "feature_fraction": 1.0,
+        "seed": 2709
+      }
+    }
+  ],
+  "expected_f_floors": [],
+  "minimum_gain": 0.0001,
+  "max_precision_loss": 0.0,
+  "max_recall_loss": 0.0,
+  "timeout_seconds": 1800,
+  "notes": "Two identical residual heads differ only in unlabeled covariate-shift weighting; original owner fit population. Fixed residual strength0.5 and exact incumbent threshold/policy; no hyperparameter or decoder sweeps. One method winner locked before owner/density checks. No gain attributed to weighting if uniform control wins; historical exposure and hidden leaderboard uncertainty remain.",
+  "feasible_policy_search": true,
+  "minimum_precision": 0.0,
+  "promotion_family_size": 1,
+  "confidence_alpha": 0.05,
+  "incumbent_strengths": [],
+  "arm": "domain_adaptation",
+  "density_country_guards": true,
+  "owner_country_guards": true,
+  "fixed_incumbent_policy": true
+}

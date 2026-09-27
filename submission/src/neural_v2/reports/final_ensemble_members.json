@@ -1,0 +1,122 @@
+{
+  "aggregation": "mean_logit",
+  "architecture": "neural-ensemble-v1",
+  "configuration": {
+    "maxlen": 160
+  },
+  "members": [
+    {
+      "directory": "m0",
+      "metadata_sha256": "a20e1b5daf0a36fe3c65b0195f0c0ec611c60195f5cedbd0b72ff48f87e6e822",
+      "name": "m0",
+      "parameters": 558841857,
+      "upper_gate": 0.995
+    },
+    {
+      "directory": "m1",
+      "metadata_sha256": "3e47da1b0b503d8fa43882c34116f65a82e149617577cfb551d57c1d86e81f17",
+      "name": "m1",
+      "parameters": 558841857,
+      "upper_gate": 0.995
+    },
+    {
+      "directory": "m2",
+      "metadata_sha256": "2ebc9085ec2ccc6e9cffaae332b278f373744bb8e626fb520f70af6b53392b1f",
+      "name": "m2",
+      "parameters": 558841857,
+      "upper_gate": 0.995
+    },
+    {
+      "directory": "m3",
+      "metadata_sha256": "00c4871d1be82cdd904fea2279dc69b1b73dd82eef41f786ba7da63344e32975",
+      "name": "m3",
+      "parameters": 558841857,
+      "upper_gate": 0.995
+    },
+    {
+      "directory": "m4",
+      "metadata_sha256": "1b0f24496495e779b2fe402a6be64a635f0a41077e9c931376bf0caddf7160e1",
+      "name": "m4",
+      "parameters": 558841857,
+      "upper_gate": 0.995
+    },
+    {
+      "directory": "m5",
+      "metadata_sha256": "3c6c9f136dda7ea6d94fff0376ba369c003e35d757f8683da73c73f27b042a50",
+      "name": "m5",
+      "parameters": 558841857,
+      "upper_gate": 0.995
+    },
+    {
+      "directory": "m6",
+      "metadata_sha256": "ebefd0d5878eff31d6f3083324ace8f61d0afecd441eca0c459a13a33c186aff",
+      "name": "m6",
+      "parameters": 566706177,
+      "upper_gate": 0.995
+    },
+    {
+      "directory": "m7",
+      "metadata_sha256": "955f22894f99d243e5082ca346802d37de4a15cf55206b56a61d970a37be9a96",
+      "name": "m7",
+      "parameters": 566706177,
+      "upper_gate": 0.995
+    },
+    {
+      "directory": "m8",
+      "metadata_sha256": "ff9ff865b06bbe3dbefc2747114aac65469f908b1c27c756d5c1eec5b6d29e03",
+      "name": "m8",
+      "parameters": 566706177,
+      "upper_gate": 0.995
+    },
+    {
+      "directory": "m9",
+      "metadata_sha256": "79fd6ff0839ff79d832ff4ddab964db350807586229221cd9be7dc568ef40006",
+      "name": "m9",
+      "parameters": 277453825,
+      "upper_gate": 1.0
+    },
+    {
+      "directory": "m10",
+      "metadata_sha256": "84d9c4600bfbf4699e3ff0d927f7b66bbc7f46a055ba80345e78666a6bc0b90f",
+      "name": "m10",
+      "parameters": 277453825,
+      "upper_gate": 1.0
+    },
+    {
+      "directory": "m11",
+      "metadata_sha256": "bcaea2560791bab6c5c198afd38836ece675dad2cc9b9de2091e3a0503b3da3d",
+      "name": "m11",
+      "parameters": 277453825,
+      "upper_gate": 1.0
+    },
+    {
+      "directory": "m12",
+      "metadata_sha256": "e1546d8da7ee2abc523932dd993f7d4848b3eeaf1b42adcd17f7e7e5730742bc",
+      "name": "m12",
+      "parameters": 277453825,
+      "upper_gate": 1.0
+    },
+    {
+      "directory": "m13",
+      "metadata_sha256": "fc9dd7b1fd7d6b2a402d4f0f2a84680f53d46da1256ed0510ccd7a41a354db81",
+      "name": "m13",
+      "parameters": 117506305,
+      "upper_gate": 1.0
+    },
+    {
+      "directory": "m14",
+      "metadata_sha256": "18262f5139c4a0bc601e4687098606e4a95516f3b7a8fde42f669209b1e73f46",
+      "name": "m14",
+      "parameters": 117506305,
+      "upper_gate": 1.0
+    }
+  ],
+  "parameters": 6397997583,
+  "problem_type": "multi_label_classification",
+  "source": {
+    "license": "mit",
+    "model": "local calibrated ensemble"
+  },
+  "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+  "version": 1
+}

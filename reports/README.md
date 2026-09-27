@@ -4,7 +4,7 @@
 > only complete full-pool calibration supports a final cutoff claim
 > team-reported leaderboard results are labeled separately from offline metrics
 
-**final team-reported public leaderboard f0.5: 0.989** · [result record](final-result.json)
+**best recorded public leaderboard f0.5: 0.990284 for sprint2** · [result record](final-result.json)
 
 our team developed and compared the methods below using fixed candidates, entity-grouped splits and explicit artifact fingerprints
 
@@ -22,7 +22,7 @@ our team developed and compared the methods below using fixed candidates, entity
 
 the ready archive is `artifacts/submission-learned/Amazites_submission.zip`
 the bounded france-rule archive contains 5,823,095 matches and received team-reported public 0.986416
-its isolated france-rule score effect remains unmeasured; the final team public result is 0.989
+its isolated france-rule score effect remains unmeasured; the later sprint2 public result is 0.990284
 
 ## reported results and upgraded v1
 
@@ -125,7 +125,7 @@ it does not establish competition accuracy
 
 ## final reporting
 
-- final team-reported public score: 0.989
+- best recorded public score: 0.990284 for sprint2
 - per-variant output hashes distinguish checkpoint results from the final team score
 - retained scores support reproducible composition, calibration and france-rule diagnostics
 

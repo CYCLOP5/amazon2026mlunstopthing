@@ -1,0 +1,181 @@
+{
+  "$schema": "https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json",
+  "type": "pipeline",
+  "display_name": "amazites-latest-fusion",
+  "experiment_name": "amazon-ml-2026",
+  "settings": {
+    "continue_on_step_failure": false
+  },
+  "inputs": {
+    "data": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/LocalUpload/34424852455351d9d8c06dba0370c88bccc8b762e34f31033722ffd91d6c7a36/learned-assets/data/"
+    },
+    "newest": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/amazon-ml-2026/aml26-cpu64-re276203c22/out/"
+    },
+    "hybrid": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/d6fe508f-ab87-4833-96f2-b1ba943d91ab/out/"
+    },
+    "graph": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/bold_zebra_g8snhj80gj/out/"
+    },
+    "friend": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/tough_band_bt1xq058cg/out/experiments/stack_run6_swap_only/stack/"
+    }
+  },
+  "outputs": {
+    "out": {
+      "type": "uri_folder",
+      "mode": "upload"
+    }
+  },
+  "jobs": {
+    "prepare_train": {
+      "type": "command",
+      "compute": "azureml:amazites-graph64",
+      "code": "../..",
+      "environment": {
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
+      },
+      "resources": {
+        "instance_count": 1,
+        "shm_size": "32g"
+      },
+      "limits": {
+        "timeout": 5400
+      },
+      "environment_variables": {
+        "ER_THREADS": "48",
+        "POLARS_MAX_THREADS": "48",
+        "OMP_NUM_THREADS": "48",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "display_name": "prepare-latest-fusion-train",
+      "inputs": {
+        "data": {
+          "path": "${{parent.inputs.data}}",
+          "mode": "download"
+        },
+        "newest": {
+          "path": "${{parent.inputs.newest}}",
+          "mode": "ro_mount"
+        },
+        "hybrid": {
+          "path": "${{parent.inputs.hybrid}}",
+          "mode": "ro_mount"
+        },
+        "graph": {
+          "path": "${{parent.inputs.graph}}",
+          "mode": "ro_mount"
+        },
+        "friend": {
+          "path": "${{parent.inputs.friend}}",
+          "mode": "ro_mount"
+        }
+      },
+      "outputs": {
+        "out": {
+          "type": "uri_folder",
+          "mode": "upload"
+        }
+      },
+      "command": "set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; uv sync --frozen --python 3.13; ER_THREADS=2 POLARS_MAX_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 pytest business_entity_resolution/tests/test_latest_fusion.py business_entity_resolution/tests/test_latest_fusion_pipeline.py business_entity_resolution/tests/test_latest_fusion_transfer.py -q --disable-warnings; uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_latest_fusion.py prepare --data \"${{inputs.data}}\" --newest \"${{inputs.newest}}\" --hybrid \"${{inputs.hybrid}}\" --graph \"${{inputs.graph}}\" --friend \"${{inputs.friend}}\" --split train --output \"${{outputs.out}}\" --expected-meta business_entity_resolution/configs/latest_fusion_data_meta.json"
+    },
+    "prepare_test": {
+      "type": "command",
+      "compute": "azureml:amazites-graph64",
+      "code": "../..",
+      "environment": {
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
+      },
+      "resources": {
+        "instance_count": 1,
+        "shm_size": "32g"
+      },
+      "limits": {
+        "timeout": 5400
+      },
+      "environment_variables": {
+        "ER_THREADS": "48",
+        "POLARS_MAX_THREADS": "48",
+        "OMP_NUM_THREADS": "48",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "display_name": "prepare-latest-fusion-test",
+      "inputs": {
+        "data": {
+          "path": "${{parent.inputs.data}}",
+          "mode": "download"
+        },
+        "newest": {
+          "path": "${{parent.inputs.newest}}",
+          "mode": "ro_mount"
+        },
+        "hybrid": {
+          "path": "${{parent.inputs.hybrid}}",
+          "mode": "ro_mount"
+        },
+        "graph": {
+          "path": "${{parent.inputs.graph}}",
+          "mode": "ro_mount"
+        },
+        "friend": {
+          "path": "${{parent.inputs.friend}}",
+          "mode": "ro_mount"
+        }
+      },
+      "outputs": {
+        "out": {
+          "type": "uri_folder",
+          "mode": "upload"
+        }
+      },
+      "command": "set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; uv sync --frozen --python 3.13; ER_THREADS=2 POLARS_MAX_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 pytest business_entity_resolution/tests/test_latest_fusion.py business_entity_resolution/tests/test_latest_fusion_pipeline.py business_entity_resolution/tests/test_latest_fusion_transfer.py -q --disable-warnings; uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_latest_fusion.py prepare --data \"${{inputs.data}}\" --newest \"${{inputs.newest}}\" --hybrid \"${{inputs.hybrid}}\" --graph \"${{inputs.graph}}\" --friend \"${{inputs.friend}}\" --split test --output \"${{outputs.out}}\" --expected-meta business_entity_resolution/configs/latest_fusion_data_meta.json"
+    },
+    "fit": {
+      "type": "command",
+      "compute": "azureml:amazites-cpu-v4",
+      "code": "../..",
+      "environment": {
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
+      },
+      "resources": {
+        "instance_count": 1,
+        "shm_size": "32g"
+      },
+      "limits": {
+        "timeout": 5400
+      },
+      "environment_variables": {
+        "ER_THREADS": "48",
+        "POLARS_MAX_THREADS": "48",
+        "OMP_NUM_THREADS": "48",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "display_name": "fit-latest-fusion-owner-heldout",
+      "inputs": {
+        "data": {
+          "path": "${{parent.inputs.data}}",
+          "mode": "download"
+        },
+        "train": {
+          "path": "${{parent.jobs.prepare_train.outputs.out}}",
+          "mode": "download"
+        },
+        "test": {
+          "path": "${{parent.jobs.prepare_test.outputs.out}}",
+          "mode": "download"
+        }
+      },
+      "outputs": {
+        "out": "${{parent.outputs.out}}"
+      },
+      "command": "set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; uv sync --frozen --python 3.13; ER_THREADS=2 POLARS_MAX_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 pytest business_entity_resolution/tests/test_latest_fusion.py business_entity_resolution/tests/test_latest_fusion_pipeline.py business_entity_resolution/tests/test_latest_fusion_transfer.py -q --disable-warnings; uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_latest_fusion.py fit --data \"${{inputs.data}}\" --train \"${{inputs.train}}/prepared-train.parquet\" --test \"${{inputs.test}}/prepared-test.parquet\" --metadata business_entity_resolution/configs/latest_fusion.json --output \"${{outputs.out}}\" --calibration business_entity_resolution/configs/latest_fusion_calibration.json"
+    }
+  }
+}

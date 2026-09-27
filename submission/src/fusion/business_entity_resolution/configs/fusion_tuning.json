@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "incumbent_job": "amazites-latest-fusion-20260927-01",
+  "incumbent_matching_sha256": "1d1196df3840ced54b7b1af1f2e7649990d0c6183302f184eddcbda4da1ec00c",
+  "incumbent_leaderboard_user_reported": 0.98805,
+  "incumbent_method": "residual_0.5",
+  "strengths": [0.35, 0.5, 0.65],
+  "heads": [
+    {"name": "shallow", "rounds": 260, "params": {"num_leaves": 31, "min_data_in_leaf": 140, "learning_rate": 0.03, "lambda_l2": 12.0, "feature_fraction": 0.85, "seed": 71}},
+    {"name": "regularized", "rounds": 220, "params": {"num_leaves": 63, "min_data_in_leaf": 300, "learning_rate": 0.04, "lambda_l2": 24.0, "feature_fraction": 0.8, "seed": 97}}
+  ],
+  "expected_f_floors": [0.05, 0.4, 0.65, 0.75, 0.8, 0.85],
+  "minimum_gain": 0.00001,
+  "max_precision_loss": 0.00015,
+  "max_recall_loss": 0.0001,
+  "timeout_seconds": 5400,
+  "notes": "One search winner is evaluated on a separate owner check. Historical upstream reuse remains; France accepted pairs are copied exactly from the incumbent."
+}

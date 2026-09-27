@@ -1,0 +1,50 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local challenge inputs, archives, predictions and model weights
+*.zip
+*.pdf
+*.parquet
+*.tsv
+*.csv
+*.npy
+*.npz
+*.safetensors
+*.pt
+*.pth
+*.onnx
+*.joblib
+*.pkl
+*.pickle
+data/
+datasets/
+/models/
+/model/
+work/
+stackwork/
+experiments/
+outputs/
+smoke/
+artifacts/
+.pytest_cache/
+.uv-cache/
+.ruff_cache/
+
+# Credentials and machine-specific state
+.env
+.env.*
+!.env.example
+.azure/
+*.pem
+*.key
+*credentials*.json
+.agents/
+.codex/

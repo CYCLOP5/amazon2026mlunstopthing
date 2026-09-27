@@ -1,0 +1,8 @@
+# Same validation protocol as v4, with the old feature set: use for a fair ablation.
+extends = "stack_v4.toml"
+
+[experiment]
+name = "stack_v4_control"
+
+[stack]
+enhanced_features = false

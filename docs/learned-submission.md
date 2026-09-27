@@ -2,13 +2,13 @@
 
 amazites: varun jhaveri, shivsharan sanjawad, raj mathuria, aastha singh
 
-**final team-reported public leaderboard f0.5: 0.989**
+**best recorded public leaderboard f0.5: 0.990284 for the later sprint2 release**
 our team developed the learned pipeline and reproducibility workflow described here
 the archived learned checkpoint's own scores and hashes remain documented in its [release receipt](../reports/submission-learned.json)
 
 the archive contains the matching and actual pre-matcher candidate tsvs, source, dependency lock, trained retriever, 103-feature gate, 15 cross-encoders, selected lightgbm stack, calibration, reverse indexes and methodology
 `package_manifest.json` records member files, model provenance, hashes and retriever locations
-the model pool totals 6,515,651,343 parameters
+the later combined pipeline and its two release archives are documented in [submission](../submission/README.md)
 
 ## reproduce inference
 

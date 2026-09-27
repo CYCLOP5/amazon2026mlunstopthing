@@ -1,0 +1,18 @@
+extends = "stack.toml"
+
+[experiment]
+name = "stack_v4"
+
+[stack]
+enhanced_features = true
+# Reserve ~20% of fold 0 for model/decoder selection. Its labels are never fitted.
+tune_holdout_buckets = 5
+rules = false
+analysis = true
+inference_bundle = ""
+# Smaller chunks limit temporary sibling joins on popular chain names.
+chunk_rows = 500_000
+
+[stack.lgbm]
+deterministic = true
+force_col_wise = true

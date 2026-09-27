@@ -1,0 +1,45 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: amazites-current-errors-and-country-drift
+experiment_name: amazon-ml-2026
+compute: azureml:amazites-graph64
+# Upload the uv project, using the repository-root .amlignore.
+code: ../..
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+environment_variables:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+inputs:
+  data:
+    type: uri_folder
+    mode: download
+    path: azureml://datastores/workspaceblobstore/paths/LocalUpload/87666a896e8207989c312af14d2bbf86d6b80b6c532449d1ae8f178d617249bf/data/
+  scores:
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/amazon-ml-2026/
+  lex:
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/azureml/clever_neck_n4rvnz0z3m/work/
+  graph:
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/azureml/bold_zebra_g8snhj80gj/out/
+outputs:
+  out:
+    type: uri_folder
+    mode: rw_mount
+limits:
+  timeout: 3600
+resources:
+  instance_count: 1
+  shm_size: 32g
+command: >-
+  set -eu;
+  curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh;
+  export PATH="$HOME/.local/bin:$PATH";
+  uv sync --frozen;
+  uv run --frozen python business_entity_resolution/scripts/run_innovation.py diagnose
+  --data "${{inputs.data}}" --parent "${{inputs.graph}}" --output "${{outputs.out}}"

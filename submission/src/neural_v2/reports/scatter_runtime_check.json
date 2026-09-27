@@ -1,0 +1,10 @@
+{
+  "scope": "real three-retriever teammate-gate neural-matcher checkpoint redistribution smoke",
+  "targets": 12,
+  "pairs": 36,
+  "resumed_missing_targets": 2,
+  "exact_pair_identity": true,
+  "max_probability_difference": 0.0,
+  "exact_once_coverage": true,
+  "accuracy_claim": false
+}

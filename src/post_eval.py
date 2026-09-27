@@ -1,4 +1,4 @@
-"""development-only scorer checks and explicit orphan-density stress tests"""
+'development-only scorer checks and explicit orphan-density stress tests'
 import argparse as ap
 from hashlib import sha256
 import json
@@ -18,29 +18,29 @@ def metric(q, y, keep, deg, anchors):
     true = np.bincount(q[keep], weights=y[keep], minlength=len(deg))
     denominator = count + .25 * deg
     f = np.divide(1.25 * true, denominator, out=np.ones(len(deg)), where=denominator > 0)
-    selected = int(count.sum())
+    sel = int(count.sum())
     truth = int(deg[anchors].sum())
-    return {"macro_f05": float(f[anchors].mean()), "pair_precision": float(true.sum() / selected) if selected else 1.,
-            "pair_recall": float(true.sum() / truth) if truth else 1., "pairs": selected, "true_pairs": truth}
+    return {"macro_f05": float(f[anchors].mean()), "pair_precision": float(true.sum() / sel) if sel else 1.,
+            "pair_recall": float(true.sum() / truth) if truth else 1., "pairs": sel, "true_pairs": truth}
 
 
 def run(prepared, out, threads=8):
     prepared, out = path(prepared), path(out)
-    source = post.verified(prepared, "train")
-    data = path(source["data"])
+    src = post.verified(prepared, "train")
+    data = path(src["data"])
     refs = pl.read_parquet(data / "train/ref.parquet", columns=["rid", "fold", "deg"])
     deg = refs["deg"].to_numpy()
-    valid_partition = source.get("validation_partition", {"modulus": 2, "remainder": 0})
+    valid_partition = src.get("validation_partition", {"modulus": 2, "remainder": 0})
     anchors = (refs["fold"].to_numpy() == 0) & (post.partition(refs["rid"].to_numpy(), valid_partition["modulus"]) == valid_partition["remainder"])
     if not anchors.any():
         raise ValueError("no development anchors")
-    recipe = {"neural_weight": .6, "unseen_gate": False, "countries": sorted(source["fit_reference_counts"]),
+    recipe = {"neural_weight": .6, "unseen_gate": False, "countries": sorted(src["fit_reference_counts"]),
               "edges": np.linspace(post.logit([.02])[0], post.logit([.999])[0], 25).tolist()}
-    recipe["partition"] = source.get("calibration_partition", {"modulus": 2, "remainder": 1})
-    recipe["known_score"] = "stack_prob" if source.get("stack_model") else "blend"
+    recipe["partition"] = src.get("calibration_partition", {"modulus": 2, "remainder": 1})
+    recipe["known_score"] = "stack_prob" if src.get("stack_model") else "blend"
     train = post.histograms(prepared, recipe, fit=True)
     orphan = post.histograms(prepared, recipe, fit=True, orphans=True)
-    counts = source["fit_reference_counts"]
+    counts = src["fit_reference_counts"]
     empirical = {**recipe, "curves": post.curves(train, train, counts, counts, np.asarray(recipe["edges"]), transfer=False)}
     shifted_counts = {k: [v[0] + orphan[k][0], v[1]] for k, v in train.items()}
     shifted = {**recipe, "curves": post.curves(train, shifted_counts, counts, counts, np.asarray(recipe["edges"]))}
@@ -63,8 +63,8 @@ def run(prepared, out, threads=8):
     arrays = {k: np.concatenate(v) for k, v in parts.items()}
     del parts
     q, t, y = arrays["qid"], arrays["tid"], arrays["y"]
-    results = {}
-    for label, name, threshold in (("base_threshold", "control", .8), ("raw_expected", "raw", None),
+    rs = {}
+    for label, name, cut in (("base_threshold", "control", .8), ("raw_expected", "raw", None),
                                    ("empirical_expected", "empirical", None), ("shift_corrected_expected", "shifted", None)):
         p = arrays[name]
         top = decode.winners(q, t, p, arrays["raw"])
@@ -74,22 +74,22 @@ def run(prepared, out, threads=8):
             qi, ti, yi, pi, raw = q[ids], t[ids].copy(), y[ids], p[ids], arrays["raw"][ids]
             if stress:
                 ti[len(top):] += int(t.max()) + 1
-            if threshold is None:
+            if cut is None:
                 keep, details = decode.choose(qi, ti, pi, raw, threads=threads)
             else:
-                keep, details = pi >= threshold, {}
-            results[f"{label}_{'double_orphans' if stress else 'original'}"] = {**metric(qi, yi, keep, deg, anchors), **details}
-    result = {"scope": "fold0 held-out reference development, full-target competitors; transductive target reuse; no fold1 audit",
+                keep, details = pi >= cut, {}
+            rs[f"{label}_{'double_orphans' if stress else 'original'}"] = {**metric(qi, yi, keep, deg, anchors), **details}
+    res = {"scope": "fold0 held-out reference development, full-target competitors; transductive target reuse; no fold1 audit",
               "control": {"score_column": "prob", "threshold": .8, "scope": "current base-score configuration"},
-              "data_meta_sha256": source["data_meta_sha256"],
+              "data_meta_sha256": src["data_meta_sha256"],
               "anchors_sha256": sha256(refs["rid"].to_numpy()[anchors].astype("<u4").tobytes()).hexdigest(),
-              "anchors": int(anchors.sum()), "source_score_sha256": source["score_sha256"], "validation_partition": valid_partition,
+              "anchors": int(anchors.sum()), "source_score_sha256": src["score_sha256"], "validation_partition": valid_partition,
               "known_score": recipe["known_score"],
               "stress": "duplicate every orphan target once with a distinct synthetic id; true links unchanged; not real test labels",
-              "results": results, "public_score": None}
-    infer._write(out, result)
-    print(json.dumps(result, indent=2))
-    return result
+              "results": rs, "public_score": None}
+    infer._write(out, res)
+    print(json.dumps(res, indent=2))
+    return res
 
 
 def check():

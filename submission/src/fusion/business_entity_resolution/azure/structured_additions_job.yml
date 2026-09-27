@@ -1,0 +1,64 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+name: amazites-structured-additions-20260927-01
+display_name: amazites-structured-additions-20260927-01
+experiment_name: amazon-ml-2026
+compute: azureml:amazites-cpu-v4
+code: ../..
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+resources:
+  instance_count: 1
+  shm_size: 32g
+limits:
+  timeout: 4200
+environment_variables:
+  ER_THREADS: "48"
+  POLARS_MAX_THREADS: "48"
+  OMP_NUM_THREADS: "48"
+  OPENBLAS_NUM_THREADS: "1"
+inputs:
+  data:
+    type: uri_folder
+    path: azureml://datastores/workspaceblobstore/paths/LocalUpload/34424852455351d9d8c06dba0370c88bccc8b762e34f31033722ffd91d6c7a36/learned-assets/data/
+    mode: download
+  train:
+    type: uri_folder
+    path: azureml://datastores/workspaceblobstore/paths/azureml/c4da719f-d934-45ca-84a7-738a0810e1a8/out/
+    mode: download
+  test:
+    type: uri_folder
+    path: azureml://datastores/workspaceblobstore/paths/azureml/e1279250-583f-4921-a2cf-b310ffaef6ec/out/
+    mode: download
+  incumbent:
+    type: uri_folder
+    path: azureml://datastores/workspaceblobstore/paths/azureml/1e2ecccd-ac04-456e-8266-ddae08ce5f26/out/
+    mode: ro_mount
+  contrastive_bundle:
+    type: uri_folder
+    path: azureml://datastores/workspaceblobstore/paths/azureml/amazites-structured-contrastive-20260927-01/out/
+    mode: ro_mount
+  directional_bundle:
+    type: uri_folder
+    path: azureml://datastores/workspaceblobstore/paths/azureml/amazites-structured-directional-20260927-01/out/
+    mode: ro_mount
+outputs:
+  out:
+    type: uri_folder
+    mode: upload
+command: >-
+  set -eu;
+  curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh;
+  export PATH="$HOME/.local/bin:$PATH";
+  uv sync --frozen --python 3.13;
+  ER_THREADS=2 POLARS_MAX_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 python -m pytest business_entity_resolution/tests/test_directional_swaps.py business_entity_resolution/tests/test_directional_policy.py business_entity_resolution/tests/test_contrastive_owners.py business_entity_resolution/tests/test_owner_switch.py business_entity_resolution/tests/test_set_utility.py business_entity_resolution/tests/test_structured_protocol.py -q --disable-warnings;
+  ER_THREADS=2 POLARS_MAX_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 python -m pytest business_entity_resolution/tests/test_structured_pipeline.py business_entity_resolution/tests/test_additions_experiment.py -q --disable-warnings;
+  uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_structured_experiment.py
+  --mode additions
+  --contrastive-bundle "${{inputs.contrastive_bundle}}"
+  --directional-bundle "${{inputs.directional_bundle}}"
+  --data "${{inputs.data}}"
+  --train "${{inputs.train}}/prepared-train.parquet"
+  --test "${{inputs.test}}/prepared-test.parquet"
+  --incumbent "${{inputs.incumbent}}"
+  --output "${{outputs.out}}"

@@ -1,6 +1,6 @@
 # learned cached cpu retuning
 
-final team-reported public leaderboard f0.5: **0.989**
+best recorded public leaderboard f0.5: **0.990284** for the later sprint2 release
 our team completed the 2,560-trial search and frozen development comparison below
 the detailed run measurements are distinct from the [final team leaderboard result](final-result.json)
 

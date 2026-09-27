@@ -1,0 +1,24 @@
+# Profile for a large workstation (e.g. i7, 64 GB RAM, RTX 5090 32 GB).
+#   python src/run.py -c configs/big_machine.toml
+# Same method as default.toml; uses 75% of the CPU threads, bigger chunks and
+# 2.5x more training data (more data -> better model).
+extends = "default.toml"
+
+[experiment]
+name = "lgbm_big"
+
+[resources]
+threads = 0.75                    # 75% of the logical CPU cores
+priority = "normal"
+min_free_gb = 4.0                 # stop cleanly if free RAM drops below 4 GB
+
+[blocking]
+chunk_rows = 2_000_000            # 4x bigger chunks (more RAM, fewer passes)
+
+[features]
+part_rows = 2_000_000
+
+[training]
+sample_pct = 50                   # features for 50% of training Source-1 entities (default 20)
+train_pct = 42                    # 42% fit
+val_pct = 50                      # 8% validation (~176K entities)

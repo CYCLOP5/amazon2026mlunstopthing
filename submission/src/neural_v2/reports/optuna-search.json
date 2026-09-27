@@ -1,0 +1,56 @@
+{
+  "best_search_macro_f05": 0.985202770671839,
+  "best_trial": 47,
+  "cache_sha256": "1bb78aacdf2d8a277f01b5895e406a6c1fe3f1f0f9afa31b5165fd3a97541059",
+  "pairs": 2934813,
+  "public_score": null,
+  "references": 73522,
+  "seconds": 250.903622888,
+  "targets": 978271,
+  "threads_per_worker": 8,
+  "version": 1,
+  "workers": 8,
+  "baseline_search_macro_f05": 0.9843740885724769,
+  "best": {
+    "details": {
+      "metrics": {
+        "macro_f05": 0.985202770671839,
+        "pairs": 246165,
+        "precision": 0.996522657567079,
+        "recall": 0.9620262596473614
+      },
+      "rounds": 234,
+      "training_params": {
+        "bagging_fraction": 0.7641139043619583,
+        "bagging_freq": 1,
+        "deterministic": true,
+        "feature_fraction": 0.8244316123191598,
+        "force_col_wise": true,
+        "lambda_l2": 0.0010261161710487423,
+        "learning_rate": 0.0680600552132469,
+        "max_depth": -1,
+        "metric": "binary_logloss",
+        "min_data_in_leaf": 393,
+        "num_leaves": 127,
+        "num_threads": 8,
+        "objective": "binary",
+        "seed": 19,
+        "verbosity": -1
+      }
+    },
+    "number": 47,
+    "params": {
+      "bagging_fraction": 0.7641139043619583,
+      "feature_fraction": 0.8244316123191598,
+      "lambda_l2": 0.0010261161710487423,
+      "learning_rate": 0.0680600552132469,
+      "max_depth": -1,
+      "min_data_in_leaf": 393,
+      "num_leaves": 127,
+      "round_limit": 800
+    },
+    "state": "COMPLETE",
+    "value": 0.985202770671839
+  },
+  "scope": "fold0 partition1 search, complete candidate incidence; partition2 excluded"
+}

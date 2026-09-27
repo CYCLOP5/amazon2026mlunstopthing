@@ -1,4 +1,4 @@
-"""versioned score calibration, country routing and source1 set decoding"""
+'versioned score calibration, country routing and source1 set decoding'
 import argparse as ap
 import hashlib as hh
 import json
@@ -85,16 +85,16 @@ def prepare(data, roots, split, out):
     pairs = check.select(pl.len()).collect().item()
     tmp.replace(out)
     refs = pl.read_parquet(data / split / "ref.parquet", columns=["rid", "co", "fold"])
-    source = {"version": 1, "split": split, "data": str(data), "data_meta_sha256": infer._sha(data / "meta.json"),
+    src = {"version": 1, "split": split, "data": str(data), "data_meta_sha256": infer._sha(data / "meta.json"),
               "config": runs[0]["manifest"]["config"], "config_sha256": runs[0]["manifest"]["config_sha256"], "score_sha256": infer._sha(out),
               "runs": [{"path": str(r["dir"]), "sha256": infer._sha(r["dir"] / "manifest.json")} for r in runs],
               "targets": sum(len(r["coverage"]) for r in runs), "pairs": pairs,
               "reference_counts": dict(refs.group_by("co").len().iter_rows())}
     if split == "train":
         fit_ref = refs.filter((pl.col("fold") == 0) & pl.Series(~held(refs["rid"].to_numpy())))
-        source["fit_reference_counts"] = dict(fit_ref.group_by("co").len().iter_rows())
-    infer._write(out.with_suffix(".json"), source)
-    return source
+        src["fit_reference_counts"] = dict(fit_ref.group_by("co").len().iter_rows())
+    infer._write(out.with_suffix(".json"), src)
+    return src
 
 
 def verified(p, split=None, runs=None, data=None):
@@ -145,7 +145,7 @@ def score_rows(rows, recipe):
 
 
 def histograms(p, recipe, fit=False, force_gate=False, orphans=False):
-    result = {}
+    res = {}
     cols = ["qid", "co", "seg", "gate_prob", "neural_prob"] + (["fold", "y"] if fit else [])
     if orphans:
         cols.append("own")
@@ -168,19 +168,19 @@ def histograms(p, recipe, fit=False, force_gate=False, orphans=False):
                 n = np.bincount(bins[take], minlength=len(edges) + 1).astype(float)
                 y = np.bincount(bins[take], weights=np.asarray(d["y"])[take], minlength=len(edges) + 1) if fit else np.zeros_like(n)
                 key = f"{country}|{segment}"
-                if key not in result:
-                    result[key] = [np.zeros_like(n), np.zeros_like(n)]
-                result[key][0] += n
-                result[key][1] += y
-    return result
+                if key not in res:
+                    res[key] = [np.zeros_like(n), np.zeros_like(n)]
+                res[key][0] += n
+                res[key][1] += y
+    return res
 
 
 def curves(train, target, ntrain, ntarget, edges, minimum=50, transfer=True):
-    """positive-density transfer with sparse-bin pooling and weighted isotonic fit"""
+    'positive-density transfer with sparse-bin pooling and weighted isotonic fit'
     centres = np.r_[edges[0] - 1, (edges[:-1] + edges[1:]) / 2, edges[-1] + 1]
     top = np.r_[-np.inf, edges] >= logit([.99])[0]
     countries = {k.rsplit("|", 1)[0] for k in target}
-    result = {}
+    res = {}
     for country in sorted(countries):
         pool = [country] if country in ntrain else sorted(ntrain)
         nh, nt = sum(ntrain[c] for c in pool), ntarget[country]
@@ -206,10 +206,10 @@ def curves(train, target, ntrain, ntarget, edges, minimum=50, transfer=True):
                 model = isotonic(out_of_bounds="clip").fit(centres[active], np.clip(posterior[active], 0, 1),
                                                            sample_weight=(test + minimum)[active])
                 values = model.predict(centres)
-            result[f"{country}|{segment}"] = {"centres": centres.tolist(), "posterior": values.tolist(),
+            res[f"{country}|{segment}"] = {"centres": centres.tolist(), "posterior": values.tolist(),
                                               "positive_scale": float(scale), "pooled": country not in ntrain,
                                               "train_pairs": int(count.sum()), "test_pairs": int(test.sum())}
-    return result
+    return res
 
 
 def pooled(train, counts, target, edges):
@@ -250,13 +250,13 @@ def fit(train, test, out, weight=.6, unseen=True, rules=False, normalizer=None, 
     target = histograms(test, recipe)
     training = histograms(train, recipe, fit=True)
     gate_train = histograms(train, recipe, fit=True, force_gate=True)
-    result = curves(training, target, tr["fit_reference_counts"], te["reference_counts"], np.asarray(recipe["edges"]))
+    res = curves(training, target, tr["fit_reference_counts"], te["reference_counts"], np.asarray(recipe["edges"]))
     unknown = {k: v for k, v in target.items() if k.rsplit("|", 1)[0] not in recipe["countries"]}
     if unseen_empirical and unknown:
-        result.update(pooled(gate_train if unseen else training, tr["fit_reference_counts"], unknown, np.asarray(recipe["edges"])))
+        res.update(pooled(gate_train if unseen else training, tr["fit_reference_counts"], unknown, np.asarray(recipe["edges"])))
     elif unseen and unknown:
-        result.update(curves(gate_train, unknown, tr["fit_reference_counts"], te["reference_counts"], np.asarray(recipe["edges"])))
-    recipe["curves"] = result
+        res.update(curves(gate_train, unknown, tr["fit_reference_counts"], te["reference_counts"], np.asarray(recipe["edges"])))
+    recipe["curves"] = res
     if rules:
         import frule
         if normalizer is None:
@@ -364,11 +364,11 @@ def export(prepared, recipe_path, out, threads=12, normalizer=None, cache=None):
         infer._sink(refs.select("source1_entity_id").sort("source1_entity_id"), tmp / "refs.parquet")
         infer._sink(names(pl.scan_parquet(prepared).select("qid", "tid")), tmp / "candidates.parquet")
         infer._sink(names(matches.lazy()), tmp / "matches.parquet")
-        result = infer._tsv(tmp / "refs.parquet", tmp / "candidates.parquet", tmp / "matches.parquet", out)
-    result.update({"postprocessor_sha256": infer._sha(recipe_path), "scores_sha256": meta["score_sha256"],
+        res = infer._tsv(tmp / "refs.parquet", tmp / "candidates.parquet", tmp / "matches.parquet", out)
+    res.update({"postprocessor_sha256": infer._sha(recipe_path), "scores_sha256": meta["score_sha256"],
                    "decoder": stats, "public_score": None})
-    infer._write(out / "export.json", result)
-    return result
+    infer._write(out / "export.json", res)
+    return res
 
 
 def check():
@@ -413,8 +413,8 @@ def check():
         recipe_path = root / "recipe.json"
         model = fit(root / "train.parquet", root / "test.parquet", recipe_path)
         assert model["countries"] == ["us"] and model["curves"]["france|0"]["pooled"]
-        result = export(root / "test.parquet", recipe_path, root / "out", threads=2)
-        assert result["source1"] == 4 and result["candidate_pairs"] == 5
+        res = export(root / "test.parquet", recipe_path, root / "out", threads=2)
+        assert res["source1"] == 4 and res["candidate_pairs"] == 5
         manifest = infer._json(root / "test/manifest.json")
         infer._write(root / "test/manifest.json", {**manifest, "changed": True})
         try:

@@ -1,0 +1,14 @@
+# Python 3.13 (tested with CPython 3.13.15 on Windows 11, 12 threads / 16 GB RAM)
+# Library licences: MIT / BSD / Apache-2.0 (unidecode: GPL-2.0+, used only as a transliteration utility).
+# No pretrained models, no network access at runtime.
+polars==1.44.2          # MIT        - data processing
+numpy==2.5.3            # BSD-3
+scipy==1.18.1           # BSD-3      - sparse matrices
+lightgbm==4.7.0         # MIT        - default matching model
+scikit-learn==1.9.1     # BSD-3      - optional models: logreg, sklearn_hgb
+rapidfuzz==3.14.6       # MIT        - string similarity features
+unidecode==1.4.0        # GPL-2.0+   - transliteration of Indic / accented text
+sparse-dot-topn==1.2.0  # Apache-2.0 - top-n sparse matrix product for blocking
+psutil==7.2.2           # BSD-3      - RAM guard / process priority
+# optional, only for configs/experiments/xgboost.toml:
+# xgboost               # Apache-2.0 (pin the version you install)

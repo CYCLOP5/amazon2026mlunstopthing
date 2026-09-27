@@ -1,0 +1,50 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: amazites-usin-disagreement
+experiment_name: amazon-ml-2026
+compute: azureml:amazites-shiv-e32
+code: ..
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+environment_variables:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+inputs:
+  train:
+    type: uri_file
+    mode: download
+    path: azureml://datastores/workspaceblobstore/paths/azureml/c4da719f-d934-45ca-84a7-738a0810e1a8/out/prepared-train.parquet
+  test:
+    type: uri_file
+    mode: download
+    path: azureml://datastores/workspaceblobstore/paths/azureml/e1279250-583f-4921-a2cf-b310ffaef6ec/out/prepared-test.parquet
+  data:
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/LocalUpload/34424852455351d9d8c06dba0370c88bccc8b762e34f31033722ffd91d6c7a36/learned-assets/data/
+  oldval:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/azureml/1e2ecccd-ac04-456e-8266-ddae08ce5f26/out/validation_predictions.parquet
+  newval:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/azureml/amazites-competition-strength-20260927-01/out/validation_winners.parquet
+  oldtest:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/azureml/1e2ecccd-ac04-456e-8266-ddae08ce5f26/out/accepted_test.parquet
+  newtest:
+    type: uri_file
+    path: azureml://datastores/workspaceblobstore/paths/azureml/amazites-competition-strength-20260927-01/out/accepted_test.parquet
+outputs:
+  out:
+    type: uri_folder
+    mode: upload
+resources:
+  instance_count: 1
+command: |
+  set -eu
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  uv venv -q --python 3.13 /tmp/venv
+  uv pip install -q --python /tmp/venv/bin/python -r requirements.txt
+  /tmp/venv/bin/python -u src/er/stack/usin_disagree.py --train "${{inputs.train}}" --test "${{inputs.test}}" --data "${{inputs.data}}" \
+    --old-val "${{inputs.oldval}}" --new-val "${{inputs.newval}}" --old-test "${{inputs.oldtest}}" --new-test "${{inputs.newtest}}" --out "${{outputs.out}}"

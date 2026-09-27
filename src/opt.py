@@ -1,4 +1,4 @@
-"""parallel cached search on incidence-complete source1 macro f0.5"""
+'parallel cached search on incidence-complete source1 macro f0.5'
 import argparse as ap
 import concurrent.futures as cf
 import json
@@ -26,11 +26,11 @@ def prepare(prepared, root, cache, threads=8, remainder=1):
     if remainder not in (1, 2):
         raise ValueError("cache partition must be search or development")
     prepared, root, cache = path(prepared), path(root), path(cache)
-    source = post.verified(prepared, "train")
+    src = post.verified(prepared, "train")
     fit = infer._json(root / "fit/cache.json")
-    if fit["source_scores_sha256"] != source["score_sha256"]:
+    if fit["source_scores_sha256"] != src["score_sha256"]:
         raise ValueError("fitting cache uses different scores")
-    data = path(source["data"])
+    data = path(src["data"])
     refs = pl.read_parquet(data / "train/ref.parquet")
     wanted = refs.filter((pl.col("fold") == 0) & pl.Series(post.partition(refs["rid"].to_numpy(), 3) == remainder))
     raw = pl.scan_parquet(prepared)
@@ -68,21 +68,21 @@ def prepare(prepared, root, cache, threads=8, remainder=1):
 def metric(e, probability, countries, threads=1, folds=1):
     if not isinstance(folds, int) or folds < 1:
         raise ValueError("invalid calibration fold count")
-    selected = e["local"] >= 0
+    sel = e["local"] >= 0
     edges = np.linspace(post.logit([.02])[0], post.logit([.999])[0], 25)
     bins = np.searchsorted(edges, post.logit(probability), side="right")
     n = len(e["degree"])
     if not n or folds > n:
         raise ValueError("insufficient references for calibration folds")
     group = post.partition(np.arange(n), folds)
-    row_group = np.full(len(selected), -1, np.int32)
-    row_group[selected] = group[e["local"][selected]]
+    row_group = np.full(len(sel), -1, np.int32)
+    row_group[sel] = group[e["local"][sel]]
     total, hits, count = 0., 0, 0
     for fold in range(folds):
         anchors = group == fold
         if not anchors.any():
             continue
-        fitting = selected if folds == 1 else selected & (row_group != fold)
+        fitting = sel if folds == 1 else sel & (row_group != fold)
         if not fitting.any():
             raise ValueError("empty cross-calibration fitting fold")
         hist = {}
@@ -94,12 +94,12 @@ def metric(e, probability, countries, threads=1, folds=1):
         curves = post.curves(hist, hist, countries, countries, edges, transfer=False)
         calibrated = post.adjust(probability, e["country"], e["segment"], {"curves": curves})
         top = decode.winners(e["qid"], e["tid"], calibrated, probability)
-        top = top[selected[top] & (row_group[top] == fold)]
+        top = top[sel[top] & (row_group[top] == fold)]
         keep, _ = decode.choose(e["local"][top], e["tid"][top], calibrated[top], probability[top], threads=threads)
-        result = post_eval.metric(e["local"][top], e["y"][top], keep, e["degree"], anchors)
-        total += result["macro_f05"] * int(anchors.sum())
+        res = post_eval.metric(e["local"][top], e["y"][top], keep, e["degree"], anchors)
+        total += res["macro_f05"] * int(anchors.sum())
         hits += int(e["y"][top][keep].sum())
-        count += result["pairs"]
+        count += res["pairs"]
     truth = int(e["degree"].sum())
     return {"macro_f05": total / n, "precision": hits / count if count else 1.,
             "recall": hits / truth if truth else 1., "pairs": count}
@@ -181,16 +181,16 @@ def worker(root, journal, models, count, threads, seed, wide=False, folds=1):
         model = lgb.train(params, train_set, num_boost_round=maximum, valid_sets=[val_set], callbacks=[lgb.early_stopping(40, verbose=False)])
         rounds = model.best_iteration or maximum
         model = lgb.train(params, lgb.Dataset(x, label=y, weight=w, feature_name=names), num_boost_round=rounds)
-        probability = evaluate["raw"].copy()
-        probability[evaluate["active"]] = model.predict(evaluate["x"], num_threads=threads)
-        result = metric(evaluate, probability, meta["countries"], threads, folds)
+        prob = evaluate["raw"].copy()
+        prob[evaluate["active"]] = model.predict(evaluate["x"], num_threads=threads)
+        res = metric(evaluate, prob, meta["countries"], threads, folds)
         model.save_model(str(path(models) / f"trial-{trial.number}.txt"))
         infer._write(path(models) / f"trial-{trial.number}.json", {"number": trial.number, "params": params,
-                                                                   "rounds": rounds, "metrics": result})
+                                                                   "rounds": rounds, "metrics": res})
         trial.set_user_attr("rounds", rounds)
         trial.set_user_attr("training_params", params)
-        trial.set_user_attr("metrics", result)
-        return result["macro_f05"]
+        trial.set_user_attr("metrics", res)
+        return res["macro_f05"]
 
     study.optimize(objective, n_trials=count, gc_after_trial=True)
 
@@ -218,16 +218,16 @@ def run(root, out, trials=64, workers=8, threads=8, selected_file=None, wide=Fal
         study = optuna.create_study(study_name="source1-macro-f05", storage=storage(journal), direction="maximize")
         selected_file = selected_file or path(__file__).resolve().parents[1] / "reports/optuna-search.json"
         selected_params = stack2.fit_params(threads, selected_file)
-        selected = {key: selected_params[key] for key in ("learning_rate", "num_leaves", "max_depth", "min_data_in_leaf",
+        sel = {key: selected_params[key] for key in ("learning_rate", "num_leaves", "max_depth", "min_data_in_leaf",
                                                         "lambda_l2", "bagging_fraction", "feature_fraction")}
-        selected["round_limit"] = 800
+        sel["round_limit"] = 800
         defaults = {"lambda_l1": 0., "min_gain_to_split": 0., "min_sum_hessian_in_leaf": .001,
                     "scale_pos_weight": 1., "feature_fraction_bynode": 1., "max_bin": 255,
                     "path_smooth": 0., "extra_trees": False, "feature_set": "all"} if wide else {}
-        selected.update({key: selected_params.get(key, value) for key, value in defaults.items()})
+        sel.update({key: selected_params.get(key, value) for key, value in defaults.items()})
         if wide:
-            selected["feature_set"] = infer._json(selected_file).get("feature_set", "all")
-        study.enqueue_trial(selected)
+            sel["feature_set"] = infer._json(selected_file).get("feature_set", "all")
+        study.enqueue_trial(sel)
         if trials > 1:
             study.enqueue_trial({"learning_rate": .05, "num_leaves": 31, "max_depth": 6, "min_data_in_leaf": 100,
                                   "lambda_l2": 10., "bagging_fraction": .8, "feature_fraction": .9, "round_limit": 400, **defaults})
@@ -324,11 +324,11 @@ def check():
                      "countries": {"us": 2}, "references": 2, "targets": 4, "pairs": 6,
                      "files": {n: infer._sha(root / n) for n in ("fit/fit.npz", "fit/normalizer.json", "eval.npz")}})
         out = path(tmp) / "model"
-        result = run(root, out, trials=2, workers=1, threads=1)
+        res = run(root, out, trials=2, workers=1, threads=1)
         model_meta, _ = stack2.bundle(out)
         assert model_meta["features"] == names and model_meta["neural_columns"] == neural_columns and model_meta["name_change"]
-        expected = infer._json(path(__file__).resolve().parents[1] / "reports/optuna-search.json")["best"]["params"]
-        assert result["trials"][0]["params"] == expected
+        exp = infer._json(path(__file__).resolve().parents[1] / "reports/optuna-search.json")["best"]["params"]
+        assert res["trials"][0]["params"] == exp
         metadata = infer._json(root / "cache.json")
         metadata["purpose"] = "development"
         metadata["reference_partition"] = {"modulus": 3, "remainder": 2}

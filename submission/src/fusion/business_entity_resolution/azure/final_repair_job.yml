@@ -1,0 +1,50 @@
+{
+  "$schema": "https://azuremlschemas.azureedge.net/latest/commandJob.schema.json",
+  "type": "command",
+  "display_name": "amazites-final-repair",
+  "experiment_name": "amazon-ml-2026",
+  "compute": "azureml:amazites-graph64",
+  "code": "../..",
+  "environment": {
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
+  },
+  "inputs": {
+    "data": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/LocalUpload/87666a896e8207989c312af14d2bbf86d6b80b6c532449d1ae8f178d617249bf/data/",
+      "mode": "download"
+    },
+    "hybrid": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/d6fe508f-ab87-4833-96f2-b1ba943d91ab/out/",
+      "mode": "download"
+    },
+    "friend": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/tough_band_bt1xq058cg/out/experiments/stack_run6_swap_only/stack/",
+      "mode": "download"
+    },
+    "graph": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/bold_zebra_g8snhj80gj/out/",
+      "mode": "download"
+    }
+  },
+  "outputs": {
+    "out": {
+      "type": "uri_folder",
+      "mode": "upload"
+    }
+  },
+  "resources": {
+    "instance_count": 1,
+    "shm_size": "32g"
+  },
+  "limits": {
+    "timeout": 10800
+  },
+  "environment_variables": {
+    "ER_THREADS": "48"
+  },
+  "command": "set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; uv sync --frozen --python 3.13; ER_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 pytest business_entity_resolution/tests/test_final_repair_reference.py business_entity_resolution/tests/test_final_repair_identity.py business_entity_resolution/tests/test_final_repair_decode.py business_entity_resolution/tests/test_final_repair_pipeline.py -q --disable-warnings; uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_final_repair.py --data \"${{inputs.data}}\" --hybrid \"${{inputs.hybrid}}\" --friend \"${{inputs.friend}}\" --graph \"${{inputs.graph}}\" --output \"${{outputs.out}}\""
+}

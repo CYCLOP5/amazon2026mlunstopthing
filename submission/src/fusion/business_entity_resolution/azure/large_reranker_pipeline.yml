@@ -1,0 +1,228 @@
+{
+  "$schema": "https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json",
+  "type": "pipeline",
+  "display_name": "amazites-large-reranker",
+  "experiment_name": "amazon-ml-2026",
+  "settings": {
+    "default_compute": "azureml:amazites-graph64",
+    "continue_on_step_failure": false
+  },
+  "inputs": {
+    "data": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/LocalUpload/87666a896e8207989c312af14d2bbf86d6b80b6c532449d1ae8f178d617249bf/data/"
+    },
+    "hybrid_result": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/d6fe508f-ab87-4833-96f2-b1ba943d91ab/out/"
+    },
+    "features_train": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/665540a1-ed1a-4818-8390-1bdb12f4ed13/out/"
+    },
+    "features_test": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/2cde3905-bd4a-4a48-ab3c-0e4203cde0a9/out/"
+    },
+    "friend": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/tough_band_bt1xq058cg/out/experiments/stack_run6_swap_only/stack/"
+    },
+    "graph": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/bold_zebra_g8snhj80gj/out/"
+    }
+  },
+  "outputs": {
+    "prepared": {
+      "type": "uri_folder",
+      "mode": "rw_mount"
+    },
+    "trained": {
+      "type": "uri_folder",
+      "mode": "rw_mount"
+    },
+    "scored_0": {
+      "type": "uri_folder",
+      "mode": "rw_mount"
+    },
+    "scored_1": {
+      "type": "uri_folder",
+      "mode": "rw_mount"
+    },
+    "result": {
+      "type": "uri_folder",
+      "mode": "rw_mount"
+    }
+  },
+  "jobs": {
+    "prepare": {
+      "type": "command",
+      "display_name": "bounded-large-reranker-prepare",
+      "compute": "azureml:amazites-cpu-v4",
+      "code": "../..",
+      "environment": {
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
+      },
+      "inputs": {
+        "data": {
+          "path": "${{parent.inputs.data}}",
+          "mode": "download"
+        },
+        "hybrid_result": {
+          "path": "${{parent.inputs.hybrid_result}}"
+        },
+        "features_train": {
+          "path": "${{parent.inputs.features_train}}"
+        },
+        "features_test": {
+          "path": "${{parent.inputs.features_test}}"
+        },
+        "friend": {
+          "path": "${{parent.inputs.friend}}"
+        },
+        "graph": {
+          "path": "${{parent.inputs.graph}}"
+        }
+      },
+      "outputs": {
+        "out": "${{parent.outputs.prepared}}"
+      },
+      "resources": {
+        "instance_count": 1,
+        "shm_size": "32g"
+      },
+      "limits": {
+        "timeout": 5400
+      },
+      "command": "set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; uv sync --frozen --python 3.13; ER_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 pytest business_entity_resolution/tests/test_large_reranker_protocol.py business_entity_resolution/tests/test_large_reranker.py -q --disable-warnings; uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_large_reranker.py prepare --data \"${{inputs.data}}\" --hybrid-result \"${{inputs.hybrid_result}}\" --features-train \"${{inputs.features_train}}\" --features-test \"${{inputs.features_test}}\" --friend \"${{inputs.friend}}\" --graph \"${{inputs.graph}}\" --output \"${{outputs.out}}\" --max-targets 120000 --max-pairs 800000"
+    },
+    "train": {
+      "type": "command",
+      "display_name": "four-a100-reranker-lora-train",
+      "compute": "azureml:amazites-verify-a100",
+      "code": "../..",
+      "environment": "azureml://registries/azureml/environments/acpt-pytorch-2.8-cuda12.6/versions/17",
+      "inputs": {
+        "prepared": {
+          "path": "${{parent.jobs.prepare.outputs.out}}"
+        }
+      },
+      "outputs": {
+        "out": "${{parent.outputs.trained}}"
+      },
+      "resources": {
+        "instance_count": 1,
+        "shm_size": "32g"
+      },
+      "limits": {
+        "timeout": 5400
+      },
+      "command": "set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; uv sync --project upstream_neural --frozen --python 3.12; uv run --project upstream_neural --frozen --python 3.12 python business_entity_resolution/scripts/run_large_reranker.py train --prepared \"${{inputs.prepared}}\" --output \"${{outputs.out}}\" --workers 4 --batch 8 --epochs 2 --train-seconds 2400"
+    },
+    "score_0": {
+      "type": "command",
+      "display_name": "four-a100-reranker-score-0",
+      "compute": "azureml:amazites-verify-a100",
+      "code": "../..",
+      "environment": "azureml://registries/azureml/environments/acpt-pytorch-2.8-cuda12.6/versions/17",
+      "inputs": {
+        "prepared": {
+          "path": "${{parent.jobs.prepare.outputs.out}}"
+        },
+        "trained": {
+          "path": "${{parent.jobs.train.outputs.out}}",
+          "mode": "download"
+        }
+      },
+      "outputs": {
+        "out": "${{parent.outputs.scored_0}}"
+      },
+      "resources": {
+        "instance_count": 1,
+        "shm_size": "32g"
+      },
+      "limits": {
+        "timeout": 7200
+      },
+      "command": "set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; uv sync --project upstream_neural --frozen --python 3.12; uv run --project upstream_neural --frozen --python 3.12 python business_entity_resolution/scripts/run_large_reranker.py score --prepared \"${{inputs.prepared}}\" --trained \"${{inputs.trained}}\" --output \"${{outputs.out}}\" --workers 4 --batch 48 --shard-index 0 --shards 2"
+    },
+    "score_1": {
+      "type": "command",
+      "display_name": "four-a100-reranker-score-1",
+      "compute": "azureml:amazites-verify-a100",
+      "code": "../..",
+      "environment": "azureml://registries/azureml/environments/acpt-pytorch-2.8-cuda12.6/versions/17",
+      "inputs": {
+        "prepared": {
+          "path": "${{parent.jobs.prepare.outputs.out}}"
+        },
+        "trained": {
+          "path": "${{parent.jobs.train.outputs.out}}",
+          "mode": "download"
+        }
+      },
+      "outputs": {
+        "out": "${{parent.outputs.scored_1}}"
+      },
+      "resources": {
+        "instance_count": 1,
+        "shm_size": "32g"
+      },
+      "limits": {
+        "timeout": 7200
+      },
+      "command": "set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; uv sync --project upstream_neural --frozen --python 3.12; uv run --project upstream_neural --frozen --python 3.12 python business_entity_resolution/scripts/run_large_reranker.py score --prepared \"${{inputs.prepared}}\" --trained \"${{inputs.trained}}\" --output \"${{outputs.out}}\" --workers 4 --batch 48 --shard-index 1 --shards 2"
+    },
+    "fit": {
+      "type": "command",
+      "display_name": "select-large-reranker-and-validate",
+      "compute": "azureml:amazites-graph64",
+      "code": "../..",
+      "environment": {
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
+      },
+      "inputs": {
+        "data": {
+          "path": "${{parent.inputs.data}}",
+          "mode": "download"
+        },
+        "hybrid_result": {
+          "path": "${{parent.inputs.hybrid_result}}"
+        },
+        "features_train": {
+          "path": "${{parent.inputs.features_train}}"
+        },
+        "features_test": {
+          "path": "${{parent.inputs.features_test}}"
+        },
+        "friend": {
+          "path": "${{parent.inputs.friend}}"
+        },
+        "graph": {
+          "path": "${{parent.inputs.graph}}"
+        },
+        "prepared": {
+          "path": "${{parent.jobs.prepare.outputs.out}}"
+        },
+        "scored": {
+          "path": "${{parent.jobs.score_0.outputs.out}}"
+        },
+        "scored_extra": {
+          "path": "${{parent.jobs.score_1.outputs.out}}"
+        }
+      },
+      "outputs": {
+        "out": "${{parent.outputs.result}}"
+      },
+      "resources": {
+        "instance_count": 1,
+        "shm_size": "32g"
+      },
+      "limits": {
+        "timeout": 7200
+      },
+      "command": "set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; uv sync --frozen --python 3.13; uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_large_reranker.py fit --data \"${{inputs.data}}\" --hybrid-result \"${{inputs.hybrid_result}}\" --features-train \"${{inputs.features_train}}\" --features-test \"${{inputs.features_test}}\" --friend \"${{inputs.friend}}\" --graph \"${{inputs.graph}}\" --prepared \"${{inputs.prepared}}\" --scored \"${{inputs.scored}}\" --scored-extra \"${{inputs.scored_extra}}\" --output \"${{outputs.out}}\" --rounds 500; uv run --frozen --python 3.13 python business_entity_resolution/scripts/validate_outputs.py --data \"${{inputs.data}}\" --output \"${{outputs.out}}/output\""
+    }
+  }
+}

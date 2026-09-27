@@ -1,0 +1,55 @@
+# Azure ML CPU job: stacker on the teammate's upgraded neural candidates (3 per record).
+#   az ml job create --file azure/stack_job.yml -g vnjhaveri-rg -w mlworkloads
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: amazites-stack-run10-varun-v2
+experiment_name: amazon-ml-2026
+compute: azureml:aml26-cpu-e64
+code: ..
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+environment_variables:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+inputs:
+  data:        # prepared records (ref/s2/s3 parquet) - teammate's data.py output, verified against the raw TSVs
+    type: uri_folder
+    mode: download
+    path: azureml://datastores/workspaceblobstore/paths/LocalUpload/87666a896e8207989c312af14d2bbf86d6b80b6c532449d1ae8f178d617249bf/data/
+  scores:      # all scoring job outputs; only the listed run folders are read
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/amazon-ml-2026/
+  lex:         # our blocking candidates (output of azure/lexical_job.yml)
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/azureml/clever_neck_n4rvnz0z3m/work/
+  v2:          # Varun v2 cross-encoder ensemble scores (qid, tid, score) - FILL PATHS
+    type: uri_folder
+    mode: ro_mount
+    path: azureml://datastores/workspaceblobstore/paths/azureml/heroic_turnip_nglfccqlxx/out/
+outputs:
+  out:
+    type: uri_folder
+    mode: upload
+resources:
+  instance_count: 1
+  shm_size: 32g
+command: |
+  set -eu
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  uv venv -q --python 3.13 /tmp/venv
+  uv pip install -q --python /tmp/venv/bin/python -r requirements.txt
+  S="${{inputs.scores}}"
+  TR=""; for j in re5b20a0f26 r87960abcbe rded60990b8 ra205a3c2aa; do TR="$TR\"$S/aml26-gpu-$j/out/train\","; done
+  TE=""; for j in ref279743ff r9330cf7cd5 r91e3174eb8 r78d8ba87b7 r5498d54451 r8f3b6a7145 r50dc384b14 r6865ff447f r825107015a r2841c20a21 r2eca5b91ce r5c4f880466 r5c5baac438 r61a8c15623 ra4d4cb174d rf79e87eb21 r43ac4e9f6b r05e5bad2b7 raf45f0bdf6 r50f8bd5b23; do TE="$TE\"$S/aml26-gpu-$j/out/test\","; done
+  LTR=$(ls -d "${{inputs.lex}}"/blocking/*/train); LTE=$(ls -d "${{inputs.lex}}"/blocking/*/test)
+  echo "lexical: $LTR $LTE"
+  nproc; free -g
+  /tmp/venv/bin/python -u src/run.py stack -c configs/stack.toml --name stack_run10_varunv2 --set "stack.swap_features=true" --set "stack.rules=false" --set "stack.external_name=\"ext_v2\"" --set "stack.external_col=\"v2\"" --set "stack.external_train=[\"${{inputs.v2}}/train.parquet\"]" --set "stack.external_test=[\"${{inputs.v2}}/test.parquet\"]"     --set "stack.lexical_train=[\"$LTR\"]" --set "stack.lexical_test=[\"$LTE\"]" \
+    --set "stack.data=\"${{inputs.data}}\"" \
+    --set "stack.train_roots=[${TR%,}]" \
+    --set "stack.test_roots=[${TE%,}]" \
+    --set "stack.work=\"$PWD/stackwork\"" \
+    --set "paths.experiments=\"${{outputs.out}}/experiments\""

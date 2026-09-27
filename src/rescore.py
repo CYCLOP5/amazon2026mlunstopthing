@@ -1,4 +1,4 @@
-"""replay a selected stack over cached train/test scores"""
+'replay a selected stack over cached train/test scores'
 import argparse as ap
 import concurrent.futures as cf
 import os
@@ -15,7 +15,7 @@ import stack2
 def run(data, scores, model, context, out, threads=64):
     if not 1 <= threads <= (os.cpu_count() or 1) or out.exists():
         raise ValueError("invalid threads or existing replay output")
-    metadata, digest = stack2.bundle(model)
+    meta, digest = stack2.bundle(model)
     out.mkdir(parents=True)
     workers = min(2, threads)
     per = threads // workers
@@ -38,13 +38,13 @@ def run(data, scores, model, context, out, threads=64):
             return {"split": split, "pairs": checked["pairs"], "score_sha256": checked["score_sha256"]}
 
         with cf.ThreadPoolExecutor(max_workers=workers) as pool:
-            results = list(pool.map(score, ("train", "test")))
+            rs = list(pool.map(score, ("train", "test")))
     (out / "stack").mkdir()
-    for name in ("metadata.json", *metadata["files"]):
+    for name in ("metadata.json", *meta["files"]):
         sh.copyfile(model / name, out / "stack" / name)
-    result = {"model_sha256": digest, "scores": results}
-    infer._write(out / "result.json", result)
-    return result
+    res = {"model_sha256": digest, "scores": rs}
+    infer._write(out / "result.json", res)
+    return res
 
 
 if __name__ == "__main__":

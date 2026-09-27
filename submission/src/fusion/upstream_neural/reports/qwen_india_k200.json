@@ -1,0 +1,30 @@
+{
+  "all_links_recalled": 0.9,
+  "anchors": 2000,
+  "cache": "cache/embed-local/qwen3_qwen_qwen3_embedding_0_6b_97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3_india_f0",
+  "candidate_file": "dense_candidates.parquet",
+  "country": "india",
+  "fold": 0,
+  "k": 200,
+  "lexical_parts": [
+    "pairs_00000.parquet",
+    "pairs_00001.parquet",
+    "pairs_00002.parquet",
+    "pairs_00003.parquet",
+    "pairs_00004.parquet",
+    "pairs_00005.parquet",
+    "pairs_00006.parquet",
+    "pairs_00007.parquet",
+    "pairs_00008.parquet"
+  ],
+  "link_recall": 0.9662093862815885,
+  "links": 6691,
+  "oracle_macro_f05": 0.9875794245171068,
+  "queries": 8925,
+  "references": 883188,
+  "search": "exact_gpu_fp16",
+  "search_batch": 32,
+  "seconds": 7.268505869004002,
+  "union_link_recall": 0.9929241877256317,
+  "warning": "classifier/full-pool f0.5 is not evaluated; fp16 brute-force scores are exact only in half precision, not ann, and retrieval benchmarks do not guarantee entity-resolution quality."
+}

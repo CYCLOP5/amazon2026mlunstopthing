@@ -1,4 +1,4 @@
-"""cached country-transfer calibration diagnostics; no france labels"""
+'cached country-transfer calibration diagnostics; no france labels'
 import argparse as ap
 import concurrent.futures as cf
 from pathlib import Path as path
@@ -39,23 +39,23 @@ def run(cache, model, data, out, threads=8):
     booster = lgb.Booster(model_file=str(path(model) / "lgb.txt"))
     if booster.feature_name() != names:
         raise ValueError("diagnostic model feature order changed")
-    probabilities = {}
+    probs = {}
     for name, column in (("gate", "gate_logit"), ("neural", "neural_logit")):
         p = e["raw"].copy()
         p[active] = 1 / (1 + np.exp(-e["x"][:, names.index(column)]))
-        probabilities[name] = p
+        probs[name] = p
     p = e["raw"].copy()
     p[active] = booster.predict(e["x"], num_threads=threads)
-    probabilities["stack"] = p
+    probs["stack"] = p
     for weight in (.25, .5, .75):
-        logits = weight * post.logit(p) + (1 - weight) * post.logit(probabilities["gate"])
-        probabilities[f"stack{weight}"] = (1 / (1 + np.exp(-logits))).astype(np.float32)
+        logits = weight * post.logit(p) + (1 - weight) * post.logit(probs["gate"])
+        probs[f"stack{weight}"] = (1 / (1 + np.exp(-logits))).astype(np.float32)
     if all(f"logit_np_m{i}" in names for i in range(6)):
         p = e["raw"].copy()
         columns = [names.index(f"logit_np_m{i}") for i in range(6)]
         p[active] = 1 / (1 + np.exp(-e["x"][:, columns].mean(axis=1)))
-        probabilities["first6_mean"] = p
-    selected = e["local"] >= 0
+        probs["first6_mean"] = p
+    sel = e["local"] >= 0
     countries = meta["countries"]
     edges = np.linspace(post.logit([.02])[0], post.logit([.999])[0], 25)
 
@@ -65,34 +65,34 @@ def run(cache, model, data, out, threads=8):
         hist = {}
         for country in countries:
             for segment in range(3):
-                mask = selected & (e["country"] == country) & (e["segment"] == segment)
+                mask = sel & (e["country"] == country) & (e["segment"] == segment)
                 hist[f"{country}|{segment}"] = [np.bincount(bins[mask], minlength=26).astype(float),
                                                 np.bincount(bins[mask], weights=e["y"][mask], minlength=26)]
-        results = []
+        rs = []
         for target in countries:
             sources = {c: n for c, n in countries.items() if c != target}
-            training = {k: v for k, v in hist.items() if k.rsplit("|", 1)[0] in sources}
+            tr = {k: v for k, v in hist.items() if k.rsplit("|", 1)[0] in sources}
             anchors = refs["co"].to_numpy() == target
             for mode in ("density", "unscaled_density", "source_empirical"):
                 if mode == "source_empirical":
-                    curves = post.pooled(training, sources, hist, edges)
+                    curves = post.pooled(tr, sources, hist, edges)
                 else:
-                    curves = post.curves(training, hist, sources, countries, edges, transfer=mode == "density")
-                result = {"policy": name, "target": target, "calibration": mode,
+                    curves = post.curves(tr, hist, sources, countries, edges, transfer=mode == "density")
+                res = {"policy": name, "target": target, "calibration": mode,
                           "fit_countries": list(sources), "references": int(anchors.sum()),
                           **evaluate(e, p, curves, anchors, max(1, threads // 2))}
-                print(result, flush=True)
-                results.append(result)
-        return results
+                print(res, flush=True)
+                rs.append(res)
+        return rs
 
     with cf.ThreadPoolExecutor(max_workers=min(2, threads)) as pool:
-        results = [row for rows in pool.map(probe, probabilities.items()) for row in rows]
-    result = {"scope": "partition1 country-transfer calibration proxy with complete target competition",
+        rs = [row for rows in pool.map(probe, probs.items()) for row in rows]
+    res = {"scope": "partition1 country-transfer calibration proxy with complete target competition",
               "caveat": "matcher was trained on both labelled countries; this is not unseen-country training or france accuracy",
               "cache_sha256": infer._sha(path(cache) / "cache.json"),
-              "model_sha256": infer._sha(path(model) / "metadata.json"), "results": results}
-    infer._write(out, result)
-    return result
+              "model_sha256": infer._sha(path(model) / "metadata.json"), "results": rs}
+    infer._write(out, res)
+    return res
 
 
 def compare(cache, development, models, out, threads=8):
@@ -103,7 +103,7 @@ def compare(cache, development, models, out, threads=8):
     keys = ("source_config_sha256", "source_scores_sha256", "data_meta_sha256", "features")
     if any(fit_meta["fit"][k] != dev_meta["fit"][k] for k in keys):
         raise ValueError("calibration and development caches differ")
-    selected = fitting["local"] >= 0
+    sel = fitting["local"] >= 0
     edges = np.linspace(post.logit([.02])[0], post.logit([.999])[0], 25)
     rows = []
     for root in models:
@@ -113,13 +113,13 @@ def compare(cache, development, models, out, threads=8):
         model = lgb.Booster(model_file=str(path(root) / "lgb.txt"))
         if model.feature_name() != meta["features"]:
             raise ValueError("finalist feature order changed")
-        calibration = fitting["raw"].copy()
-        calibration[fitting["active"]] = model.predict(fitting["x"], num_threads=threads)
-        bins = np.searchsorted(edges, post.logit(calibration), side="right")
+        cal = fitting["raw"].copy()
+        cal[fitting["active"]] = model.predict(fitting["x"], num_threads=threads)
+        bins = np.searchsorted(edges, post.logit(cal), side="right")
         hist = {}
         for co in fit_meta["countries"]:
             for seg in range(3):
-                mask = selected & (fitting["country"] == co) & (fitting["segment"] == seg)
+                mask = sel & (fitting["country"] == co) & (fitting["segment"] == seg)
                 hist[f"{co}|{seg}"] = [np.bincount(bins[mask], minlength=26).astype(float),
                                        np.bincount(bins[mask], weights=fitting["y"][mask], minlength=26)]
         curves = post.curves(hist, hist, fit_meta["countries"], fit_meta["countries"], edges, transfer=False)
@@ -129,12 +129,12 @@ def compare(cache, development, models, out, threads=8):
                **evaluate(e, p, curves, np.ones(len(e["degree"]), bool), threads)}
         rows.append(row)
         print(row, flush=True)
-    result = {"scope": "partition2 full-incidence development; calibration fitted on partition1 only",
+    res = {"scope": "partition2 full-incidence development; calibration fitted on partition1 only",
               "development_cache_sha256": infer._sha(path(development) / "cache.json"),
               "calibration_cache_sha256": infer._sha(path(cache) / "cache.json"),
               "references": len(e["degree"]), "results": rows}
-    infer._write(out, result)
-    return result
+    infer._write(out, res)
+    return res
 
 
 def check():
@@ -148,12 +148,12 @@ def check():
     edges = np.array([-2., 0., 2.])
     hist = {f"india|{i}": [np.array([10., 20., 30., 40.]), np.array([0., 5., 20., 40.])] for i in range(3)}
     target = {f"france|{i}": [np.array([100., 20., 50., 1.]), None] for i in range(3)}
-    source = post.curves(hist, hist, {"india": 10}, {"india": 10}, edges, transfer=False)
+    src = post.curves(hist, hist, {"india": 10}, {"india": 10}, edges, transfer=False)
     a = post.pooled(hist, {"india": 10}, target, edges)
     b = post.pooled(hist, {"india": 10}, {k: [v[0] * 7, None] for k, v in target.items()}, edges)
     for i in range(3):
         key = f"france|{i}"
-        assert a[key]["posterior"] == b[key]["posterior"] == source[f"india|{i}"]["posterior"]
+        assert a[key]["posterior"] == b[key]["posterior"] == src[f"india|{i}"]["posterior"]
         assert a[key]["positive_scale"] == 1. and b[key]["test_pairs"] == a[key]["test_pairs"] * 7
     print("country-transfer full-competition checks passed")
 

@@ -1,0 +1,24 @@
+[project]
+name = "amazites-submission"
+version = "0.1.0"
+description = "CPU entity-resolution stacker reusing pretrained Azure candidate scores"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "azure-storage-blob==12.28.0",
+    "catboost>=1.2.8,<2",
+    "lightgbm>=4.7.0",
+    "numpy==2.5.3",
+    "polars>=1.44.2",
+    "psutil>=7.2.2",
+    "pytest>=9.1.1",
+    "rapidfuzz>=3.14.6",
+    "scikit-learn>=1.9.1",
+    "scipy>=1.18.1",
+    "sparse-dot-topn>=1.2.0",
+    "unidecode>=1.4.0",
+    "xgboost==3.0.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["business_entity_resolution/tests"]

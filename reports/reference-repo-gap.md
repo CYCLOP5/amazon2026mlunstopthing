@@ -7,7 +7,7 @@ team-reported public score at this stage: 0.984
 comparison: submitted upgraded v1 and the frozen overnight experiments in this repository
 
 this historical comparison records how our team identified missing retrieval, feature and calibration capabilities before building the learned pipeline
-the final team-reported public score is [0.989](final-result.json)
+the best recorded public score is [0.990284](final-result.json) for sprint2
 
 the checkout contains source and experiment prose, but no trained models or scored outputs. its final 0.9930–0.9934 values are explicitly label-free projections, not leaderboard results. the 0.984 result is not tied to a checkpoint in the supplied experiment log. the implementation differences below are verified in source; their individual leaderboard contributions are not measured ablations against this pipeline.
 

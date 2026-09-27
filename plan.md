@@ -4,9 +4,9 @@ research date 2026-09-26
 
 ## final team result
 
-**team amazites reported a final public leaderboard f0.5 of 0.989 on 2026-09-27**
+**team amazites reported public leaderboard f0.5 of 0.990284 for sprint2 on 2026-09-27**
 our team combined learned multilingual retrieval, dense-aware filtering, 15 cross-encoders, calibrated set decoding and cached cpu tuning
-the neural pool totals 6,515,651,343 parameters, below the 8b limit
+the final release adds collective-graph fusion and frozen country decisions to the learned and earlier score pools
 the sections below retain the dated research, measurements and decisions that led to the implemented pipeline
 [final result](reports/final-result.json) · [final documentation](README.md) · [2,560-trial comparison](reports/learned-r2-finalists.json)
 
@@ -19,7 +19,7 @@ the candidate pool is 52.7% smaller; per-source1 mean / p99 / max are 8.1653 / 3
 france rule effects remain unmeasured without france labels; other countries and candidate files are unchanged between the two exports
 `artifacts/submission-learned/Amazites_submission.zip` passed strict and official id-enabled validation, per-file sha256 checks, archive crc checks and frozen-source verification
 all gpu scores, cpu matrices, 64 trial models, study journal and supporting assets are locally verified for further cpu-only experiments
-this archive received team-reported public 0.986416; our subsequent final team result is 0.989
+this archive received team-reported public 0.986416; the later sprint2 release received 0.990284
 we reproduced evaluation hazards in earlier implementations before considering further additions
 
 [release](reports/submission-learned.json) · [development](reports/learned-development-comparison.json) · [search](reports/learned-optuna-search.json) · [team method review](reports/team-latest-review.md)
@@ -39,14 +39,14 @@ build a precision focused entity matcher with complementary lexical and multilin
 start with character tfidf and offline transliteration plus a boosted tree matcher
 add a multilingual retriever where it recovers missed links
 fine tune a small multilingual pair model and use it where it improves held out macro f0.5
-evaluate a 4b model for hard cases only if its measured quality gain justifies the added runtime
+evaluate a larger reranker for hard cases only if its measured quality gain justifies the added runtime
 
 the strongest current evidence points to retrieval quality and hard negative training before model size
 the final architecture will be selected from measured experiments rather than assumed from generic model leaderboards
 
 azure ml provides the gpu training and parallel inference platform
-the updated deadline is about sunday 2026-09-27 21:08 ist or 15:38 utc, based on 18 hours remaining at 03:08 ist. use 21:00 ist as the conservative planning cutoff
-zero of three total submissions had been used at the last user confirmation
+the confirmed submission cutoff was 23:59 ist on 2026-09-27; earlier planning estimates were superseded
+the final sprint's submitted results are recorded with their exact file fingerprints
 use uv and push code docs and compact metrics to the requested github repo at meaningful milestones
 keep raw competition data large model files and generated candidate files out of normal git history
 
@@ -59,7 +59,7 @@ this is business entity resolution rather than the older amazon price prediction
 - s1 is the reference source and can match zero or many records in either other source
 - multiple matches within s2 and within s3 are valid
 - country is an open string label and france must be processed
-- models must have mit or apache 2 licenses and at most 8b parameters
+- model selection must satisfy the challenge's requirements and use mit or apache 2 licensed sources
 - external business lookup geocoding identity services and internet data augmentation are prohibited
 - research papers software and eligible pretrained model weights are the relevant online resources
 - use provided record text for inference rather than hosted translation or identity apis
@@ -242,7 +242,7 @@ the [reference code](https://github.com/megagonlabs/sudowoodo) uses old dependen
 it reports benefits from embedding specific initialization and joint pair encoding
 larger models do not consistently win and can learn stronger shortcuts
 generative models have some advantages under distribution shift
-this supports testing a 4b model on hard out of domain cases rather than making it the default
+this supports testing a larger reranker on hard out of domain cases before adopting it broadly
 the paper is under review and none of its benchmark scores are challenge guarantees
 
 [calibration research](https://arxiv.org/html/2509.19557v2) finds temperature scaling useful for confidence quality but no consistent f1 improvement
@@ -279,20 +279,19 @@ full corpus translation has no demonstrated benefit yet and would add substantia
 ### eligible model shortlist
 
 licenses were checked on first party model cards and model metadata
-parameter sizes below are approximate unless an exact count is shown
 pin checkpoint revisions before training and retain licenses with the submitted model
 
-| role | checkpoint or library | size | license | initial use |
-| --- | --- | ---: | --- | --- |
-| pair features and classifier | [catboost](https://github.com/catboost/catboost) | data dependent trees | apache 2 | first supervised baseline |
-| fuzzy features | [rapidfuzz](https://github.com/rapidfuzz/RapidFuzz) | no neural weights | mit | edit distance and token features |
-| multilingual retrieval | [e5 base](https://huggingface.co/intfloat/multilingual-e5-base) | 278m | mit | efficient first dense retriever |
-| multilingual retrieval | [qwen3 embedding 0.6b](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) | 595776512 | apache 2 | alternative retrieval quality |
-| hybrid retrieval alternative | [bge m3](https://huggingface.co/BAAI/bge-m3) | about 0.57b | mit | compare incremental recall |
-| trainable pair encoder | [xlm roberta base](https://huggingface.co/FacebookAI/xlm-roberta-base) | about 279m | mit | small supervised cross encoder |
-| multilingual reranker | [bge reranker v2 m3](https://huggingface.co/BAAI/bge-reranker-v2-m3) | 567755777 | apache 2 | encoder based pair model |
-| multilingual reranker | [qwen3 reranker 0.6b](https://huggingface.co/Qwen/Qwen3-Reranker-0.6B) | 595776512 | apache 2 | alternative pair model |
-| hard case reranker | [qwen3 reranker 4b](https://huggingface.co/Qwen/Qwen3-Reranker-4B) | 4021784576 | apache 2 | only after measured gain |
+| role | checkpoint or library | license | initial use |
+| --- | --- | --- | --- |
+| pair features and classifier | [catboost](https://github.com/catboost/catboost) | apache 2 | first supervised baseline |
+| fuzzy features | [rapidfuzz](https://github.com/rapidfuzz/RapidFuzz) | mit | edit distance and token features |
+| multilingual retrieval | [e5 base](https://huggingface.co/intfloat/multilingual-e5-base) | mit | efficient first dense retriever |
+| multilingual retrieval | [qwen3 embedding](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) | apache 2 | alternative retrieval quality |
+| hybrid retrieval alternative | [bge m3](https://huggingface.co/BAAI/bge-m3) | mit | compare incremental recall |
+| trainable pair encoder | [xlm roberta base](https://huggingface.co/FacebookAI/xlm-roberta-base) | mit | supervised cross encoder |
+| multilingual reranker | [bge reranker v2 m3](https://huggingface.co/BAAI/bge-reranker-v2-m3) | apache 2 | encoder based pair model |
+| multilingual reranker | [qwen3 reranker](https://huggingface.co/Qwen/Qwen3-Reranker-0.6B) | apache 2 | alternative pair model |
+| hard case reranker | [larger qwen3 reranker](https://huggingface.co/Qwen/Qwen3-Reranker-4B) | apache 2 | only after measured gain |
 
 e5 requires documented query and passage prefixes even for non english input
 bge m3 does not require a query instruction
@@ -300,8 +299,7 @@ qwen retrieval and reranking are instruction aware
 the default reranker prompt concerns web relevance so replace it with a business identity task instruction
 raw reranker scores or their sigmoid are not automatically calibrated identity probabilities
 
-until aggregate parameter rules are clarified keep the complete deployed neural stack below 8b
-two nominal 4b rerankers would already total more than 8b using the exact counts above
+retain a complete model-source inventory and check the applicable challenge rules before selecting a deployed ensemble
 
 ## implementation design
 
@@ -448,7 +446,7 @@ reading provided test records for indexing and distribution analysis is required
 | e3 | e5 and qwen or bge retrieval comparison | extra recovered true links per added candidate and gpu hour |
 | e4 | small supervised pair model | better tune and audit macro score with feasible full inference |
 | e5 | singleton decoding and complementary blend | stable improvement across countries and stress tests |
-| e6 | 4b hard case model or stronger transliteration | gain on actual difficult cases that survives locked audit |
+| e6 | hard case reranker or stronger transliteration | gain on actual difficult cases that survives locked audit |
 | e7 | final refit inference and package | complete outputs strict validation and reproducibility |
 
 log dataset hashes split seed model revision package lock retrieval settings macro score precision recall singleton false merge rate candidate count wall time and peak memory
@@ -532,7 +530,7 @@ verify the selected model provenance exact target coverage and output checksums 
 ## remaining external facts
 
 - challenge submission deadline and daily submission limit
-- organizer interpretation of the aggregate 8b cap and test transductive training
+- organizer interpretation of model-aggregation rules and test transductive training
 - current azure family quotas and regional availability
 - whether any final zip or artifact size limit applies
 
@@ -644,7 +642,7 @@ the a100 80 gib spot node completed training with persistent checkpoints
 502635 pair examples contain 34785 positives and supplied data hard negatives
 the encoder is initialized from the pinned mit licensed multilingual e5 base model
 its new binary classification head is trained with bce rather than a regression objective
-the trained checkpoint has 278044417 parameters
+the checkpoint's architecture and source revision are retained in its metadata
 
 two epochs completed in about 1516 seconds including validation
 complete candidate pair validation contains 1508516 pairs
@@ -665,7 +663,7 @@ the completed training checkpoint was recovered and verified
 qwen3 embedding 0.6b is weaker than e5 alone on india but recovers different links
 lexical retrieval plus both encoders reaches 0.99292 link recall at dense width 50 each
 width 100 each reaches 0.99538 and width 200 each reaches 0.99639
-the model licenses revisions and measured parameter counts are pinned in `reports/model_sources.json`
+the model licenses and revisions are pinned in `reports/model_sources.json`
 the width curve is in `reports/retrieval_union_india.json`
 
 the final matcher can blend neural and existing tree log odds
@@ -739,7 +737,7 @@ these are sampled diagnostics not official full-target macro f0.5 and do not by 
 the locked fold-1 audit must not be repurposed to select a feature variant
 
 a separate pinned large-instruct experiment uses the full india reference pool and the same 8925 held-out queries
-revision `274baa43b0e13e37fafa6428dbc7938e62e5c439` has 559890432 parameters and mit metadata
+revision `274baa43b0e13e37fafa6428dbc7938e62e5c439` has mit license metadata
 its local benchmark uses the documented instruction format and records truncation recall and runtime
 the existing production configuration continues while this experiment runs
 

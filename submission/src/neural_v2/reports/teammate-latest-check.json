@@ -1,0 +1,7 @@
+{
+  "candidate_only_truth_macro_f05": 1.0,
+  "conclusion": "candidate-only truth and pre-decoder owner projection can inflate validation; keep full truth and competitors",
+  "full_population_winner": 1,
+  "full_truth_macro_f05": 0.8333333333333334,
+  "projected_winner": 0
+}

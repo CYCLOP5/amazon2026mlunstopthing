@@ -1,0 +1,37 @@
+# Azure ML CPU job: our own lexical candidates (prep + skeleton_tfidf blocking) for train and test.
+#   az ml job create --file azure/lexical_job.yml -g vnjhaveri-rg -w mlworkloads
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: amazites-lexical-candidates
+experiment_name: amazon-ml-2026
+compute: azureml:aml26-cpu-e64b
+code: ..
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+environment_variables:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+inputs:
+  data:
+    type: uri_folder
+    mode: download
+    path: azureml://datastores/workspaceblobstore/paths/LocalUpload/87666a896e8207989c312af14d2bbf86d6b80b6c532449d1ae8f178d617249bf/data/
+outputs:
+  work:
+    type: uri_folder
+    mode: upload
+resources:
+  instance_count: 1
+  shm_size: 32g
+command: |
+  set -eu
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  uv venv -q --python 3.13 /tmp/venv
+  uv pip install -q --python /tmp/venv/bin/python -r requirements.txt
+  /tmp/venv/bin/python -u src/er/stack/rebuild_tsv.py "${{inputs.data}}" "$PWD/dataset"
+  /tmp/venv/bin/python -u src/run.py -c configs/big_machine.toml --name lexical \
+    --only prep,blocking_train,blocking_test \
+    --set "paths.data=\"$PWD/dataset\"" --set "paths.work=\"${{outputs.work}}\"" \
+    --set "paths.experiments=\"$PWD/experiments\"" \
+    --set resources.threads=0.9 --set resources.min_free_gb=8 --set blocking.chunk_rows=2000000

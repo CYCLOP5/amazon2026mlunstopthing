@@ -1,0 +1,71 @@
+{
+  "purpose": "actual CPU runtime proof of packaged offline retriever loading",
+  "runtime_checks": [
+    {
+      "check": "load",
+      "device": "cpu",
+      "embedding_dimension": 768,
+      "embedding_dtype": "float32",
+      "embedding_finite": true,
+      "embedding_norm_max": 1.0,
+      "embedding_norm_min": 1.0,
+      "embedding_shape": [
+        4,
+        768
+      ],
+      "model": "intfloat/multilingual-e5-base",
+      "network_blocked": true,
+      "observed_parameters": 278043648,
+      "revision": "d128750597153bb5987e10b1c3493a34e5a4502a",
+      "source_parameters": 278044162
+    },
+    {
+      "check": "load",
+      "device": "cpu",
+      "embedding_dimension": 1024,
+      "embedding_dtype": "float32",
+      "embedding_finite": true,
+      "embedding_norm_max": 1.0,
+      "embedding_norm_min": 0.9999999403953552,
+      "embedding_shape": [
+        4,
+        1024
+      ],
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "network_blocked": true,
+      "observed_parameters": 595776512,
+      "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+      "source_parameters": 595776512
+    }
+  ],
+  "fail_closed_checks": [
+    {
+      "check": "missing_snapshot",
+      "failed_closed": true,
+      "model": "intfloat/multilingual-e5-base",
+      "network_blocked": true,
+      "revision": "d128750597153bb5987e10b1c3493a34e5a4502a"
+    },
+    {
+      "check": "wrong_revision",
+      "failed_closed": true,
+      "model": "intfloat/multilingual-e5-base",
+      "network_blocked": true,
+      "revision": "0000000000000000000000000000000000000000"
+    },
+    {
+      "check": "missing_snapshot",
+      "failed_closed": true,
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "network_blocked": true,
+      "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+    },
+    {
+      "check": "wrong_revision",
+      "failed_closed": true,
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "network_blocked": true,
+      "revision": "0000000000000000000000000000000000000000"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://azuremlschemas.azureedge.net/latest/commandJob.schema.json",
+  "type": "command",
+  "name": "amazites-recall-sibling-bridge-20260927-03",
+  "display_name": "amazites-recall-sibling-bridge-20260927-03",
+  "experiment_name": "amazon-ml-2026",
+  "description": "Recall campaign 20260927-03: sibling_bridge; benchmark frozen at leaderboard F0.5 0.98805.",
+  "tags": {
+    "campaign": "20260927-03",
+    "method": "sibling_bridge",
+    "baseline": "amazites-latest-fusion-20260927-01"
+  },
+  "compute": "azureml:amazites-graph64",
+  "code": "../../../..",
+  "environment": {
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
+  },
+  "resources": {
+    "instance_count": 1,
+    "shm_size": "32g"
+  },
+  "limits": {
+    "timeout": 3600
+  },
+  "environment_variables": {
+    "ER_THREADS": "48",
+    "POLARS_MAX_THREADS": "48",
+    "OMP_NUM_THREADS": "48",
+    "OPENBLAS_NUM_THREADS": "1"
+  },
+  "inputs": {
+    "data": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/LocalUpload/34424852455351d9d8c06dba0370c88bccc8b762e34f31033722ffd91d6c7a36/learned-assets/data/",
+      "mode": "download"
+    },
+    "train": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/c4da719f-d934-45ca-84a7-738a0810e1a8/out/",
+      "mode": "download"
+    },
+    "test": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/e1279250-583f-4921-a2cf-b310ffaef6ec/out/",
+      "mode": "download"
+    },
+    "incumbent": {
+      "type": "uri_folder",
+      "path": "azureml://datastores/workspaceblobstore/paths/azureml/1e2ecccd-ac04-456e-8266-ddae08ce5f26/out/",
+      "mode": "ro_mount"
+    }
+  },
+  "outputs": {
+    "out": {
+      "type": "uri_folder",
+      "mode": "upload"
+    }
+  },
+  "command": "set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; uv sync --frozen --python 3.13; ER_THREADS=2 POLARS_MAX_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 python -m pytest business_entity_resolution/tests/test_recall_campaign.py business_entity_resolution/tests/test_recall_campaign_a.py business_entity_resolution/tests/test_recall_campaign_b.py business_entity_resolution/tests/test_structured_protocol.py business_entity_resolution/tests/test_additions_experiment.py -q --disable-warnings; uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_structured_experiment.py --mode sibling_bridge --data \"${{inputs.data}}\" --train \"${{inputs.train}}/prepared-train.parquet\" --test \"${{inputs.test}}/prepared-test.parquet\" --incumbent \"${{inputs.incumbent}}\" --output \"${{outputs.out}}\""
+}

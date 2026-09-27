@@ -1,0 +1,42 @@
+{
+  "audit_sha256": "90394f7f860cb319a46267b3e1624bd355d7af4b6e15930776f2a797f4c848ed",
+  "countries": [
+    {
+      "country": "india",
+      "gate_floor": 0.001,
+      "max_per_query": 50,
+      "maximum": 50,
+      "mean_per_query": 1.3436089889648395,
+      "oracle_macro_f05": 0.9993757384192868,
+      "p95_per_query": 1.0,
+      "pairs": 30074,
+      "queries": 22383,
+      "true_link_recall": 0.9981015935109014,
+      "true_links": 17383
+    },
+    {
+      "country": "us",
+      "gate_floor": 0.001,
+      "max_per_query": 50,
+      "maximum": 50,
+      "mean_per_query": 1.3653291253381425,
+      "oracle_macro_f05": 0.9992401556776557,
+      "p95_per_query": 1.0,
+      "pairs": 30283,
+      "queries": 22180,
+      "true_link_recall": 0.9973806752037253,
+      "true_links": 17180
+    }
+  ],
+  "gate_floor": 0.001,
+  "gate_sha256": "bdce49cb7dc5b4180ee790c6a312dc25ad55aa72aceeb599da1d8320ea66c6b7",
+  "maximum": 50,
+  "metrics": {
+    "mean_per_query": 1.3544195857549985,
+    "oracle_macro_f05": 0.9993079470484713,
+    "true_link_recall": 0.9977432514538669
+  },
+  "minimum": 1,
+  "neural_floor": 0.001,
+  "scope": "complete aliases of fixed held-out owners against full reference pools; candidate oracle only"
+}

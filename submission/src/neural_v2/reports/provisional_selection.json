@@ -1,0 +1,45 @@
+{
+  "kind": "provisional-selection-rationale",
+  "scope": "paired selected-query diagnostic; pair f0.5 is not source1 macro f0.5 or full test quality",
+  "operating_points": [
+    {
+      "cutoff": 0.5,
+      "pair_precision": 0.9887921241953805,
+      "pair_recall": 0.9443118536197295,
+      "diagnostic_pair_f05": 0.9795639713715546
+    },
+    {
+      "cutoff": 0.8,
+      "pair_precision": 0.9955957348168752,
+      "pair_recall": 0.9318724235192015,
+      "diagnostic_pair_f05": 0.9821632746398352
+    },
+    {
+      "cutoff": 0.9,
+      "pair_precision": 0.9974121706398996,
+      "pair_recall": 0.9198669270268316,
+      "diagnostic_pair_f05": 0.9808745276471043
+    },
+    {
+      "cutoff": 0.95,
+      "pair_precision": 0.9980850554536025,
+      "pair_recall": 0.9046792507413033,
+      "diagnostic_pair_f05": 0.9778920871183102
+    },
+    {
+      "cutoff": 0.99,
+      "pair_precision": 0.999746471731598,
+      "pair_recall": 0.8555724307514284,
+      "diagnostic_pair_f05": 0.9671511960627216
+    }
+  ],
+  "selected": {
+    "cutoff": 0.8,
+    "pair_precision": 0.9955957348168752,
+    "pair_recall": 0.9318724235192015,
+    "diagnostic_pair_f05": 0.9821632746398352
+  },
+  "baseline_full_pool_cutoff": 0.5527569055557251,
+  "baseline_locked_macro_f05": 0.9755015568211566,
+  "reason": "highest measured pair f0.5 among these diagnostic cuts; complete upgraded calibration remains pending"
+}

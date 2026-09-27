@@ -1,0 +1,64 @@
+{
+  "version": 3,
+  "training_protocol": "target_group_competition",
+  "orphan_fraction": 0.016666666666666666,
+  "incumbent_job": "amazites-latest-fusion-20260927-01",
+  "incumbent_matching_sha256": "1d1196df3840ced54b7b1af1f2e7649990d0c6183302f184eddcbda4da1ec00c",
+  "incumbent_leaderboard_user_reported": 0.98805,
+  "incumbent_method": "residual_0.5",
+  "strengths": [
+    0.25,
+    0.5,
+    0.75
+  ],
+  "incumbent_strengths": [
+    0.5
+  ],
+  "heads": [
+    {
+      "name": "competition31",
+      "rounds": 400,
+      "params": {
+        "num_leaves": 31,
+        "max_depth": 8,
+        "min_data_in_leaf": 100,
+        "learning_rate": 0.025,
+        "lambda_l2": 25,
+        "feature_fraction": 0.85,
+        "seed": 241
+      }
+    },
+    {
+      "name": "competition63",
+      "rounds": 600,
+      "params": {
+        "num_leaves": 63,
+        "max_depth": 10,
+        "min_data_in_leaf": 100,
+        "learning_rate": 0.025,
+        "lambda_l2": 35,
+        "feature_fraction": 0.85,
+        "seed": 277
+      }
+    }
+  ],
+  "expected_f_floors": [
+    0.05,
+    0.4,
+    0.65,
+    0.75,
+    0.8,
+    0.85
+  ],
+  "minimum_gain": 1e-05,
+  "max_precision_loss": 0.0,
+  "max_recall_loss": 0.0,
+  "minimum_precision": 0.999,
+  "timeout_seconds": 5400,
+  "feasible_policy_search": true,
+  "promotion_family_size": 3,
+  "confidence_alpha": 0.05,
+  "density_country_guards": true,
+  "arm": "competition_population_prior_control",
+  "notes": "Predeclared control before new experiment outputs: retain competing wrong-owner negatives, but sample unowned target groups at 1/60, approximately the original fitting-owner fraction. Tests whether 1/3 orphan sampling suppresses recoverable recall. All heads, strengths, country checks and frozen France stay identical. Historical exposure remains; three-experiment comparison must be applied consistently when reviewing all candidates."
+}

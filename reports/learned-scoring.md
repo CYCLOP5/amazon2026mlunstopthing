@@ -1,7 +1,6 @@
 # learned scoring
 
 - 15 complete-epoch cross-encoders selected: 6 e5-large-instruct, 4 e5-base, 2 e5-small, 3 bge-reranker-v2-m3
-- active neural parameters: 6,397,997,583; learned retriever: 117,653,760; total: 6,515,651,343
 - one interrupted bge checkpoint retained locally, excluded from this ensemble
 - model membership and metadata hashes: [selection](learned-model-selection.json)
 - gate floor 0.001, minimum 1, maximum 50; neural floor 0.001; [candidate audit](learned-candidate-selection.json)

@@ -1,0 +1,63 @@
+{
+  "version": 2,
+  "incumbent_job": "amazites-latest-fusion-20260927-01",
+  "incumbent_matching_sha256": "1d1196df3840ced54b7b1af1f2e7649990d0c6183302f184eddcbda4da1ec00c",
+  "incumbent_leaderboard_user_reported": 0.98805,
+  "incumbent_method": "residual_0.5",
+  "strengths": [
+    0.25,
+    0.5,
+    0.75
+  ],
+  "heads": [
+    {
+      "name": "owner_balanced",
+      "rounds": 320,
+      "weight_mode": "owner_balanced",
+      "params": {
+        "num_leaves": 63,
+        "max_depth": 9,
+        "min_data_in_leaf": 140,
+        "learning_rate": 0.03,
+        "lambda_l2": 24.0,
+        "feature_fraction": 0.85,
+        "seed": 239
+      }
+    },
+    {
+      "name": "missing_address_focus",
+      "rounds": 400,
+      "weight_mode": "owner_missing_address",
+      "missing_address_multiplier": 4.0,
+      "params": {
+        "num_leaves": 127,
+        "max_depth": 10,
+        "min_data_in_leaf": 180,
+        "learning_rate": 0.025,
+        "lambda_l2": 30.0,
+        "feature_fraction": 0.85,
+        "seed": 281
+      }
+    }
+  ],
+  "expected_f_floors": [
+    0.05,
+    0.4,
+    0.65,
+    0.75,
+    0.8,
+    0.85
+  ],
+  "minimum_gain": 1e-05,
+  "max_precision_loss": 0.001,
+  "max_recall_loss": 0.0001,
+  "timeout_seconds": 5400,
+  "notes": "Two prospectively configured parallel arms, plus the original run, count as family size 3. F0.5 remains the selection objective; bounded precision tradeoffs allowed with absolute .998 floor and country nonregression. Check is historically reused. France is exact incumbent.",
+  "feasible_policy_search": true,
+  "minimum_precision": 0.998,
+  "promotion_family_size": 3,
+  "confidence_alpha": 0.05,
+  "incumbent_strengths": [],
+  "arm": "owner_weighted",
+  "density_country_guards": true
+}

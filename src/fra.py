@@ -1,4 +1,4 @@
-"""france-only policy audit on complete cached candidates"""
+'france-only policy audit on complete cached candidates'
 import argparse as ap
 from pathlib import Path as path
 
@@ -16,12 +16,12 @@ def links(file, refs, targets):
             .filter(pl.col("source1_entity_id").is_in(refs["eid"].implode()))
             .with_columns(pl.col("matched_entity_ids").fill_null("").str.split(","))
             .explode("matched_entity_ids").filter(pl.col("matched_entity_ids") != "").collect(engine="streaming"))
-    result = (rows.join(refs.select(pl.col("eid").alias("source1_entity_id"), pl.col("rid").alias("qid")), on="source1_entity_id")
+    res = (rows.join(refs.select(pl.col("eid").alias("source1_entity_id"), pl.col("rid").alias("qid")), on="source1_entity_id")
               .join(targets.select(pl.col("eid").alias("matched_entity_ids"), pl.col("rid").alias("tid")), on="matched_entity_ids")
               .select("qid", "tid"))
-    if len(result) != len(rows) or result["tid"].n_unique() != len(result):
+    if len(res) != len(rows) or res["tid"].n_unique() != len(res):
         raise ValueError("france matches lost ids or reused targets")
-    return result
+    return res
 
 
 def choose(pairs, recipe, attrs, threads):
@@ -31,20 +31,20 @@ def choose(pairs, recipe, attrs, threads):
     top = decode.winners(pairs["qid"].to_numpy(), pairs["tid"].to_numpy(), p, raw)
     keep, _ = decode.choose(pairs["qid"].to_numpy()[top], pairs["tid"].to_numpy()[top], p[top], raw[top],
                             floor=recipe["floor"], exact=recipe["exact_limit"], threads=threads)
-    result = pairs[top[keep]].select("qid", "tid")
+    res = pairs[top[keep]].select("qid", "tid")
     if recipe.get("rules"):
-        result, _ = frule.decide(result, attrs, recipe["rules"])
-    return result
+        res, _ = frule.decide(res, attrs, recipe["rules"])
+    return res
 
 
 def run(scores, data, normalizer, cache, out, threads=2):
     if threads < 1 or out.exists():
         raise ValueError("invalid threads or existing france audit")
-    source = post.verified(scores, "test")
+    src = post.verified(scores, "test")
     original = infer._json("artifacts/submission-learned/calibration.json")
     rules = original["rules"]
     frule.validate(rules)
-    if infer._sha(normalizer) != rules["normalizer_sha256"] or infer._sha(data / "meta.json") != source["data_meta_sha256"]:
+    if infer._sha(normalizer) != rules["normalizer_sha256"] or infer._sha(data / "meta.json") != src["data_meta_sha256"]:
         raise ValueError("france audit normalization or data changed")
     scan = pl.scan_parquet(scores)
     columns = ["qid", "tid", "co", "seg", "gate_prob", "neural_prob", "stack_prob", *[f"np_m{i}" for i in range(15)]]
@@ -73,29 +73,29 @@ def run(scores, data, normalizer, cache, out, threads=2):
     attrs.write_parquet(out / "attributes.parquet")
     refs.write_parquet(out / "references.parquet")
     targets.write_parquet(out / "targets.parquet")
-    baseline = links("artifacts/submission-learned/output/matching_results.tsv", refs, targets)
-    expected = links("artifacts/retune-r2/france-fullstack-empirical/output/matching_results.tsv", refs, targets)
+    base = links("artifacts/submission-learned/output/matching_results.tsv", refs, targets)
+    exp = links("artifacts/retune-r2/france-fullstack-empirical/output/matching_results.tsv", refs, targets)
     recipes = {"gate_density": {**original, "rules": None},
                "gate_empirical": infer._json("artifacts/retune-r2/cal-gate-empirical.json"),
                "stack_density": infer._json("artifacts/retune-r2/cal-fullstack.json"),
                "stack_empirical": infer._json("artifacts/retune-r2/cal-fullstack-empirical.json")}
-    results = []
+    rs = []
     keys = ["qid", "tid"]
     fields = ["swap", "conflict", "recall", "initials", "blank", "name_exact", "address_exact"]
     for name, recipe in recipes.items():
-        if (recipe["config_sha256"] != source["config_sha256"] or recipe["sources"]["test"] != source["score_sha256"] or
-                recipe["data_meta_sha256"] != source["data_meta_sha256"]):
+        if (recipe["config_sha256"] != src["config_sha256"] or recipe["sources"]["test"] != src["score_sha256"] or
+                recipe["data_meta_sha256"] != src["data_meta_sha256"]):
             raise ValueError("france policy does not match the frozen scores")
         for use_rules in (False, True):
             label = name + ("_rules" if use_rules else "")
             recipe = {**recipe, "rules": rules if use_rules else None}
             predicted = choose(pairs, recipe, attrs, threads)
             if label in ("gate_density_rules", "stack_empirical"):
-                target = baseline if label == "gate_density_rules" else expected
+                target = base if label == "gate_density_rules" else exp
                 if len(predicted) != len(target) or len(predicted.join(target, on=keys, how="anti")):
                     raise ValueError(f"{label} differs from the validated full export")
-            added = predicted.join(baseline, on=keys, how="anti")
-            removed = baseline.join(predicted, on=keys, how="anti")
+            added = predicted.join(base, on=keys, how="anti")
+            removed = base.join(predicted, on=keys, how="anti")
             row = {"policy": label, "matches": len(predicted), "matched_references": predicted["qid"].n_unique(),
                    "added": len(added), "removed": len(removed), "flag_counts": {}}
             for kind, frame in (("accepted", predicted), ("added", added), ("removed", removed)):
@@ -107,13 +107,13 @@ def run(scores, data, normalizer, cache, out, threads=2):
                                 .join(targets.select(pl.col("rid").alias("tid"), pl.col("nm").alias("target_name"), pl.col("ad").alias("target_address")), on="tid"))
                     examples.write_csv(out / f"{label}-{kind}.tsv", separator="\t")
             predicted.write_parquet(out / f"{label}.parquet")
-            results.append(row)
+            rs.append(row)
             print(row, flush=True)
-    report = {"scope": "complete france candidate competition; no cross-country rival removed", "source_scores_sha256": source["score_sha256"],
-              "data_meta_sha256": source["data_meta_sha256"], "normalizer_sha256": infer._sha(normalizer),
+    report = {"scope": "complete france candidate competition; no cross-country rival removed", "source_scores_sha256": src["score_sha256"],
+              "data_meta_sha256": src["data_meta_sha256"], "normalizer_sha256": infer._sha(normalizer),
               "frule_code_sha256": infer._sha(path(frule.__file__)), "gfeat_code_sha256": infer._sha(path(gfeat.__file__)),
               "references": len(refs), "candidates": len(pairs), "targets": len(targets), "cross_country_rivals": cross,
-              "validated_export_parity": True, "accuracy": "unmeasured; flags and neural agreement are not france labels", "results": results}
+              "validated_export_parity": True, "accuracy": "unmeasured; flags and neural agreement are not france labels", "results": rs}
     infer._write(out / "audit.json", report)
     infer._write("reports/france-route-audit.json", report)
     return report

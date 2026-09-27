@@ -9,8 +9,11 @@ reports/probe.json
 data/
 cache/
 models/
+!submission/src/**/models/
+!submission/src/**/models/*.py
 output/
 artifacts/
+submission/assets/
 *.zip
 *.tar
 *.tar.gz

@@ -1,4 +1,4 @@
-"""real-data replay smoke; requires the retained learned caches"""
+'real-data replay smoke; requires the retained learned caches'
 import json
 import subprocess as sp
 import sys

@@ -1,0 +1,10 @@
+{
+  "queries": 64,
+  "pairs": 2613,
+  "features": 54,
+  "record_preprocessing_exact": true,
+  "feature_arrays_exact_with_nan": true,
+  "checkpoint_probability_float32_exact": true,
+  "loaded_model_prediction_exact": true,
+  "trees": 248
+}

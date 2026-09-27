@@ -1,0 +1,26 @@
+{
+  "label": "sampled-query estimate, not official/full-pool validation",
+  "warning": "validation queries contain selected anchor aliases and sampled orphans, not every target in the full corpus",
+  "anchors": 4000,
+  "queries": 17827,
+  "models": {
+    "lgb": {
+      "plain_threshold": {
+        "macro_f05": 0.9860172102859953,
+        "pair_precision": 0.5798224233983287,
+        "pair_recall": 0.9634772546467057,
+        "pairs": 22976,
+        "true_pairs": 13827,
+        "threshold": 0.0035094027526924344
+      },
+      "target_top1_then_threshold": {
+        "macro_f05": 0.9832740846733637,
+        "pair_precision": 0.7546888442787496,
+        "pair_recall": 0.9516164026903884,
+        "pairs": 17435,
+        "true_pairs": 13827,
+        "threshold": 0.0006209816946243771
+      }
+    }
+  }
+}

@@ -1,0 +1,136 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+display_name: amazites-boosted-hybrid
+experiment_name: amazon-ml-2026
+settings:
+  default_compute: azureml:amazites-graph64
+  continue_on_step_failure: false
+inputs:
+  data:
+    type: uri_folder
+    path: azureml://datastores/workspaceblobstore/paths/LocalUpload/87666a896e8207989c312af14d2bbf86d6b80b6c532449d1ae8f178d617249bf/data/
+  hybrid_result:
+    type: uri_folder
+    path: azureml://datastores/workspaceblobstore/paths/azureml/d6fe508f-ab87-4833-96f2-b1ba943d91ab/out/
+outputs:
+  features_train:
+    type: uri_folder
+    mode: rw_mount
+  features_test:
+    type: uri_folder
+    mode: rw_mount
+  models:
+    type: uri_folder
+    mode: rw_mount
+  result:
+    type: uri_folder
+    mode: rw_mount
+jobs:
+  features_train:
+    type: command
+    display_name: boosted-features-train
+    compute: azureml:amazites-cpu-v4
+    code: ../..
+    environment:
+      image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+    inputs:
+      data:
+        path: ${{parent.inputs.data}}
+        mode: download
+      hybrid_result:
+        path: ${{parent.inputs.hybrid_result}}
+    outputs:
+      out: ${{parent.outputs.features_train}}
+    resources:
+      instance_count: 1
+      shm_size: 32g
+    limits:
+      timeout: 5400
+    command: set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH="$HOME/.local/bin:$PATH";
+      uv sync --frozen --python 3.13; ER_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 pytest business_entity_resolution/tests/test_boosted_hybrid_features.py
+      -q --disable-warnings; uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_boosted_hybrid.py
+      prepare --data "${{inputs.data}}" --hybrid-result "${{inputs.hybrid_result}}" --output "${{outputs.out}}"
+      --split train
+  features_test:
+    type: command
+    display_name: boosted-features-test
+    compute: azureml:amazites-graph64
+    code: ../..
+    environment:
+      image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+    inputs:
+      data:
+        path: ${{parent.inputs.data}}
+        mode: download
+      hybrid_result:
+        path: ${{parent.inputs.hybrid_result}}
+    outputs:
+      out: ${{parent.outputs.features_test}}
+    resources:
+      instance_count: 1
+      shm_size: 32g
+    limits:
+      timeout: 5400
+    command: set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH="$HOME/.local/bin:$PATH";
+      uv sync --frozen --python 3.13; ER_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 pytest business_entity_resolution/tests/test_boosted_hybrid_features.py
+      -q --disable-warnings; uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_boosted_hybrid.py
+      prepare --data "${{inputs.data}}" --hybrid-result "${{inputs.hybrid_result}}" --output "${{outputs.out}}"
+      --split test
+  models:
+    type: command
+    display_name: four-gpu-xgboost-catboost-heads
+    compute: azureml:amazites-verify-a100
+    code: ../..
+    environment: azureml://registries/azureml/environments/acpt-pytorch-2.8-cuda12.6/versions/17
+    inputs:
+      data:
+        path: ${{parent.inputs.data}}
+      features_train:
+        path: ${{parent.jobs.features_train.outputs.out}}
+      features_test:
+        path: ${{parent.jobs.features_test.outputs.out}}
+    outputs:
+      out: ${{parent.outputs.models}}
+    resources:
+      instance_count: 1
+      shm_size: 32g
+    limits:
+      timeout: 7200
+    command: set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH="$HOME/.local/bin:$PATH";
+      uv sync --frozen --python 3.13; uv run --frozen --python 3.13 python -c "import subprocess; ids=subprocess.check_output(['nvidia-smi','--query-gpu=index','--format=csv,noheader'],text=True).strip().splitlines();
+      print('GPU device count:',len(ids),flush=True); assert len(ids)==4"; uv run --frozen --python 3.13 python
+      business_entity_resolution/scripts/run_boosted_hybrid.py gpu --data "${{inputs.data}}" --features-train "${{inputs.features_train}}"
+      --features-test "${{inputs.features_test}}" --output "${{outputs.out}}" --rounds 700
+  select:
+    type: command
+    display_name: select-boosted-heads-and-validate
+    compute: azureml:amazites-graph64
+    code: ../..
+    environment:
+      image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+    inputs:
+      data:
+        path: ${{parent.inputs.data}}
+        mode: download
+      hybrid_result:
+        path: ${{parent.inputs.hybrid_result}}
+      features_train:
+        path: ${{parent.jobs.features_train.outputs.out}}
+      features_test:
+        path: ${{parent.jobs.features_test.outputs.out}}
+      models:
+        path: ${{parent.jobs.models.outputs.out}}
+    outputs:
+      out: ${{parent.outputs.result}}
+    resources:
+      instance_count: 1
+      shm_size: 32g
+    limits:
+      timeout: 7200
+    command: set -eu; curl -LsSf https://astral.sh/uv/0.7.16/install.sh | sh; export PATH="$HOME/.local/bin:$PATH";
+      uv sync --frozen --python 3.13; ER_THREADS=2 ER_MIN_FREE_GB=0 uv run --frozen --python 3.13 pytest business_entity_resolution/tests/test_boosted_hybrid_pipeline.py
+      -q --disable-warnings; uv run --frozen --python 3.13 python business_entity_resolution/scripts/run_boosted_hybrid.py
+      select --data "${{inputs.data}}" --hybrid-result "${{inputs.hybrid_result}}" --features-train "${{inputs.features_train}}"
+      --features-test "${{inputs.features_test}}" --models "${{inputs.models}}" --output "${{outputs.out}}"; uv
+      run --frozen --python 3.13 python business_entity_resolution/scripts/validate_outputs.py --data "${{inputs.data}}"
+      --output "${{outputs.out}}/output"

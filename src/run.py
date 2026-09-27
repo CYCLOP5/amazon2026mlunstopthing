@@ -217,9 +217,9 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
         raise ValueError("neural floor must be finite and in [0,1]")
     if gate_floor is not None and (not math.isfinite(gate_floor) or not 0 <= gate_floor <= 1):
         raise ValueError("gate floor must be finite and in [0,1]")
-    selected = hybrid.configs(retrievers, retrievers_file) if retrievers_file else None
-    if selected is not None:
-        retrievers = tuple(embed.family(x["model"]) for x in selected)
+    sel = hybrid.configs(retrievers, retrievers_file) if retrievers_file else None
+    if sel is not None:
+        retrievers = tuple(embed.family(x["model"]) for x in sel)
     full = countries == infer._countries(data, split, None) and rid_start is None and rid_stop is None
     if calibration_out is not None and (split != "train" or not full):
         raise ValueError("calibration requires complete full training coverage")
@@ -231,8 +231,8 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
         raise ValueError("export requires complete full test coverage")
     owner = _owner(data, gate, neural, split, countries, rid_start, rid_stop, k_lex, k_dense, k_gate, retrievers,
                     device, threads, encoder_batch, neural_batch, query_batch, neural_weight, shard_size)
-    if selected is not None:
-        owner["retriever_specs"] = selected
+    if sel is not None:
+        owner["retriever_specs"] = sel
         retrievers_file = out / "retrievers.json"
     if neural_floor is not None:
         owner["neural_floor"] = neural_floor
@@ -277,8 +277,8 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
     z.pop("verification", None)
     z.pop("warmups", None)
     _write(out / "runs.json", z)
-    if selected is not None:
-        _write(retrievers_file, selected)
+    if sel is not None:
+        _write(retrievers_file, sel)
     runner = _child if runner is None else runner
 
     slots = None
@@ -351,21 +351,21 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
         z["verification"] = {"status": "skipped", "reason": "failed children", "countries": failed}
         _write(out / "runs.json", z)
         raise RuntimeError(f"matching children failed for {failed}")
-    expected = _ids(data, split, countries, rid_start, rid_stop)
+    exp = _ids(data, split, countries, rid_start, rid_stop)
     paths = [x[3] for x in jobs]
     try:
-        infer._runs(data, paths, split, expected)
+        infer._runs(data, paths, split, exp)
     except Exception as e:
         z["verification"] = {"status": "failed", "error": f"{type(e).__name__}: {e}"}
         _write(out / "runs.json", z)
         raise
     z["complete"] = True
-    z["verification"] = {"status": "exact_coverage", "targets": len(expected), "full": full}
+    z["verification"] = {"status": "exact_coverage", "targets": len(exp), "full": full}
     _write(out / "runs.json", z)
     _write(out / "runpaths.json", {"runs": [x["runpath"] for x in z["runs"]], "split": split, "full": full})
-    result = {"runs": [str(x) for x in paths], "targets": len(expected), "full": full}
+    res = {"runs": [str(x) for x in paths], "targets": len(exp), "full": full}
     if calibration_out is not None:
-        result["calibration"] = infer.calibrate(data, paths, calibration_out, audit=audit)
+        res["calibration"] = infer.calibrate(data, paths, calibration_out, audit=audit)
     if calibration is not None:
         cal = _json(path(calibration))
         if cal.get("kind") == "segmented-postprocessor":
@@ -395,12 +395,12 @@ def run(data, cache, gate, neural, out, split="test", countries=None, rid_start=
             if cal.get("rules"):
                 gm = _json(gate / "metadata.json")
                 normalizer = gate / gm["normalizer"]["file"]
-            result["export"] = post.export(prepared, calibration, export_out, threads, normalizer, cache)
+            res["export"] = post.export(prepared, calibration, export_out, threads, normalizer, cache)
         else:
             if stack_dir is not None:
                 raise ValueError("legacy calibration cannot use a pairwise stack")
-            result["export"] = infer.export(data, paths, calibration, export_out)
-    return result
+            res["export"] = infer.export(data, paths, calibration, export_out)
+    return res
 
 
 def check():

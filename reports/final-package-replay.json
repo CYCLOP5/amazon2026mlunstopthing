@@ -1,0 +1,36 @@
+{
+  "variants": {
+    "sprint2": {
+      "variant": "sprint2",
+      "sha256": {
+        "matching_results.tsv": "b05d40e6c914e1741ebb6c17e3c11edd7b04d90d6c9a4d1c770c409ed25ec2dc",
+        "candidate_pairs.tsv": "344f114f8c81d4c806cf7019a2ebefc6cb312e16ca7ec04797701ee36a9e5e71"
+      }
+    },
+    "final-france": {
+      "variant": "final-france",
+      "sha256": {
+        "matching_results.tsv": "e0565d95ecc02396992a8e56e9eec540438b8a255a477872a19ba25c8db9b7bd",
+        "candidate_pairs.tsv": "344f114f8c81d4c806cf7019a2ebefc6cb312e16ca7ec04797701ee36a9e5e71"
+      }
+    }
+  },
+  "style": {
+    "files_checked": 325,
+    "structural_mismatches": []
+  },
+  "fusion_tests": {
+    "passed": 395,
+    "skipped": 1
+  },
+  "runtime": {
+    "python": "3.11.16",
+    "numpy": "2.4.6",
+    "polars": "1.44.2",
+    "pyarrow": "25.0.1"
+  },
+  "existing_repository_style": {
+    "files_checked": 37,
+    "structural_mismatches": []
+  }
+}

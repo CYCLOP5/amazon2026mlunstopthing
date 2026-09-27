@@ -1,0 +1,64 @@
+{
+  "version": 3,
+  "training_protocol": "target_group_competition",
+  "orphan_fraction": 0.016666666666666666,
+  "incumbent_job": "amazites-latest-fusion-20260927-01",
+  "incumbent_matching_sha256": "1d1196df3840ced54b7b1af1f2e7649990d0c6183302f184eddcbda4da1ec00c",
+  "incumbent_leaderboard_user_reported": 0.98805,
+  "incumbent_method": "residual_0.5",
+  "strengths": [
+    1.0,
+    1.25,
+    1.5
+  ],
+  "incumbent_strengths": [
+    0.5
+  ],
+  "heads": [
+    {
+      "name": "competition31",
+      "rounds": 400,
+      "params": {
+        "num_leaves": 31,
+        "max_depth": 8,
+        "min_data_in_leaf": 100,
+        "learning_rate": 0.025,
+        "lambda_l2": 25,
+        "feature_fraction": 0.85,
+        "seed": 241
+      }
+    },
+    {
+      "name": "competition63",
+      "rounds": 600,
+      "params": {
+        "num_leaves": 63,
+        "max_depth": 10,
+        "min_data_in_leaf": 100,
+        "learning_rate": 0.025,
+        "lambda_l2": 35,
+        "feature_fraction": 0.85,
+        "seed": 277
+      }
+    }
+  ],
+  "expected_f_floors": [
+    0.05,
+    0.4,
+    0.65,
+    0.75,
+    0.8,
+    0.85
+  ],
+  "minimum_gain": 1e-05,
+  "max_precision_loss": 0.0,
+  "max_recall_loss": 0.0,
+  "minimum_precision": 0.999,
+  "timeout_seconds": 5400,
+  "feasible_policy_search": true,
+  "promotion_family_size": 4,
+  "confidence_alpha": 0.05,
+  "density_country_guards": true,
+  "arm": "strength_boundary",
+  "notes": "Predeclared strength-boundary follow-up using prior31 search evidence only: search F0.5 rose monotonically at strengths .25, .5 and .75, with .5/.75 passing all precision/recall guards and the best search score at the upper boundary. No prior-arm check result was read before declaring this follow-up. Extend new-head strengths to 1.0, 1.25 and 1.5; retain both heads, orphan sampling 1/60, all guards, incumbent recipe, and frozen France. Historical exposure remains. Final comparison must apply the four-experiment adjustment consistently to all batch arms."
+}

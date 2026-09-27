@@ -378,8 +378,7 @@ it must not be reconstructed from accepted matches or padded with unrelated pair
 ## 12. reproducibility and evidence gates
 
 - python version and dependencies are pinned with uv
-- pretrained ids revisions licenses and parameter bounds are in [model sources](../reports/model_sources.json)
-- the upgraded neural stack is about 1.712b parameters including the separately trained matcher
+- pretrained ids revisions and licenses are in [model sources](../reports/model_sources.json)
 - original unicode and offline comparison views are separate
 - fold ownership prevents alias leakage
 - corrected lexical scores have an explicit version

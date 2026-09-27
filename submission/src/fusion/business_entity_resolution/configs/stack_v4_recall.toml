@@ -1,0 +1,9 @@
+# Optional candidate-recall experiment; promote only after heldout measurement.
+extends = "stack_v4.toml"
+
+[experiment]
+name = "stack_v4_recall"
+
+[stack]
+exact_rescue = true
+exact_max_owners = 8

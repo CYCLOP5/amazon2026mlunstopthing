@@ -1,18 +1,19 @@
 # evaluation and submission evidence
 
-> updated: 2026-09-27
+> updated: 2026-09-28
 >
-> final team-reported public leaderboard f0.5: **0.989**
+> best recorded public leaderboard f0.5: **0.990284** for sprint2
 >
 > earlier checkpoint results: baseline **0.964**; upgraded v1 **0.969**; first learned france-rule archive **0.986416**
 
-our team completed multilingual retrieval, dense-aware candidate filtering, neural matching, calibrated set decoding and cached cpu tuning
-the final team result is reported separately from the hash-bound checkpoint measurements below
+our team completed multilingual retrieval, dense-aware candidate filtering, neural matching, graph fusion and cached cpu tuning
+the final sprint2 and final-france packages share the complete 20,177,322-pair candidate pool
+their source and exact replay instructions are in [submission](../submission/README.md)
 [final result](../reports/final-result.json)
 
 ## learned pipeline
 
-15 complete-epoch cross-encoders and the task-trained small retriever are selected, totaling 6,515,651,343 parameters
+15 complete-epoch cross-encoders and the task-trained small retriever are selected for this earlier learned checkpoint
 the gate uses 103 features with a 0.001 retention floor, maximum 50 candidates and one fallback
 at 07:43 ist, gpu scoring completed all 20,289,808 train/test targets
 all 10,320,219 training and 9,969,589 test targets are cached locally with verified coverage and hashes across 106 manifests and 9,950 parts

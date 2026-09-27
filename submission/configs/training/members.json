@@ -1,0 +1,782 @@
+[
+  {
+    "member": "m0",
+    "experiment": "large21",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 2e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 21,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-large-instruct"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2076047,
+      "reference_entities": 600000,
+      "seed": 21,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "0669bca0ccc3507e543ca8df57dd8729426fa021cecbe669fb9ca72b9d5b9ff8",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 107659,
+      "version": 1
+    },
+    "files": {
+      "config.json": "bd13a88923e8746b7bee482d4d6c0dd88f192af8d257559e55046ccac45263b1",
+      "head.safetensors": "83f811819a0b68a100d96896882cd4acc7136c23ae019185e13c231954dad469",
+      "model.safetensors": "4fd2b40844ea5b603ab65ef968444585df367795c65be6cae19e1e30ff5d3dc3",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "cad551d5600a84242d0973327029452a1e3672ba6313c2a3c3d69c4310e12719",
+      "tokenizer_config.json": "0fc42f057e0907b8a1911f8185a60407208d20497600bc1e319a8651203efb0c"
+    },
+    "original_metadata_sha256": "a20e1b5daf0a36fe3c65b0195f0c0ec611c60195f5cedbd0b72ff48f87e6e822"
+  },
+  {
+    "member": "m1",
+    "experiment": "large41",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 1e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 41,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-large-instruct"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2078467,
+      "reference_entities": 600000,
+      "seed": 41,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "e42fa8f1700cb8d1a1d28b9d4a61c5cd1b6ceda50d45f5c054eb97c38f75e1aa",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 106227,
+      "version": 1
+    },
+    "files": {
+      "config.json": "bd13a88923e8746b7bee482d4d6c0dd88f192af8d257559e55046ccac45263b1",
+      "head.safetensors": "5a53620cffd0d9a44e61037ab20d6009277490cd5a2c5bd49de36d1eb6fdcbb7",
+      "model.safetensors": "febbc37592c5d196ac06315d251f2b736f92fd8e2ed3b1273291cbb04baec2d2",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "cad551d5600a84242d0973327029452a1e3672ba6313c2a3c3d69c4310e12719",
+      "tokenizer_config.json": "0fc42f057e0907b8a1911f8185a60407208d20497600bc1e319a8651203efb0c"
+    },
+    "original_metadata_sha256": "3e47da1b0b503d8fa43882c34116f65a82e149617577cfb551d57c1d86e81f17"
+  },
+  {
+    "member": "m2",
+    "experiment": "large51",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 3e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 51,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-large-instruct"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2077790,
+      "reference_entities": 600000,
+      "seed": 51,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "a2a8cbf44c9b767b66a68cfc70a10d7bec6d3ceac435903e840b4327b39c643c",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 106511,
+      "version": 1
+    },
+    "files": {
+      "config.json": "bd13a88923e8746b7bee482d4d6c0dd88f192af8d257559e55046ccac45263b1",
+      "head.safetensors": "5bccf43863fdd3f9662f1acef96a447dad1c13b14fc7cc576935b53f98900ce1",
+      "model.safetensors": "0e5ec08cb5d17550e852dc915cb67125f159ea3e50c5d428823f1eb97f95f0db",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "cad551d5600a84242d0973327029452a1e3672ba6313c2a3c3d69c4310e12719",
+      "tokenizer_config.json": "0fc42f057e0907b8a1911f8185a60407208d20497600bc1e319a8651203efb0c"
+    },
+    "original_metadata_sha256": "2ebc9085ec2ccc6e9cffaae332b278f373744bb8e626fb520f70af6b53392b1f"
+  },
+  {
+    "member": "m3",
+    "experiment": "large160",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 2e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 160,
+      "precision": "fp16",
+      "seed": 71,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-large-instruct"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2077541,
+      "reference_entities": 600000,
+      "seed": 71,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "69eb9b36c7d7afcae68cafb1bcff4bcf668eea7918ea7d7b36558d9e0db87878",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 105326,
+      "version": 1
+    },
+    "files": {
+      "config.json": "bd13a88923e8746b7bee482d4d6c0dd88f192af8d257559e55046ccac45263b1",
+      "head.safetensors": "4b3331a138ac1a4242288c4e0d91fd29b8a345046ed5e4543265beb027d33f90",
+      "model.safetensors": "ed2781e10a7884784663c512ece93f6fc306af1a135a68804072ac12eff83d4c",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "7e46326c545ff6da42f5474c4845979f724e537dcc2ad6c20bc061b73b5f9472",
+      "tokenizer_config.json": "0fc42f057e0907b8a1911f8185a60407208d20497600bc1e319a8651203efb0c"
+    },
+    "original_metadata_sha256": "00c4871d1be82cdd904fea2279dc69b1b73dd82eef41f786ba7da63344e32975"
+  },
+  {
+    "member": "m4",
+    "experiment": "large96",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 2e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 96,
+      "precision": "fp16",
+      "seed": 131,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-large-instruct"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2076396,
+      "reference_entities": 600000,
+      "seed": 131,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "de2cc60505a78b58521bb70a5a99d17a834ce788100ae66b8612de5b1a991557",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 106558,
+      "version": 1
+    },
+    "files": {
+      "config.json": "bd13a88923e8746b7bee482d4d6c0dd88f192af8d257559e55046ccac45263b1",
+      "head.safetensors": "d98d799f2421ec050343bf7bc6cbdb70b8411f46f374b90eaac8781b59dba999",
+      "model.safetensors": "76a99ad0904c464b95b9f266eb79a9f68e87466013af7504c20c2e1c5f2cd086",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "937f4a82d2465952cc36b8b530eff763b9bb84f82bbb0cacb81b8c1dc750e6d2",
+      "tokenizer_config.json": "0fc42f057e0907b8a1911f8185a60407208d20497600bc1e319a8651203efb0c"
+    },
+    "original_metadata_sha256": "1b0f24496495e779b2fe402a6be64a635f0a41077e9c931376bf0caddf7160e1"
+  },
+  {
+    "member": "m5",
+    "experiment": "large160b",
+    "configuration": {
+      "batch_per_gpu": 40,
+      "lr": 2e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 131,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-large-instruct"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2076396,
+      "reference_entities": 600000,
+      "seed": 131,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "de2cc60505a78b58521bb70a5a99d17a834ce788100ae66b8612de5b1a991557",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 106558,
+      "version": 1
+    },
+    "files": {
+      "config.json": "bd13a88923e8746b7bee482d4d6c0dd88f192af8d257559e55046ccac45263b1",
+      "head.safetensors": "99d90c6f4080f19505c2f7104cf909e6b85ae80e7ccf999af8887858275bd5b5",
+      "model.safetensors": "4c4233682521e4e9a5361560e324fd5401d2ce6b7ba3ea405a4b367446031128",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "cad551d5600a84242d0973327029452a1e3672ba6313c2a3c3d69c4310e12719",
+      "tokenizer_config.json": "0fc42f057e0907b8a1911f8185a60407208d20497600bc1e319a8651203efb0c"
+    },
+    "original_metadata_sha256": "3c6c9f136dda7ea6d94fff0376ba369c003e35d757f8683da73c73f27b042a50"
+  },
+  {
+    "member": "m6",
+    "experiment": "bge51",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 2e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 51,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "BAAI/bge-reranker-v2-m3",
+      "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/BAAI/bge-reranker-v2-m3"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2077790,
+      "reference_entities": 600000,
+      "seed": 51,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "a2a8cbf44c9b767b66a68cfc70a10d7bec6d3ceac435903e840b4327b39c643c",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 106511,
+      "version": 1
+    },
+    "files": {
+      "config.json": "b4dea09f9ad9d95be025a2961e24383d96d572fdc54ca31b45b12763e6f90ec9",
+      "head.safetensors": "511422613b8b1e2446754f9b6d7ebac4074c1d6dbdfc31da79eb288a0bd32041",
+      "model.safetensors": "a1ebab5e8a952222fd148029514267f792d1b9afeb6ddbaa870b9fb4a42313c5",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "6e52d6b8821cfe12c1d10150f539401d9355ba1a4d44e19360359628a2f5ac61",
+      "tokenizer_config.json": "b87c8703482b0300d3da30e201519aa641f6a450f5eb5bf1e624afbf70c74d80"
+    },
+    "original_metadata_sha256": "ebefd0d5878eff31d6f3083324ace8f61d0afecd441eca0c459a13a33c186aff"
+  },
+  {
+    "member": "m7",
+    "experiment": "bge131",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 3e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 131,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "BAAI/bge-reranker-v2-m3",
+      "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/BAAI/bge-reranker-v2-m3"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2076396,
+      "reference_entities": 600000,
+      "seed": 131,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "de2cc60505a78b58521bb70a5a99d17a834ce788100ae66b8612de5b1a991557",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 106558,
+      "version": 1
+    },
+    "files": {
+      "config.json": "b4dea09f9ad9d95be025a2961e24383d96d572fdc54ca31b45b12763e6f90ec9",
+      "head.safetensors": "faf562146af35db5f21e7074581d8aafbd79ad4f82995845266265006163fa98",
+      "model.safetensors": "c620c564b45289c37985a69886ec107824d8e59375116f473b617e6a7f4b4adf",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "6e52d6b8821cfe12c1d10150f539401d9355ba1a4d44e19360359628a2f5ac61",
+      "tokenizer_config.json": "b87c8703482b0300d3da30e201519aa641f6a450f5eb5bf1e624afbf70c74d80"
+    },
+    "original_metadata_sha256": "955f22894f99d243e5082ca346802d37de4a15cf55206b56a61d970a37be9a96"
+  },
+  {
+    "member": "m8",
+    "experiment": "bge160",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 2e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 160,
+      "precision": "fp16",
+      "seed": 41,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "BAAI/bge-reranker-v2-m3",
+      "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/BAAI/bge-reranker-v2-m3"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2078467,
+      "reference_entities": 600000,
+      "seed": 41,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "e42fa8f1700cb8d1a1d28b9d4a61c5cd1b6ceda50d45f5c054eb97c38f75e1aa",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 106227,
+      "version": 1
+    },
+    "files": {
+      "config.json": "b4dea09f9ad9d95be025a2961e24383d96d572fdc54ca31b45b12763e6f90ec9",
+      "head.safetensors": "cba88a4900f17c5c9cb4abb8df8c506cb0a64d11db44aaf9c3b778b6cc532240",
+      "model.safetensors": "308123254c63f43464156433943d855eb5602c642a4e37b5ffb2c6eec272f694",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "a26361a39ee817fe0cbe82ccf4750593a55f5f220abfcb19b5391e0e1eb0f99b",
+      "tokenizer_config.json": "b87c8703482b0300d3da30e201519aa641f6a450f5eb5bf1e624afbf70c74d80"
+    },
+    "original_metadata_sha256": "ff9ff865b06bbe3dbefc2747114aac65469f908b1c27c756d5c1eec5b6d29e03"
+  },
+  {
+    "member": "m9",
+    "experiment": "base71",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 2e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 71,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-base",
+      "revision": "d128750597153bb5987e10b1c3493a34e5a4502a",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-base"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2077541,
+      "reference_entities": 600000,
+      "seed": 71,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "69eb9b36c7d7afcae68cafb1bcff4bcf668eea7918ea7d7b36558d9e0db87878",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 105326,
+      "version": 1
+    },
+    "files": {
+      "config.json": "ac7aff5828f41e25b0a7bd9f950424e6d3dd9bb08c6142cb892e81a638156ca9",
+      "head.safetensors": "2bc5ab3b49e9fbffdaf841b0729c6966ed474765043c9d9bd595322223dbf6e9",
+      "model.safetensors": "ff5862c5370593ed50421682c1f4b47a2c938ec1e9805cd99db97c5ca30ba8f5",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "cad551d5600a84242d0973327029452a1e3672ba6313c2a3c3d69c4310e12719",
+      "tokenizer_config.json": "dfb4021b23969fc942e96b2c4ac906d94712b4b96ef7081cb66a0ea211896d51"
+    },
+    "original_metadata_sha256": "79fd6ff0839ff79d832ff4ddab964db350807586229221cd9be7dc568ef40006"
+  },
+  {
+    "member": "m10",
+    "experiment": "base21",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 1e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 21,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-base",
+      "revision": "d128750597153bb5987e10b1c3493a34e5a4502a",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-base"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2076047,
+      "reference_entities": 600000,
+      "seed": 21,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "0669bca0ccc3507e543ca8df57dd8729426fa021cecbe669fb9ca72b9d5b9ff8",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 107659,
+      "version": 1
+    },
+    "files": {
+      "config.json": "ac7aff5828f41e25b0a7bd9f950424e6d3dd9bb08c6142cb892e81a638156ca9",
+      "head.safetensors": "a842a15e084ff370075446738b5c4ca936027c4819ca7ee7af2d869e9aabaf61",
+      "model.safetensors": "2fff1ab78a3aadee562b1516be410c6f67ddf641ee64239b32f8569c16c05389",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "cad551d5600a84242d0973327029452a1e3672ba6313c2a3c3d69c4310e12719",
+      "tokenizer_config.json": "dfb4021b23969fc942e96b2c4ac906d94712b4b96ef7081cb66a0ea211896d51"
+    },
+    "original_metadata_sha256": "84d9c4600bfbf4699e3ff0d927f7b66bbc7f46a055ba80345e78666a6bc0b90f"
+  },
+  {
+    "member": "m11",
+    "experiment": "base160",
+    "configuration": {
+      "batch_per_gpu": 20,
+      "lr": 3e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 160,
+      "precision": "fp16",
+      "seed": 41,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-base",
+      "revision": "d128750597153bb5987e10b1c3493a34e5a4502a",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-base"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2078467,
+      "reference_entities": 600000,
+      "seed": 41,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "e42fa8f1700cb8d1a1d28b9d4a61c5cd1b6ceda50d45f5c054eb97c38f75e1aa",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 106227,
+      "version": 1
+    },
+    "files": {
+      "config.json": "ac7aff5828f41e25b0a7bd9f950424e6d3dd9bb08c6142cb892e81a638156ca9",
+      "head.safetensors": "8f3d96acac18408d4ca8cd38eba1c47d6095fa7a044951f66665d46a6044e8f9",
+      "model.safetensors": "6081f98ebd31b54ecf2780c4eb1e723fd1378c23fd1d0f850e6277fb12ae7bef",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "7e46326c545ff6da42f5474c4845979f724e537dcc2ad6c20bc061b73b5f9472",
+      "tokenizer_config.json": "dfb4021b23969fc942e96b2c4ac906d94712b4b96ef7081cb66a0ea211896d51"
+    },
+    "original_metadata_sha256": "bcaea2560791bab6c5c198afd38836ece675dad2cc9b9de2091e3a0503b3da3d"
+  },
+  {
+    "member": "m12",
+    "experiment": "base160b",
+    "configuration": {
+      "batch_per_gpu": 40,
+      "lr": 2e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 131,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 4
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-base",
+      "revision": "d128750597153bb5987e10b1c3493a34e5a4502a",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-base"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2076396,
+      "reference_entities": 600000,
+      "seed": 131,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "de2cc60505a78b58521bb70a5a99d17a834ce788100ae66b8612de5b1a991557",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 106558,
+      "version": 1
+    },
+    "files": {
+      "config.json": "ac7aff5828f41e25b0a7bd9f950424e6d3dd9bb08c6142cb892e81a638156ca9",
+      "head.safetensors": "a41181791d0cc299cb7dd47f5b7e87a685a43706a39572332a80dd39d52089d0",
+      "model.safetensors": "8de54f58cbc243e79683e6a6dcc53757d0a9be0aaf2aa98d78c7a7226c18c1f4",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "cad551d5600a84242d0973327029452a1e3672ba6313c2a3c3d69c4310e12719",
+      "tokenizer_config.json": "dfb4021b23969fc942e96b2c4ac906d94712b4b96ef7081cb66a0ea211896d51"
+    },
+    "original_metadata_sha256": "e1546d8da7ee2abc523932dd993f7d4848b3eeaf1b42adcd17f7e7e5730742bc"
+  },
+  {
+    "member": "m13",
+    "experiment": "small21",
+    "configuration": {
+      "batch_per_gpu": 80,
+      "lr": 2e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 21,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 1
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-small",
+      "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-small"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2076047,
+      "reference_entities": 600000,
+      "seed": 21,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "0669bca0ccc3507e543ca8df57dd8729426fa021cecbe669fb9ca72b9d5b9ff8",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 107659,
+      "version": 1
+    },
+    "files": {
+      "config.json": "51d8afcd56f9cdaf391c71abe73f1179fb52e71baa944234d27d070992917a9d",
+      "head.safetensors": "eb33d81a8bfb0fab3f16021dfe90f6b08a6d8521fd0f6e3d9b38d5679618e089",
+      "model.safetensors": "c4e4297c6ea140611cc43fae6ff1dae6bcc6d802bd1545ef7e9f73da689f97c3",
+      "special_tokens_map.json": "38d989b0fdad0fec0c67c14b1f3c8b68184022cf6d4adc5444526ced8653f738",
+      "tokenizer.json": "6c2ccb33b55c4d157419a2105d6e033f7514c2baa6306471c56b86ab02787613",
+      "tokenizer_config.json": "dbdcd9767f0481fd8fd8cd6bce3e73dae7f5c44ce22ae1fde00a66498e71b454"
+    },
+    "original_metadata_sha256": "fc9dd7b1fd7d6b2a402d4f0f2a84680f53d46da1256ed0510ccd7a41a354db81"
+  },
+  {
+    "member": "m14",
+    "experiment": "small71",
+    "configuration": {
+      "batch_per_gpu": 80,
+      "lr": 3e-05,
+      "max_seconds": 10800.0,
+      "maxlen": 128,
+      "precision": "fp16",
+      "seed": 71,
+      "weight_decay": 0.01,
+      "word_embeddings_frozen": true,
+      "world": 1
+    },
+    "source": {
+      "model": "intfloat/multilingual-e5-small",
+      "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+      "license": "mit",
+      "source": "https://huggingface.co/intfloat/multilingual-e5-small"
+    },
+    "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+    "pair_source": {
+      "fit_folds": [
+        2
+      ],
+      "kind": "owner-isolated-hard-cross-encoder-pairs",
+      "pairs": 3000000,
+      "positive": 2077541,
+      "reference_entities": 600000,
+      "seed": 71,
+      "selection": "all selected-entity positives plus highest-scored cached negatives; both endpoints in fitting fold",
+      "sha256": "69eb9b36c7d7afcae68cafb1bcff4bcf668eea7918ea7d7b36558d9e0db87878",
+      "source": {
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "score_sha256": "f557dd7842fbeafcbf2cb6543e7044d7624df56a49387d4af69052397acea714",
+        "source_config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}"
+      },
+      "validation": "same owner/reference holdout group; orphan groups keyed by target id",
+      "validation_pairs": 105326,
+      "version": 1
+    },
+    "files": {
+      "config.json": "51d8afcd56f9cdaf391c71abe73f1179fb52e71baa944234d27d070992917a9d",
+      "head.safetensors": "fb1881da465e692dce274c8f52b4e07125f06ce01cf0be7627f068a81272f889",
+      "model.safetensors": "c5b277e2d526b8587d1467278fb60f3c0610ce15ca365e45edfa808269098d68",
+      "special_tokens_map.json": "38d989b0fdad0fec0c67c14b1f3c8b68184022cf6d4adc5444526ced8653f738",
+      "tokenizer.json": "6c2ccb33b55c4d157419a2105d6e033f7514c2baa6306471c56b86ab02787613",
+      "tokenizer_config.json": "dbdcd9767f0481fd8fd8cd6bce3e73dae7f5c44ce22ae1fde00a66498e71b454"
+    },
+    "original_metadata_sha256": "18262f5139c4a0bc601e4687098606e4a95516f3b7a8fde42f669209b1e73f46"
+  }
+]
