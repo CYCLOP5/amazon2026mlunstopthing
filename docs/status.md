@@ -1,10 +1,26 @@
 # evaluation and submission evidence
 
-> updated: 2026-09-26
+> updated: 2026-09-27
 >
 > updated planning cutoff: sunday 2026-09-27 21:00 ist / 15:30 utc, based on 18 hours remaining at about 03:08 ist
 >
 > team-reported public leaderboard f0.5: baseline **0.964**; upgraded v1 **0.969**
+
+## learned pipeline
+
+15 complete-epoch cross-encoders and the task-trained small retriever are selected, totaling 6,515,651,343 parameters
+the gate uses 103 features with a 0.001 retention floor, maximum 50 candidates and one fallback
+at 06:49 ist, scoring covered 19,785,754 / 20,289,808 train/test targets; one india training shard remained
+all 9,969,589 test targets are cached locally with verified coverage and hashes across 53 manifests and 4,891 parts
+all 15 member columns are retained: [local test-score verification](../reports/learned-local-test-scores.json)
+the saved test pool contains 14,146,782 candidate pairs, 52.7% fewer than the earlier 29,908,767
+per-source1 mean / p50 / p95 / p99 / max: 8.1653 / 7 / 15 / 30 / 298, before final tsv validation
+[complete candidate counts](../reports/learned-candidate-counts.json)
+
+the automatic 64-core cpu handoff runs optuna, calibration and output validation after complete training coverage
+the working first-archive estimate is 08:00–09:00 ist; no learned matching metric or public score is available yet
+the historical optuna development baseline is 0.9845466096 on the same 73,752 business ids: [bound comparison](../reports/learned-comparison-baseline.json)
+real-model packaging preflight passed; local score relocation preserves data/model hashes and reproduces identical exports in its check
 
 ## model comparison
 

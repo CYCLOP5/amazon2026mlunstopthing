@@ -1,0 +1,26 @@
+{
+  "complete": true,
+  "config_sha256": "7106e3923df375cb62753ba0c8bbf77fb5bf0ab2f7f7b1db98fe49931ff26017",
+  "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+  "parts": 4891,
+  "run_manifests": 53,
+  "score_columns": [
+    "np_m0",
+    "np_m1",
+    "np_m2",
+    "np_m3",
+    "np_m4",
+    "np_m5",
+    "np_m6",
+    "np_m7",
+    "np_m8",
+    "np_m9",
+    "np_m10",
+    "np_m11",
+    "np_m12",
+    "np_m13",
+    "np_m14"
+  ],
+  "split": "test",
+  "targets": 9969589
+}
