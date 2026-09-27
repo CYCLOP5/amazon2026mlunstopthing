@@ -1,0 +1,19 @@
+{
+  "added_pairs": 35694,
+  "candidate_pairs": 14146782,
+  "candidate_sha256": "45da391da8f8ca6720d8d71abf33209f93c003ff6503b57f451405c10222d0bc",
+  "changed_references": 65634,
+  "matching_sha256": "e405e96747e28b160308f3b5c16e6feda961da240aa16c5dca2a050717bfa7fd",
+  "new_matching_pairs": 5814727,
+  "old_matching_pairs": 5823095,
+  "public_score": null,
+  "reassigned_targets": 1173,
+  "recipe_sha256": "9cddf4a0a8bc181f198601f14b0a53ed840a4e13c050d63782890c058518538d",
+  "removed_pairs": 44062,
+  "scope": "france only; unchanged india/us rows and actual candidate set",
+  "strict_validation_passed": true,
+  "official_id_validation_passed": true,
+  "matching": "artifacts/retune-r2/france-fullstack-empirical/output/matching_results.tsv",
+  "score_effect": "unmeasured; labelled-country calibration transfer is a proxy",
+  "source1_rows": 1732544
+}

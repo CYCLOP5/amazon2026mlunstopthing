@@ -1,0 +1,722 @@
+{
+  "cache_sha256": "13c897ef4d9a47169f2cccb4d3b734d31f7799915553640d89016fc0b750a667",
+  "caveat": "matcher was trained on both labelled countries; this is not unseen-country training or france accuracy",
+  "model_sha256": "4becffce01149ca5349db544608a99cb8e4cefd35c6cb9e576fb629cc647b142",
+  "results": [
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.9617341128112565,
+      "pair_precision": 0.9947784441759143,
+      "pair_recall": 0.8796564975296055,
+      "pairs": 90203,
+      "policy": "gate",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.9641188071034862,
+      "pair_precision": 0.9946907120369456,
+      "pair_recall": 0.888920476825347,
+      "pairs": 91161,
+      "policy": "gate",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.979796653949804,
+      "pair_precision": 0.9936034767705209,
+      "pair_recall": 0.95477805662301,
+      "pairs": 98022,
+      "policy": "gate",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.9609907700154923,
+      "pair_precision": 0.9920199321152596,
+      "pair_recall": 0.8979043560110861,
+      "pairs": 138470,
+      "policy": "gate",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.9592114635144622,
+      "pair_precision": 0.9922377612222077,
+      "pair_recall": 0.893224128013387,
+      "pairs": 137718,
+      "policy": "gate",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.9811576218333855,
+      "pair_precision": 0.9931330297884432,
+      "pair_recall": 0.9595382523662606,
+      "pairs": 147809,
+      "policy": "gate",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29338,
+      "macro_f05": 0.980469093584665,
+      "pair_precision": 0.9984096592276385,
+      "pair_recall": 0.9354658458160144,
+      "pairs": 95577,
+      "policy": "neural",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29338,
+      "macro_f05": 0.9804599125904744,
+      "pair_precision": 0.9983783557573602,
+      "pair_recall": 0.9354854521214022,
+      "pairs": 95582,
+      "policy": "neural",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29338,
+      "macro_f05": 0.9874508742789594,
+      "pair_precision": 0.9967554852577362,
+      "pair_recall": 0.9637283350325465,
+      "pairs": 98628,
+      "policy": "neural",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.9572830180410892,
+      "pair_precision": 0.9986018927065403,
+      "pair_recall": 0.8683980024054803,
+      "pairs": 133037,
+      "policy": "neural",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.959342455961602,
+      "pair_precision": 0.9986020154899674,
+      "pair_recall": 0.8731435967159964,
+      "pairs": 133764,
+      "policy": "neural",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.9800814388922422,
+      "pair_precision": 0.9994554023389771,
+      "pair_recall": 0.935699158081891,
+      "pairs": 143225,
+      "policy": "neural",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29342,
+      "macro_f05": 0.9841706949009175,
+      "pair_precision": 0.9986955711534878,
+      "pair_recall": 0.9456905340757588,
+      "pairs": 96594,
+      "policy": "stack",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29342,
+      "macro_f05": 0.9841902958260811,
+      "pair_precision": 0.9987058701728957,
+      "pair_recall": 0.945661124617677,
+      "pairs": 96590,
+      "policy": "stack",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29342,
+      "macro_f05": 0.992008117125043,
+      "pair_precision": 0.9987454459688669,
+      "pair_recall": 0.9755313308760097,
+      "pairs": 99637,
+      "policy": "stack",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44142,
+      "macro_f05": 0.9647728957412615,
+      "pair_precision": 0.998782991202346,
+      "pair_recall": 0.8905114260314804,
+      "pairs": 136400,
+      "policy": "stack",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44142,
+      "macro_f05": 0.9649043902795134,
+      "pair_precision": 0.9987616688893123,
+      "pair_recall": 0.8909755268524813,
+      "pairs": 136474,
+      "policy": "stack",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44142,
+      "macro_f05": 0.9893507087827772,
+      "pair_precision": 0.9982056089840521,
+      "pair_recall": 0.9708858442712963,
+      "pairs": 148797,
+      "policy": "stack",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.9562721487501584,
+      "pair_precision": 0.9974209296167087,
+      "pair_recall": 0.8492373147204141,
+      "pairs": 86853,
+      "policy": "stack0.25",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.956647239809073,
+      "pair_precision": 0.9974246361148796,
+      "pair_recall": 0.8504627088071524,
+      "pairs": 86978,
+      "policy": "stack0.25",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.9882324882508677,
+      "pair_precision": 0.9975146996423592,
+      "pair_recall": 0.9679240843855383,
+      "pairs": 98982,
+      "policy": "stack0.25",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.9654795840074222,
+      "pair_precision": 0.9957233158750226,
+      "pair_recall": 0.900963499450923,
+      "pairs": 138425,
+      "policy": "stack0.25",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.965402712873256,
+      "pair_precision": 0.9957437275985663,
+      "pair_recall": 0.9007151074622183,
+      "pairs": 138384,
+      "policy": "stack0.25",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.986057027957149,
+      "pair_precision": 0.99504033502906,
+      "pair_recall": 0.9691405637190817,
+      "pairs": 149002,
+      "policy": "stack0.25",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.9631724181732975,
+      "pair_precision": 0.9980640005402789,
+      "pair_recall": 0.8692553525213709,
+      "pairs": 88843,
+      "policy": "stack0.5",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.962997649579899,
+      "pair_precision": 0.9980739989863152,
+      "pair_recall": 0.8686965728178182,
+      "pairs": 88785,
+      "policy": "stack0.5",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.9905022037115213,
+      "pair_precision": 0.9985394695756403,
+      "pair_recall": 0.9718257391577131,
+      "pairs": 99279,
+      "policy": "stack0.5",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.9636457400887436,
+      "pair_precision": 0.9983827096963905,
+      "pair_recall": 0.8877398943680385,
+      "pairs": 136030,
+      "policy": "stack0.5",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.9636712225568056,
+      "pair_precision": 0.998382816692272,
+      "pair_recall": 0.8877987240495738,
+      "pairs": 136039,
+      "policy": "stack0.5",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44143,
+      "macro_f05": 0.9879338275317846,
+      "pair_precision": 0.9966458260659565,
+      "pair_recall": 0.9711342362600011,
+      "pairs": 149068,
+      "policy": "stack0.5",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29340,
+      "macro_f05": 0.979140587453086,
+      "pair_precision": 0.9986363636363637,
+      "pair_recall": 0.9261136381460278,
+      "pairs": 94600,
+      "policy": "stack0.75",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29340,
+      "macro_f05": 0.979113700246148,
+      "pair_precision": 0.9986362194735173,
+      "pair_recall": 0.9260156066190887,
+      "pairs": 94590,
+      "policy": "stack0.75",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29340,
+      "macro_f05": 0.9915702079623171,
+      "pair_precision": 0.9989039718451483,
+      "pair_recall": 0.9738549917653517,
+      "pairs": 99450,
+      "policy": "stack0.75",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44142,
+      "macro_f05": 0.9640612937960567,
+      "pair_precision": 0.9987201741739975,
+      "pair_recall": 0.8875568686921508,
+      "pairs": 135956,
+      "policy": "stack0.75",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44142,
+      "macro_f05": 0.9641847056419536,
+      "pair_precision": 0.9987060250707642,
+      "pair_recall": 0.8879294566752078,
+      "pairs": 136015,
+      "policy": "stack0.75",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44142,
+      "macro_f05": 0.9891758112231376,
+      "pair_precision": 0.9980377662791479,
+      "pair_recall": 0.9708074046959159,
+      "pairs": 148810,
+      "policy": "stack0.75",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.9812773035263856,
+      "pair_precision": 0.9973113814724079,
+      "pair_recall": 0.9418182887616657,
+      "pairs": 96332,
+      "policy": "first6_mean",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.981249159126271,
+      "pair_precision": 0.9973006364268732,
+      "pair_recall": 0.9416810446239511,
+      "pairs": 96319,
+      "policy": "first6_mean",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "us"
+      ],
+      "groups": 29337,
+      "macro_f05": 0.9858558261608947,
+      "pair_precision": 0.9968094757550737,
+      "pair_recall": 0.958650301937103,
+      "pairs": 98103,
+      "policy": "first6_mean",
+      "references": 29374,
+      "target": "india",
+      "true_pairs": 102008
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44144,
+      "macro_f05": 0.9679212295309909,
+      "pair_precision": 0.9981121020766878,
+      "pair_recall": 0.9019766772995869,
+      "pairs": 138249,
+      "policy": "first6_mean",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "unscaled_density",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44144,
+      "macro_f05": 0.9684837949070175,
+      "pair_precision": 0.9981014668514668,
+      "pair_recall": 0.9037873241646185,
+      "pairs": 138528,
+      "policy": "first6_mean",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    },
+    {
+      "approximate_groups": 0,
+      "calibration": "source_empirical",
+      "exact_limit": 64,
+      "fit_countries": [
+        "india"
+      ],
+      "groups": 44144,
+      "macro_f05": 0.9798907409207815,
+      "pair_precision": 0.9992531844355261,
+      "pair_recall": 0.9358364273388067,
+      "pairs": 143275,
+      "policy": "first6_mean",
+      "references": 44148,
+      "target": "us",
+      "true_pairs": 152984
+    }
+  ],
+  "scope": "partition1 country-transfer calibration proxy with complete target competition"
+}

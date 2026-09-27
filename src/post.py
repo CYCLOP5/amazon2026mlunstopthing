@@ -212,7 +212,17 @@ def curves(train, target, ntrain, ntarget, edges, minimum=50, transfer=True):
     return result
 
 
-def fit(train, test, out, weight=.6, unseen=True, rules=False, normalizer=None):
+def pooled(train, counts, target, edges):
+    hist = {f"pooled|{segment}": [sum((train[f"{co}|{segment}"][i] for co in counts), np.zeros(len(edges) + 1))
+                                     for i in range(2)] for segment in range(3)}
+    n = {"pooled": sum(counts.values())}
+    base = curves(hist, hist, n, n, edges, transfer=False)
+    return {key: {**base[f"pooled|{key.rsplit('|', 1)[1]}"], "pooled": True,
+                  "test_pairs": int(value[0].sum()), "calibration": "pooled empirical"}
+            for key, value in target.items()}
+
+
+def fit(train, test, out, weight=.6, unseen=True, rules=False, normalizer=None, unseen_empirical=False):
     train, test, out = path(train), path(test), path(out)
     if out.exists():
         raise ValueError("calibration output already exists")
@@ -227,6 +237,7 @@ def fit(train, test, out, weight=.6, unseen=True, rules=False, normalizer=None):
               "assumption": "positive score density transfers after scaling by high-score mass; unknown countries borrow labelled countries"}
     recipe["partition"] = tr.get("calibration_partition", {"modulus": 2, "remainder": 1})
     recipe["known_score"] = "stack_prob" if tr.get("stack_model") else "blend"
+    recipe["unseen_calibration"] = "empirical" if unseen_empirical else "density"
     if tr.get("stack_model"):
         if tr["stack_model"] != te.get("stack_model"):
             raise ValueError("train/test stack model differs")
@@ -241,7 +252,9 @@ def fit(train, test, out, weight=.6, unseen=True, rules=False, normalizer=None):
     gate_train = histograms(train, recipe, fit=True, force_gate=True)
     result = curves(training, target, tr["fit_reference_counts"], te["reference_counts"], np.asarray(recipe["edges"]))
     unknown = {k: v for k, v in target.items() if k.rsplit("|", 1)[0] not in recipe["countries"]}
-    if unseen and unknown:
+    if unseen_empirical and unknown:
+        result.update(pooled(gate_train if unseen else training, tr["fit_reference_counts"], unknown, np.asarray(recipe["edges"])))
+    elif unseen and unknown:
         result.update(curves(gate_train, unknown, tr["fit_reference_counts"], te["reference_counts"], np.asarray(recipe["edges"])))
     recipe["curves"] = result
     if rules:
@@ -259,6 +272,8 @@ def validate_recipe(recipe):
         raise ValueError("invalid postprocessor version or kind")
     if not isinstance(recipe.get("unseen_gate"), bool):
         raise ValueError("invalid unseen-country policy")
+    if recipe.get("unseen_calibration", "density") not in ("density", "empirical"):
+        raise ValueError("invalid unseen-country calibration")
     for key in ("floor", "neural_weight"):
         value = recipe.get(key)
         if isinstance(value, bool) or not isinstance(value, (float, int)) or not np.isfinite(value) or not 0 <= value <= 1:
@@ -318,7 +333,10 @@ def export(prepared, recipe_path, out, threads=12, normalizer=None, cache=None):
         raise ValueError("export directory already exists")
     data = path(meta["data"])
     pieces = []
-    for batch in pq.ParquetFile(prepared).iter_batches(batch_size=262144):
+    columns = ["qid", "tid", "co", "seg", "gate_prob", "neural_prob"]
+    if recipe.get("known_score") == "stack_prob":
+        columns.append("stack_prob")
+    for batch in pq.ParquetFile(prepared).iter_batches(batch_size=262144, columns=columns):
         d = batch.to_pydict()
         co, seg = np.asarray(d["co"]), np.asarray(d["seg"])
         raw = score_rows(d, recipe)
@@ -453,6 +471,7 @@ def main():
     z.add_argument("--out", type=path, required=True)
     z.add_argument("--weight", type=float, default=.6)
     z.add_argument("--blend-unseen", action="store_true")
+    z.add_argument("--empirical-unseen", action="store_true")
     z.add_argument("--france-rules", action="store_true")
     z.add_argument("--normalizer", type=path)
     z = sub.add_parser("export")
@@ -472,7 +491,7 @@ def main():
     elif a.command == "prepare":
         print(json.dumps(prepare(a.data, a.runs, a.split, a.out), indent=2))
     elif a.command == "fit":
-        print(json.dumps(fit(a.train, a.test, a.out, a.weight, not a.blend_unseen, a.france_rules, a.normalizer), indent=2))
+        print(json.dumps(fit(a.train, a.test, a.out, a.weight, not a.blend_unseen, a.france_rules, a.normalizer, a.empirical_unseen), indent=2))
     elif a.command == "rebase":
         for scores in a.scores:
             meta = rebase(scores, a.data)

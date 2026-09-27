@@ -37,6 +37,19 @@ compare gate, neural and stack score routing with country-transfer calibration s
 the rule-only score effect remains unidentified from one aggregate public result
 country-transfer checks are proxies, not measurements of france accuracy
 
+`src/xcal.py run` compares seven score policies and three calibration policies with full target competition
+the current gate/density route scores 0.961734 on india and 0.960991 on us when calibration is borrowed from the other country
+full-stack empirical calibration scores 0.992008 and 0.989351 respectively; the matcher itself was trained on both countries, so this is a calibration-transfer probe rather than a true unseen-country training experiment
+[complete transfer results](learned-country-transfer.json)
+
+`src/post.py fit --blend-unseen --empirical-unseen` exposes that alternative for unlabelled countries
+its candidate tsv has 5,814,727 matches and the identical 14,146,782 candidate pairs; all india/us reference rows are byte-equivalent in match content
+65,634 france reference rows change, with 35,694 added pairs and 44,062 removed pairs
+strict and official id-enabled validation passed; public effect remains unmeasured: [variant evidence](learned-france-stack-variant.json)
+
+development feature preparation now has an explicit partition2 mode, and search rejects development-purpose caches
+this avoids recomputing the full feature corpus for every finalist while keeping development labels out of the searches
+
 ## release gate
 
 freeze a small finalist set before development comparison, calibrate on partition1 and validate full exports against original challenge ids

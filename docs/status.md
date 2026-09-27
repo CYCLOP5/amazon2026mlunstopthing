@@ -41,9 +41,12 @@ local score relocation preserves data/model hashes and reproduces identical expo
 the next search uses corrected production tie-breaking and two-fold reference-disjoint calibration inside partition1
 the frozen stack scores 0.9904283336 under this stricter search objective; the original search figure is not directly comparable
 3 real-data smoke trials passed, including a learned-model family ablation and bundle validation
-planned search: 2,560 trials on 3 × 64-core and 1 × 16-core cpu workers; full gpu scores are reused
+running search: 2,560 trials on 3 × 64-core and 1 × 16-core cpu workers; full gpu scores are reused
 france currently uses the gate-only fallback, so its score routing and calibration are a separate comparison
 [retuning plan](../reports/learned-retune-plan.md) · [baseline diagnostics](../reports/learned-r2-baseline.json)
+the country-transfer probe favors full-stack empirical calibration over gate-only density transfer; it does not measure france accuracy
+a france-only variant passed strict and official id validation, with unchanged india/us decisions and unchanged actual candidates
+[transfer probe](../reports/learned-country-transfer.json) · [variant evidence](../reports/learned-france-stack-variant.json)
 
 ## model comparison
 

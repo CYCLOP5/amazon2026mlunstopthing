@@ -22,7 +22,9 @@ import rfeat
 import stack2
 
 
-def prepare(prepared, root, cache, threads=8):
+def prepare(prepared, root, cache, threads=8, remainder=1):
+    if remainder not in (1, 2):
+        raise ValueError("cache partition must be search or development")
     prepared, root, cache = path(prepared), path(root), path(cache)
     source = post.verified(prepared, "train")
     fit = infer._json(root / "fit/cache.json")
@@ -30,7 +32,7 @@ def prepare(prepared, root, cache, threads=8):
         raise ValueError("fitting cache uses different scores")
     data = path(source["data"])
     refs = pl.read_parquet(data / "train/ref.parquet")
-    wanted = refs.filter((pl.col("fold") == 0) & pl.Series(post.partition(refs["rid"].to_numpy(), 3) == 1))
+    wanted = refs.filter((pl.col("fold") == 0) & pl.Series(post.partition(refs["rid"].to_numpy(), 3) == remainder))
     raw = pl.scan_parquet(prepared)
     touched = raw.join(wanted.select(pl.col("rid").alias("qid")).lazy(), on="qid", how="inner").select("tid").unique()
     frame = raw.join(touched, on="tid", how="semi").sort("tid", "qid").collect(engine="streaming")
@@ -55,7 +57,9 @@ def prepare(prepared, root, cache, threads=8):
                 "countries": dict(wanted.group_by("co").len().iter_rows()), "references": len(wanted),
                 "targets": frame["tid"].n_unique(), "pairs": len(frame), "active_pairs": int(active.sum()),
                 "target_scope": "all candidates of every target touching a search reference; all possible false merges retained",
-                "label_scope": "fold0 partition1 only; other reference labels removed; partition2 excluded from search",
+                 "label_scope": f"fold0 partition{remainder} only; other reference labels removed",
+                 "purpose": "search" if remainder == 1 else "development",
+                 "reference_partition": {"modulus": 3, "remainder": remainder},
                 "files": {n: infer._sha(root / n) for n in ("fit/fit.npz", "fit/normalizer.json", "eval.npz")}}
     infer._write(root / "cache.json", metadata)
     return metadata
@@ -138,11 +142,14 @@ def parameters(trial, threads, names, wide=False):
     return params
 
 
-def load(root):
+def load(root, search_only=False):
     root = path(root)
     meta = infer._json(root / "cache.json")
     if meta.get("kind") != "source1-macro-optuna-cache" or meta.get("version") != 1:
         raise ValueError("invalid search cache")
+    if search_only and (meta.get("purpose", "search") != "search" or
+                        meta.get("reference_partition", {"modulus": 3, "remainder": 1}) != {"modulus": 3, "remainder": 1}):
+        raise ValueError("development cache cannot be used for search")
     for name, sha in meta["files"].items():
         if ".." in path(name).parts or path(name).is_absolute() or infer._sha(root / name) != sha:
             raise ValueError("search cache changed")
@@ -159,7 +166,7 @@ def storage(journal):
 
 
 def worker(root, journal, models, count, threads, seed, wide=False, folds=1):
-    meta, fit, evaluate = load(root)
+    meta, fit, evaluate = load(root, search_only=True)
     names = meta["fit"]["features"]
     study = optuna.load_study(study_name="source1-macro-f05", storage=storage(journal),
                               sampler=optuna.samplers.TPESampler(seed=seed, n_startup_trials=16, constant_liar=True))
@@ -198,7 +205,7 @@ def run(root, out, trials=64, workers=8, threads=8, selected_file=None, wide=Fal
     models = out / "trials"
     models.mkdir(exist_ok=True)
     sh.copyfile(root / "fit/normalizer.json", out / "normalizer.json")
-    meta, _, _ = load(root)
+    meta, _, _ = load(root, search_only=True)
     if not isinstance(folds, int) or not 1 <= folds <= meta["references"]:
         raise ValueError("invalid calibration fold count")
     if wide and (meta["fit"].get("neural_columns") != [f"np_m{i}" for i in range(15)] or
@@ -322,6 +329,16 @@ def check():
         assert model_meta["features"] == names and model_meta["neural_columns"] == neural_columns and model_meta["name_change"]
         expected = infer._json(path(__file__).resolve().parents[1] / "reports/optuna-search.json")["best"]["params"]
         assert result["trials"][0]["params"] == expected
+        metadata = infer._json(root / "cache.json")
+        metadata["purpose"] = "development"
+        metadata["reference_partition"] = {"modulus": 3, "remainder": 2}
+        infer._write(root / "cache.json", metadata)
+        load(root)
+        try:
+            load(root, search_only=True)
+            raise AssertionError("development labels entered search")
+        except ValueError as exc:
+            assert "development cache" in str(exc)
     with tf.TemporaryDirectory() as tmp:
         journal = path(tmp) / "study.journal"
         study = optuna.create_study(study_name="claim-check", storage=storage(journal), direction="maximize")
@@ -347,11 +364,12 @@ if __name__ == "__main__":
     parser.add_argument("--wide", action="store_true")
     parser.add_argument("--cal-folds", type=int, default=1)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--partition", type=int, choices=(1, 2), default=1)
     args = parser.parse_args()
     if args.command == "check":
         check()
     elif args.command == "prepare":
-        print(json.dumps(prepare(args.scores, args.root, args.cache, args.threads), indent=2))
+        print(json.dumps(prepare(args.scores, args.root, args.cache, args.threads, args.partition), indent=2))
     else:
         result = run(args.root, args.out, args.trials, args.workers, args.threads, args.parameters,
                      args.wide, args.cal_folds, args.seed)
