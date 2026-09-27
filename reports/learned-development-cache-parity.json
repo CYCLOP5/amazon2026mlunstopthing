@@ -1,0 +1,23 @@
+{
+  "calibration_cache_sha256": "13c897ef4d9a47169f2cccb4d3b734d31f7799915553640d89016fc0b750a667",
+  "development_cache_sha256": "3b0dcf687ccff660b55fdbdaa0144a8ab22f474896ed5904d1cd8b8028d13b4a",
+  "expected_macro_f05": 0.9903538925031248,
+  "parity_passed": true,
+  "purpose": "frozen baseline parity only; new finalists not evaluated",
+  "references": 73752,
+  "results": [
+    {
+      "approximate_groups": 0,
+      "exact_limit": 64,
+      "groups": 73711,
+      "macro_f05": 0.9903538925031248,
+      "model": "artifacts/full-result/stack",
+      "model_sha256": "4becffce01149ca5349db544608a99cb8e4cefd35c6cb9e576fb629cc647b142",
+      "pair_precision": 0.9985613656146233,
+      "pair_recall": 0.9726490895459702,
+      "pairs": 248152,
+      "true_pairs": 254763
+    }
+  ],
+  "scope": "partition2 full-incidence development; calibration fitted on partition1 only"
+}

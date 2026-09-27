@@ -95,6 +95,48 @@ def run(cache, model, data, out, threads=8):
     return result
 
 
+def compare(cache, development, models, out, threads=8):
+    fit_meta, _, fitting = opt.load(cache, search_only=True)
+    dev_meta, _, e = opt.load(development)
+    if dev_meta.get("purpose") != "development" or dev_meta.get("reference_partition") != {"modulus": 3, "remainder": 2}:
+        raise ValueError("finalist comparison requires the reserved development cache")
+    keys = ("source_config_sha256", "source_scores_sha256", "data_meta_sha256", "features")
+    if any(fit_meta["fit"][k] != dev_meta["fit"][k] for k in keys):
+        raise ValueError("calibration and development caches differ")
+    selected = fitting["local"] >= 0
+    edges = np.linspace(post.logit([.02])[0], post.logit([.999])[0], 25)
+    rows = []
+    for root in models:
+        meta, digest = stack2.bundle(root)
+        if any(meta[k] != fit_meta["fit"][k] for k in keys) or meta["files"]["normalizer.json"] != fit_meta["files"]["fit/normalizer.json"]:
+            raise ValueError("finalist model does not match the feature caches")
+        model = lgb.Booster(model_file=str(path(root) / "lgb.txt"))
+        if model.feature_name() != meta["features"]:
+            raise ValueError("finalist feature order changed")
+        calibration = fitting["raw"].copy()
+        calibration[fitting["active"]] = model.predict(fitting["x"], num_threads=threads)
+        bins = np.searchsorted(edges, post.logit(calibration), side="right")
+        hist = {}
+        for co in fit_meta["countries"]:
+            for seg in range(3):
+                mask = selected & (fitting["country"] == co) & (fitting["segment"] == seg)
+                hist[f"{co}|{seg}"] = [np.bincount(bins[mask], minlength=26).astype(float),
+                                       np.bincount(bins[mask], weights=fitting["y"][mask], minlength=26)]
+        curves = post.curves(hist, hist, fit_meta["countries"], fit_meta["countries"], edges, transfer=False)
+        p = e["raw"].copy()
+        p[e["active"]] = model.predict(e["x"], num_threads=threads)
+        row = {"model": str(root), "model_sha256": digest,
+               **evaluate(e, p, curves, np.ones(len(e["degree"]), bool), threads)}
+        rows.append(row)
+        print(row, flush=True)
+    result = {"scope": "partition2 full-incidence development; calibration fitted on partition1 only",
+              "development_cache_sha256": infer._sha(path(development) / "cache.json"),
+              "calibration_cache_sha256": infer._sha(path(cache) / "cache.json"),
+              "references": len(e["degree"]), "results": rows}
+    infer._write(out, result)
+    return result
+
+
 def check():
     e = {"qid": np.array([0, 1, 2]), "tid": np.array([0, 1, 1]), "local": np.array([0, 1, -1]),
          "y": np.array([1, 1, 0]), "country": np.array(["india", "us", "us"]),
@@ -118,14 +160,18 @@ def check():
 
 if __name__ == "__main__":
     p = ap.ArgumentParser(description=__doc__)
-    p.add_argument("command", choices=("run", "check"))
+    p.add_argument("command", choices=("run", "compare", "check"))
     p.add_argument("--cache", type=path, default=path("artifacts/full-result/tuning-cache"))
     p.add_argument("--model", type=path, default=path("artifacts/full-result/stack"))
     p.add_argument("--data", type=path, default=path("cache/data"))
-    p.add_argument("--out", type=path, default=path("reports/learned-country-transfer.json"))
+    p.add_argument("--out", type=path)
+    p.add_argument("--development", type=path, default=path("artifacts/retune-r2/development-cache"))
+    p.add_argument("--models", type=path, nargs="+")
     p.add_argument("--threads", type=int, default=8)
     a = p.parse_args()
     if a.command == "check":
         check()
+    elif a.command == "compare":
+        compare(a.cache, a.development, a.models or [a.model], a.out or path("reports/learned-finalists.json"), a.threads)
     else:
-        run(a.cache, a.model, a.data, a.out, a.threads)
+        run(a.cache, a.model, a.data, a.out or path("reports/learned-country-transfer.json"), a.threads)
