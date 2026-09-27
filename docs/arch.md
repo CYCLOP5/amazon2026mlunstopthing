@@ -42,7 +42,7 @@ model fitting is complete for the two currently running variants
 their labeled-pool scoring and test scoring can run concurrently
 
 ```mermaid
-flowchart td
+flowchart TD
     raw[provided tsvs] --> prep[prep and fixed entity folds]
     prep --> fit[fit models on fold 2]
     fit --> weights[frozen weights and feature contracts]
@@ -113,7 +113,7 @@ raw-unicode-only lexical matching does not bridge that gap
 ## 4. candidate generation
 
 ```mermaid
-flowchart lr
+flowchart LR
     q[target text] --> lex[char tfidf and exact keys]
     q --> e5[e5-base retrieval]
     q --> qw[qwen retrieval]

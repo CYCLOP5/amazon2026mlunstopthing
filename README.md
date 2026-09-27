@@ -50,7 +50,7 @@ it can run at the same time as test inference
 export waits for complete test scores and the calibration for that exact model version
 
 ```mermaid
-flowchart lr
+flowchart LR
     weights[frozen trained models] --> val[labeled-pool scoring]
     weights --> test[competition test scoring]
     val --> cal[cutoff and audit]
