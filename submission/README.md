@@ -74,6 +74,7 @@ it is never reduced to accepted matches
 | path | purpose | environment |
 | --- | --- | --- |
 | `src/finish.py` | frozen final replay | top-level `requirements.txt` |
+| `src/final_tuning/` | country-cut and france-blend selection | `requirements/tuning.txt` |
 | `src/er/` | lexical pipeline and run-6 stack | `requirements/run6.txt` |
 | `src/neural_v2/` | learned retrieval, pair scoring and neural stack | its `pyproject.toml` and `uv.lock` |
 | `src/fusion/` | hybrid, graph and collective fusion | its `pyproject.toml` and `uv.lock` |

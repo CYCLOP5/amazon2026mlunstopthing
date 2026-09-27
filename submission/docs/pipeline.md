@@ -160,6 +160,13 @@ the collective run writes full `validation_predictions.parquet` and `test_predic
 its original selection and isolation protocol are preserved with the release evidence
 the final score producer is `amazites-model-collective-graph-20260927-04`
 
+the final policy-selection code is retained under `src/final_tuning/` at the submission-project root
+`sprintcal.py` compares country cuts and calibrated decoding on the collective scores
+`sprintfr.py` compares france blends using labeled-country development data and applies the category-swap rule
+`sprintfixed.py` replays fixed comparison policies
+their pinned CPU environment is `requirements/tuning.txt`
+the selection scripts' `--help` lists the prepared-data and scored-pool inputs; exact release reproduction uses the frozen configuration below
+
 ## 8. final release policy
 
 `src/finish.py` implements the final, frozen decision layer described in [architecture](arch.md)

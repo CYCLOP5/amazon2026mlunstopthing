@@ -2,9 +2,9 @@
   "releases": [
     {
       "archive": "sprint2/Amazites_submission.zip",
-      "bytes": 474825637,
-      "sha256": "2dfd6f3728befb41414b0bf1c63efc184fdd4271b9c8ec329fdd6cab55db157b",
-      "files": 538,
+      "bytes": 474836170,
+      "sha256": "5221d56b7fb995ce38103fdbb9e4979f50942063aba23fce79c7174f1b574ca2",
+      "files": 543,
       "variant": "sprint2",
       "outputs": {
         "matching_results.tsv": "b05d40e6c914e1741ebb6c17e3c11edd7b04d90d6c9a4d1c770c409ed25ec2dc",
@@ -15,9 +15,9 @@
     },
     {
       "archive": "final-france/Amazites_submission.zip",
-      "bytes": 474825650,
-      "sha256": "a786724ffb05cd8485c6d964d20f2062cc4b861ac529adedb1b2428681677e69",
-      "files": 538,
+      "bytes": 474836187,
+      "sha256": "24db4c3fe2b6925288dde47539857c2f859a5d1b517801e4c5876d4a7dfe910d",
+      "files": 543,
       "variant": "final-france",
       "outputs": {
         "matching_results.tsv": "e0565d95ecc02396992a8e56e9eec540438b8a255a477872a19ba25c8db9b7bd",
