@@ -1,4 +1,7 @@
-# training and experiment reproduction
+# historical learned-component training
+
+the complete submitted pipeline, including run-6, graph, hybrid and collective fusion, is documented in [the full-pipeline guide](../submission/docs/pipeline.md)
+this page retains the earlier learned-component training workflow
 
 inference reproduction uses the frozen supplied checkpoints and matching calibration
 retraining is a separate operation and requires a new calibration
@@ -11,7 +14,8 @@ uv run python src/data.py --data student_resource/dataset --out cache/data
 ```
 
 keep `cache/data/meta.json`
-fold 2 is fit data fold 0 tunes decisions and fold 1 is the locked audit
+for this initial component, fold 2 fits models and fold 0 develops decisions
+fold 1 was initially reserved for an audit; later experiments consulted it and later fusion stages use their separately recorded protocols
 do not move aliases of the same reference business between folds
 
 ## 2. native lexical candidate runs

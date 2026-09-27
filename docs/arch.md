@@ -1,9 +1,9 @@
-# entity resolution arch
+# historical learned-component architecture
 
 > supplied records → small candidate sets → scored links → calibrated sets
 >
-> this describes the implemented baseline and upgraded runtime
-> full-pool results and completed submission files remain separate delivery gates
+> this describes the earlier baseline and upgraded building blocks
+> the submitted combined pipeline is documented in [final architecture](../submission/docs/arch.md) and the [q&a code map](qa.md)
 
 ## 1. what the system produces
 

@@ -6,6 +6,13 @@ our team built a multilingual business-matching pipeline from supplied records, 
 
 varun jhaveri · shivsharan sanjawad · raj mathuria · aastha singh
 
+## start here for the final submission
+
+this branch's reviewer entry point is the integrated project under [`submission/`](submission/README.md)
+read the [q&a and code map](docs/qa.md), then the [final architecture](submission/docs/arch.md), [full pipeline](submission/docs/pipeline.md) and [exact replay](submission/docs/reproduce.md)
+these describe the combined pipeline used for the submitted sprint2 and final-france files
+the root `src/` tree and older component notes remain available as development history and supporting tools
+
 ## final overview
 
 our final pipeline combines learned retrieval and neural pair scores with run-6, hybrid, residual and collective-graph evidence
@@ -25,21 +32,22 @@ the learned gate retains probabilities >=0.001, up to 50 candidates per target, 
 the final releases contain **20,177,322 candidate pairs**, averaging **11.6461 per source1 business**
 the earlier learned-only export contains 14,146,782 pairs and is retained as a separate checkpoint
 all **20,289,808 train/test targets** have saved scores, including all 15 neural member columns
-cpu retuning completed 2,560 trials; its selected finalist scored **0.990555257** on separate development references, versus **0.990353893** for the preceding learned checkpoint
+the separate 2,560-trial research search selected a finalist at development macro f0.5 0.990555257; it was not promoted as the released global stack
 development measurements and per-archive public results are recorded separately from the final team leaderboard result
 
 ## docs
 
 | doc | contents |
 | --- | --- |
-| [arch](docs/arch.md) | data model modules retrieval gates matcher calibration caches and lifecycle |
-| [ops](docs/ops.md) | parallel scoring cpu export validation packaging and recovery commands |
-| [training](docs/training.md) | native candidate/gate fit neural training and checkpoint provenance |
+| [q&a and code map](docs/qa.md) | final execution path, stage ownership, evidence and reviewer questions |
+| [final architecture](submission/docs/arch.md) | retrieval, score fusion, collective context and final decisions |
+| [final replay](submission/docs/reproduce.md) | deterministic regeneration of the submitted tsvs |
+| [full pipeline](submission/docs/pipeline.md) | training and scoring stages that produced the release inputs |
 | [status](docs/status.md) | final team result and checkpoint-specific evidence |
 | [evidence](reports/README.md) | measured results and their evaluation scope |
 | [research / eda](plan.md) | primary sources dataset analysis and decision history |
 | [methodology](Documentation_template.md) | team methodology, training and measured results |
-| [learned reproduction](docs/learned-submission.md) | offline model paths, exact inference options and cpu tuning workflow |
+| [earlier learned component](docs/learned-submission.md) | historical learned-only archive and its component workflow |
 | [team method integration](reports/team-integration.md) | implemented methods, measured development results and reproduction commands |
 | [additional findings](reports/additional-workspace-findings.md) | recovered experiment evidence and the sibling-context projection pitfall |
 | [final packages](submission/README.md) | sprint2 and final-france archives, exact replay and full pipeline source |
@@ -75,21 +83,26 @@ flowchart LR
 - export the actual final pre-matcher candidates, including rejected matches
 - keep raw records credentials host-specific paths and model/cache binaries out of git
 
-## setup and prep
+## final release replay
 
-python and dependencies are pinned by `.python-version`, `pyproject.toml`, and `uv.lock`
-use the uv environment rather than global package installs
+run from the repository root with the original challenge dataset and the preserved score assets
+the final replay uses its own pinned, CPU-only environment
 
 ```sh
-uv python install 3.11.16
-uv sync --frozen --group neural --group cloud
-uv run python src/data.py --data student_resource/dataset --out cache/data
+uv venv --python 3.11.16 .venv-replay
+uv pip sync --python .venv-replay/bin/python submission/requirements.txt
+.venv-replay/bin/python submission/src/finish.py \
+  --data student_resource/dataset --assets artifacts/package-assets \
+  --config submission/configs/release.json --out artifacts/qa-replay-sprint2
 ```
 
-the prepared dataset preserves original ids and text, adds compact row ids and comparison views, and freezes entity-grouped folds
-fold 2 fits models, fold 0 tunes decisions, and fold 1 is the locked audit
+use `submission/configs/final.json` and a new output directory for the final-france variant
+the replay checks the original data and score fingerprints, then requires exact equality with the submitted matching and candidate file hashes
+the upstream and later fusion stages have different recorded fitting protocols; see [q&a](docs/qa.md#5-how-were-leakage-and-evaluation-handled)
 
-## checks
+## supporting component checks
+
+these commands exercise the earlier learned building blocks; the final release check is the hash-bound replay above
 
 ```sh
 uv run python src/data.py --check
@@ -109,7 +122,20 @@ uv run python src/package.py --check
 these runnable checks are separate from the expensive labeled-pool inference job
 real-model smoke tests and exact feature/checkpoint parity are linked in the evidence index
 
-## entry points
+## final code entry points
+
+| module | responsibility |
+| --- | --- |
+| `submission/src/neural_v2/` | task-trained retrieval, learned gate, pair ensemble and rich stack |
+| `submission/src/er/` | run-6 lexical and stack evidence |
+| `submission/src/fusion/business_entity_resolution/graph_resolution/` | sibling and graph refinement |
+| `submission/src/fusion/business_entity_resolution/final_hybrid/` | complementary hybrid evidence |
+| `submission/src/fusion/business_entity_resolution/latest_fusion/` | full score union, residual fusion and collective graph |
+| `submission/src/final_tuning/` | the country-cut and blend-selection code used in the final sprint |
+| `submission/src/finish.py` | consolidated, byte-verified replay of the submitted final decisions |
+| `submission/configs/release.json`, `submission/configs/final.json` | exact frozen settings and output hashes |
+
+## historical and supporting utilities
 
 | module | responsibility |
 | --- | --- |
@@ -135,7 +161,7 @@ real-model smoke tests and exact feature/checkpoint parity are linked in the evi
 | `src/release.py`, `src/release_assets.py` | complete submission ZIPs and compact replay inputs |
 | `src/code_style.py` | scope-aware local-name and comment cleanup |
 
-see the [runbook](docs/ops.md) for exact commands
+the [component runbook](docs/ops.md) records earlier operations; use [final replay](submission/docs/reproduce.md) for the delivered files
 validation and test partitions are separate jobs; do not put the test workload behind the full validation workload
 cpu is appropriate for prep tree models calibration export and checks
 gpu is preferred for this corpus's embedding and neural matching workload
@@ -171,12 +197,12 @@ the two output directories are `sprint2/` and `final-france/`, each containing `
 output/
   matching_results.tsv
   candidate_pairs.tsv
-  calibration.json
 ```
 
-the final archive additionally carries source dependency locks selected model snapshots tokenizer files calibration and the completed methodology document
+the final archives carry the complete source, dependency locks, frozen policy, compact recorded scores and completed methodology
 raw datasets must be supplied separately when reproducing the run
-runtime loaders use packaged hf snapshots locally when available
+the larger trained checkpoints and full training caches are retained separately from these compact replay archives
+canonical local copies are under `artifacts/final-packages/` and the packager inputs under `artifacts/release-inputs/`; neither depends on Downloads
 
 the strict validator reports candidate count mean nearest-rank p50/p95/p99 maximum and the complete histogram
 the organizer's final ranking reviews both matching quality and candidate generation

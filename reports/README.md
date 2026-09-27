@@ -6,6 +6,9 @@
 
 **best recorded public leaderboard f0.5: 0.990284 for sprint2** · [result record](final-result.json)
 
+for the submitted execution path, start with the [q&a code map](../docs/qa.md) and [final package receipts](final-packages.json)
+the experiment reports below preserve the development history of individual components
+
 our team developed and compared the methods below using fixed candidates, entity-grouped splits and explicit artifact fingerprints
 
 ## completed learned submission

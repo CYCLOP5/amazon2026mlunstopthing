@@ -1,10 +1,8 @@
-# ops and submission runbook
+# historical component runbook
 
-> updated planning cutoff: sunday 2026-09-27, 21:00 ist / 15:30 utc
->
-> attempts: three total, zero used at the last user confirmation
->
-> scored artifacts retain their model data and runtime provenance
+> the final upload cutoff was 23:59 ist on 2026-09-27
+> this page retains earlier component operations
+> use [final replay](../submission/docs/reproduce.md) and the [q&a code map](qa.md) for the submitted releases
 
 ## 1. files and environment
 

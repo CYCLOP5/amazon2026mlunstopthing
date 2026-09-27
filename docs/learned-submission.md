@@ -1,4 +1,7 @@
-# learned submission
+# historical learned-only submission
+
+this page covers the earlier learned-only archive
+the submitted combined pipeline and its final variants are documented in [submission](../submission/README.md) and the [q&a guide](qa.md)
 
 amazites: varun jhaveri, shivsharan sanjawad, raj mathuria, aastha singh
 

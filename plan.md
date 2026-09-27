@@ -8,6 +8,7 @@ research date 2026-09-26
 our team combined learned multilingual retrieval, dense-aware filtering, 15 cross-encoders, calibrated set decoding and cached cpu tuning
 the final release adds collective-graph fusion and frozen country decisions to the learned and earlier score pools
 the sections below retain the dated research, measurements and decisions that led to the implemented pipeline
+the submitted execution path and current review guide are [mapped here](docs/qa.md)
 [final result](reports/final-result.json) · [final documentation](README.md) · [2,560-trial comparison](reports/learned-r2-finalists.json)
 
 ## completed learned checkpoint

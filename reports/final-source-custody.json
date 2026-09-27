@@ -1,0 +1,24 @@
+{
+  "checked_documentation_links": 318,
+  "release_inputs": [
+    {
+      "variant": "sprint2",
+      "matching": "artifacts/release-inputs/sprint2/matching_results.tsv",
+      "matching_sha256": "b05d40e6c914e1741ebb6c17e3c11edd7b04d90d6c9a4d1c770c409ed25ec2dc",
+      "candidate": "artifacts/release-inputs/candidate_pairs.tsv",
+      "archive": "artifacts/final-packages/sprint2/Amazites_submission.zip",
+      "archive_sha256": "5221d56b7fb995ce38103fdbb9e4979f50942063aba23fce79c7174f1b574ca2"
+    },
+    {
+      "variant": "final-france",
+      "matching": "artifacts/release-inputs/final-france/matching_results.tsv",
+      "matching_sha256": "e0565d95ecc02396992a8e56e9eec540438b8a255a477872a19ba25c8db9b7bd",
+      "candidate": "artifacts/release-inputs/candidate_pairs.tsv",
+      "archive": "artifacts/final-packages/final-france/Amazites_submission.zip",
+      "archive_sha256": "24db4c3fe2b6925288dde47539857c2f859a5d1b517801e4c5876d4a7dfe910d"
+    }
+  ],
+  "source_backup": "artifacts/downloads-backup/20260927T203034Z",
+  "verified_backup_files": 589,
+  "downloads_required_for_replay": false
+}

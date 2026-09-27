@@ -11,7 +11,7 @@ the final sprint2 and final-france packages share the complete 20,177,322-pair c
 their source and exact replay instructions are in [submission](../submission/README.md)
 [final result](../reports/final-result.json)
 
-## learned pipeline
+## earlier learned checkpoint
 
 15 complete-epoch cross-encoders and the task-trained small retriever are selected for this earlier learned checkpoint
 the gate uses 103 features with a 0.001 retention floor, maximum 50 candidates and one fallback
