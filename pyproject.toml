@@ -6,20 +6,32 @@ dependencies = [
     "anyascii>=0.3",
     "catboost>=1.2.7",
     "faiss-cpu>=1.8",
-    "huggingface-hub>=0.34,<1",
+    "joblib>=1.4",
     "lightgbm>=4.5",
     "numpy>=2",
+    "optuna>=4.5,<5",
     "polars>=1",
     "psutil>=6",
     "pyarrow>=17",
     "rapidfuzz>=3.9",
     "scikit-learn>=1.5",
     "scipy>=1.13",
-    "sentence-transformers>=5.1,<6",
     "sparse-dot-topn>=1.1",
+    "unidecode==1.4.0",
+]
+
+[dependency-groups]
+cloud = ["azure-ai-ml>=1.30", "azure-identity>=1.24", "azure-storage-blob>=12.20"]
+neural = [
+    "accelerate>=0.26",
+    "huggingface-hub>=0.34,<1",
+    "sentence-transformers>=5.1,<6",
     "torch==2.8.0",
     "transformers>=4.51,<5",
 ]
+
+[tool.uv]
+default-groups = ["cloud", "neural"]
 
 [tool.uv.sources]
 torch = { index = "pytorch" }

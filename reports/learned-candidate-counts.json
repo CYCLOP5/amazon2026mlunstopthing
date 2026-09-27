@@ -1,0 +1,18 @@
+{
+  "candidate_pairs": 14146782,
+  "candidate_reduction_fraction": 0.5270021662878981,
+  "mean_per_target": 1.4189935011363055,
+  "prior_candidate_pairs": 29908767,
+  "scope": "complete test postgate candidate pool, before final decoding",
+  "source1": 1732544,
+  "source1_counts": {
+    "empty": 109,
+    "max": 298,
+    "mean": 8.165323362638986,
+    "p50": 7,
+    "p95": 15,
+    "p99": 30,
+    "quantile_method": "nearest_rank"
+  },
+  "targets": 9969589
+}

@@ -1,0 +1,68 @@
+{
+  "country": "us",
+  "fold": 2,
+  "anchors": 5000,
+  "queries": 23471,
+  "reference_pool": 1058933,
+  "positive_queries": 17471,
+  "pairs": 943544,
+  "retrieved_links": 17217,
+  "link_recall": 0.9854616221166504,
+  "oracle_macro_f05": 0.9955350157295335,
+  "k": 20,
+  "empty_queries": 0,
+  "mean_candidates": 40.200417536534445,
+  "p99_candidates": 95.0,
+  "seconds": 268.52516822300095,
+  "parts": [
+    "pairs_00000.parquet",
+    "pairs_00001.parquet",
+    "pairs_00002.parquet",
+    "pairs_00003.parquet",
+    "pairs_00004.parquet",
+    "pairs_00005.parquet",
+    "pairs_00006.parquet",
+    "pairs_00007.parquet",
+    "pairs_00008.parquet",
+    "pairs_00009.parquet",
+    "pairs_00010.parquet",
+    "pairs_00011.parquet",
+    "pairs_00012.parquet",
+    "pairs_00013.parquet",
+    "pairs_00014.parquet",
+    "pairs_00015.parquet",
+    "pairs_00016.parquet",
+    "pairs_00017.parquet",
+    "pairs_00018.parquet",
+    "pairs_00019.parquet",
+    "pairs_00020.parquet",
+    "pairs_00021.parquet",
+    "pairs_00022.parquet"
+  ],
+  "slices": {
+    "s2_all": {
+      "n": 8419,
+      "hits": 8317
+    },
+    "s2_non_ascii_name": {
+      "n": 652,
+      "hits": 651
+    },
+    "s2_blank_addr": {
+      "n": 437,
+      "hits": 379
+    },
+    "s3_all": {
+      "n": 9052,
+      "hits": 8900
+    },
+    "s3_non_ascii_name": {
+      "n": 650,
+      "hits": 644
+    },
+    "s3_blank_addr": {
+      "n": 433,
+      "hits": 368
+    }
+  }
+}

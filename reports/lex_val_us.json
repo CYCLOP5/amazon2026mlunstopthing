@@ -1,0 +1,54 @@
+{
+  "country": "us",
+  "fold": 0,
+  "anchors": 2000,
+  "queries": 8902,
+  "reference_pool": 1323633,
+  "positive_queries": 6902,
+  "pairs": 364957,
+  "retrieved_links": 6816,
+  "link_recall": 0.9875398435236163,
+  "oracle_macro_f05": 0.9962306299957508,
+  "k": 20,
+  "empty_queries": 0,
+  "mean_candidates": 40.997191642327564,
+  "p99_candidates": 115.0,
+  "seconds": 190.77700227100286,
+  "parts": [
+    "pairs_00000.parquet",
+    "pairs_00001.parquet",
+    "pairs_00002.parquet",
+    "pairs_00003.parquet",
+    "pairs_00004.parquet",
+    "pairs_00005.parquet",
+    "pairs_00006.parquet",
+    "pairs_00007.parquet",
+    "pairs_00008.parquet"
+  ],
+  "slices": {
+    "s2_all": {
+      "n": 3301,
+      "hits": 3270
+    },
+    "s2_non_ascii_name": {
+      "n": 247,
+      "hits": 246
+    },
+    "s2_blank_addr": {
+      "n": 154,
+      "hits": 137
+    },
+    "s3_all": {
+      "n": 3601,
+      "hits": 3546
+    },
+    "s3_non_ascii_name": {
+      "n": 249,
+      "hits": 248
+    },
+    "s3_blank_addr": {
+      "n": 154,
+      "hits": 135
+    }
+  }
+}

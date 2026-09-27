@@ -1,0 +1,55 @@
+{
+  "countries": {
+    "india": {
+      "macro_f05": 0.9921023062651103,
+      "pair_precision": 0.9989457513780535,
+      "pair_recall": 0.9753352678221316,
+      "pairs": 99597,
+      "true_pairs": 102008
+    },
+    "us": {
+      "macro_f05": 0.9894889921961603,
+      "pair_precision": 0.9984201893083791,
+      "pair_recall": 0.9708008680646342,
+      "pairs": 148752,
+      "true_pairs": 152984
+    }
+  },
+  "errors": {
+    "false_positive": 340,
+    "lost_to_competing_owner": 3442,
+    "missing_candidate": 621,
+    "rejected_after_winning": 2920,
+    "true_positive": 248009,
+    "truth_links": 254992
+  },
+  "metrics": {
+    "gate": {
+      "macro_f05": 0.9808268482363287,
+      "pairs": 245636,
+      "precision": 0.993596215538439,
+      "recall": 0.9571398318378616
+    },
+    "neural": {
+      "macro_f05": 0.983524633346339,
+      "pairs": 241822,
+      "precision": 0.9985650602509284,
+      "recall": 0.9469904938194139
+    },
+    "stack": {
+      "macro_f05": 0.9904283335995159,
+      "pairs": 248358,
+      "precision": 0.998546453103987,
+      "recall": 0.9725677668319006
+    },
+    "stack_self_calibrated": {
+      "macro_f05": 0.9905330808697725,
+      "pairs": 248349,
+      "precision": 0.9986309588522603,
+      "recall": 0.9726148271318316
+    }
+  },
+  "public_score": 0.986416,
+  "scope": "partition1 diagnostics, not a new held-out result",
+  "source_model_sha256": "4becffce01149ca5349db544608a99cb8e4cefd35c6cb9e576fb629cc647b142"
+}

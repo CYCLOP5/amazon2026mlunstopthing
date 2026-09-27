@@ -1,0 +1,34 @@
+{
+  "scope": "real supplied records with bounded reference corpus; functional smoke not accuracy evaluation",
+  "queries": 12,
+  "candidate_pairs": 36,
+  "gate_backend": "teammate-v1-nos1",
+  "feature_count": 54,
+  "retrievers": [
+    {
+      "family": "e5",
+      "feature": "ds_e5",
+      "format": "{role}: name: {nm}\naddress: {ad}\ncountry: {co}",
+      "model": "intfloat/multilingual-e5-base",
+      "revision": "d128750597153bb5987e10b1c3493a34e5a4502a"
+    },
+    {
+      "family": "qwen3",
+      "feature": "ds_qwen3",
+      "format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+    },
+    {
+      "family": "e5-large",
+      "feature": "ds_e5_large",
+      "format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439"
+    }
+  ],
+  "trained_matcher_parameters": 278044417,
+  "launcher_runs": 2,
+  "launcher_complete": true,
+  "max_retriever_parameters": 1433710592
+}

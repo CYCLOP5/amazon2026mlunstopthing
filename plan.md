@@ -1,6 +1,36 @@
 # amazon ml 2026 research and execution plan
 
-research date 2026-09-25
+research date 2026-09-26
+
+## final team result
+
+**team amazites reported a final public leaderboard f0.5 of 0.989 on 2026-09-27**
+our team combined learned multilingual retrieval, dense-aware filtering, 15 cross-encoders, calibrated set decoding and cached cpu tuning
+the neural pool totals 6,515,651,343 parameters, below the 8b limit
+the sections below retain the dated research, measurements and decisions that led to the implemented pipeline
+[final result](reports/final-result.json) · [final documentation](README.md) · [2,560-trial comparison](reports/learned-r2-finalists.json)
+
+## completed learned checkpoint
+
+the learned pipeline completed all 20,289,808 train/test targets and the 64-trial cpu search
+the selected 101-feature, 182-tree stack improves development macro f0.5 from 0.9845466096 to 0.9903538925 on identical 73,752 businesses with full-target competition
+the archive uses calibrated expected-f0.5 decoding and bounded france rules: 5,823,095 matches and 14,146,782 actual pre-matcher candidates
+the candidate pool is 52.7% smaller; per-source1 mean / p99 / max are 8.1653 / 30 / 298
+france rule effects remain unmeasured without france labels; other countries and candidate files are unchanged between the two exports
+`artifacts/submission-learned/Amazites_submission.zip` passed strict and official id-enabled validation, per-file sha256 checks, archive crc checks and frozen-source verification
+all gpu scores, cpu matrices, 64 trial models, study journal and supporting assets are locally verified for further cpu-only experiments
+this archive received team-reported public 0.986416; our subsequent final team result is 0.989
+we reproduced evaluation hazards in earlier implementations before considering further additions
+
+[release](reports/submission-learned.json) · [development](reports/learned-development-comparison.json) · [search](reports/learned-optuna-search.json) · [team method review](reports/team-latest-review.md)
+
+## updated model integration
+
+our team integrated hard-pair cross-encoders, generator-aware name features and france-specific handling with explicit feature/model contracts and owner-isolated validation. [implementation and checks](reports/updated-repo-integration.md). [research](reports/next-gains-research.md).
+
+the full plan trains a new dense/name-aware gate and 16 multilingual cross-encoder variants, followed by complete scoring, an individual-logit stack and calibrated entity decoding. the validated optuna archive remains the frozen fallback until the new output passes comparison and validation.
+
+final postprocessing starts its new-score optuna search with the previous selected lightgbm parameters and preserves the feature matrices plus train/test score tables for repeatable cpu-only tuning. neural training settings and final-stack hyperparameters remain separate recorded contracts. [cached tuning workflow](reports/updated-repo-integration.md#reusable-cpu-tuning).
 
 ## decision
 
@@ -9,12 +39,14 @@ build a precision focused entity matcher with complementary lexical and multilin
 start with character tfidf and offline transliteration plus a boosted tree matcher
 add a multilingual retriever where it recovers missed links
 fine tune a small multilingual pair model and use it where it improves held out macro f0.5
-reserve a 4b model for hard cases only if the measured improvement justifies its cost
+evaluate a 4b model for hard cases only if its measured quality gain justifies the added runtime
 
 the strongest current evidence points to retrieval quality and hard negative training before model size
 the final architecture will be selected from measured experiments rather than assumed from generic model leaderboards
 
-azure budget is capped at 500 usd for this project
+azure ml provides the gpu training and parallel inference platform
+the updated deadline is about sunday 2026-09-27 21:08 ist or 15:38 utc, based on 18 hours remaining at 03:08 ist. use 21:00 ist as the conservative planning cutoff
+zero of three total submissions had been used at the last user confirmation
 use uv and push code docs and compact metrics to the requested github repo at meaningful milestones
 keep raw competition data large model files and generated candidate files out of normal git history
 
@@ -34,7 +66,7 @@ this is business entity resolution rather than the older amazon price prediction
 - azure hosted training and self hosted eligible model inference do not require external identity lookup
 - final results need one row for every test s1 id including empty predictions
 - the candidate file must contain the actual final matcher input set and every predicted link
-- rankings ultimately use the private leaderboard
+- final ranking also reviews candidate generation code and candidate count per s1 alongside leaderboard matching quality
 
 the supplied validator defaults to skipping target id existence checks
 it also treats missing candidate files and matches outside the candidate set as warnings
@@ -220,7 +252,7 @@ calibration is needed for reliable decisions and does not by itself prove a scor
 use this as motivation for consistency features and conflict analysis
 do not apply blind connected component closure
 
-[carl em](https://arxiv.org/html/2609.01195v1) studies adaptive model spending but explicitly assumes at most one true match and small candidate lists
+[carl em](https://arxiv.org/html/2609.01195v1) studies adaptive model routing but explicitly assumes at most one true match and small candidate lists
 its selection controller is not directly suitable for this one to many task
 
 ### multilingual handling and translation
@@ -301,7 +333,13 @@ union independent channels within each country and target source
 
 start with modest per channel top k and measure marginal recovered truth
 preserve source specific candidate coverage and add reverse retrieval candidates where useful
-increase budget for weak fields and ambiguous common names rather than applying one tight cutoff
+increase candidate width for weak fields and ambiguous common names rather than applying one tight cutoff
+
+the first implementation will also test reverse retrieval as the primary direction
+each target has at most one labeled reference and the reference index is roughly five times smaller
+retrieve several reference candidates for each target then regroup pairs by reference for the required outputs
+retain all exact name and address collisions as candidates instead of dropping tied identities at a small top k
+compare recall and runtime with forward retrieval before choosing the final union
 
 use [sparse dot topn](https://github.com/ing-bank/sparse_dot_topn) for bounded sparse products or an equivalent bounded inverted index
 never materialize the full dense pair matrix
@@ -411,13 +449,13 @@ reading provided test records for indexing and distribution analysis is required
 | e4 | small supervised pair model | better tune and audit macro score with feasible full inference |
 | e5 | singleton decoding and complementary blend | stable improvement across countries and stress tests |
 | e6 | 4b hard case model or stronger transliteration | gain on actual difficult cases that survives locked audit |
-| e7 | final refit inference and package | complete outputs strict validation reproducibility and cost audit |
+| e7 | final refit inference and package | complete outputs strict validation and reproducibility |
 
-log dataset hashes split seed model revision package lock retrieval settings macro score precision recall singleton false merge rate candidate count wall time peak memory and estimated usd
+log dataset hashes split seed model revision package lock retrieval settings macro score precision recall singleton false merge rate candidate count wall time and peak memory
 keep false positives and missed candidates as separate error categories
 public leaderboard movement can support a hypothesis but must not replace local validation
 
-## compute and budget
+## compute and runtime
 
 local hardware observed is 12 cpu threads 15.37 gib ram and an rtx 2060 with 6 gib gpu memory
 the original python is 3.14 and has no ml packages installed
@@ -444,8 +482,8 @@ use country shards memory mapped arrays bounded batches and compact internal ind
 
 [t4 v3](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/gpu-accelerated/ncast4v3-series) supplies 16 gb t4 gpus for smaller pilots
 [nc a100 v4](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/gpu-accelerated/nca100v4-series) supplies an 80 gb a100 and 220 gib ram in `Standard_NC24ads_A100_v4`
-the a100 option is well suited to large retrieval indexes and short sequence training if price quota and capacity permit
-use a memory rich cpu vm when the workload is sparse retrieval or tree training rather than paying for an idle gpu
+the a100 option is well suited to large retrieval indexes and short sequence training
+use a memory rich cpu vm for sparse retrieval tree training calibration and output generation
 
 [flash attention support](https://github.com/Dao-AILab/flash-attention) differs across gpu generations
 use compatible fp16 attention on the local 2060 and t4
@@ -453,26 +491,7 @@ do not assume the a100 bf16 and flash attention path works unchanged on turing
 
 [azure quotas](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-quotas?view=azureml-api-2) are regional and quota does not guarantee capacity
 the existing account is enabled and its current resource group is in eastus
-we have not provisioned or charged cloud compute during this research phase
-
-### hard spending controls
-
-- total authorized azure spend is 500 usd
-- target experimental allocation is 400 usd with 75 usd reserved for final inference and 25 usd contingency
-- price every selected resource using current regional pricing before creation
-- isolate project resources in a new tagged resource group
-- track conservative accrued compute disk storage and transfer estimates in a durable ledger
-- use maximum job runtimes and resource cleanup in addition to billing alerts
-- billing data can lag so do not use delayed cost reports as the only limit
-- stop experiments early when projected final inference would consume the remaining reserve
-- deallocate idle compute and delete unused project disks and networking resources
-- checkpoint and export artifacts before deleting the project resource group
-- never delete unrelated preexisting resources
-
-[azure cost guidance](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-optimize-cost?view=azureml-api-2) recommends zero minimum cluster nodes and job termination limits
-it states that legacy low priority aml allocations migrated to spot behavior after 2026-03-31
-spot prices vary and preemption requires resumable jobs
-prefer spot only when checkpointing is verified and the deadline can tolerate interruptions
+resumable work units bind data model and numerical fingerprints so completed predictions remain reusable across compatible machines
 
 ## reproducibility and final package
 
@@ -508,14 +527,346 @@ python3 utils/validate_submission.py \
 package both outputs the self contained pipeline with pinned dependencies run instructions and the filled methodology template
 large candidate files may need a memory rich machine for the supplied validator
 also implement bounded memory format and subset checks
-verify cloud cleanup and the spend ledger before declaring the goal complete
+verify the selected model provenance exact target coverage and output checksums before delivery
 
 ## remaining external facts
 
 - challenge submission deadline and daily submission limit
 - organizer interpretation of the aggregate 8b cap and test transductive training
-- current azure family quotas regional availability and live hourly prices
+- current azure family quotas and regional availability
 - whether any final zip or artifact size limit applies
 
 these facts must not be guessed
 the implementation can progress with the conservative model and data policy above
+
+## execution updates
+
+- uv now uses python 3.11.16 with a committed lock and a verified fp16 cuda operation on the local gpu
+- research commit `2366c31` is pushed to main
+- strict validation utilities are included on the implementation branch with self checks passing
+- implementation is tracked in [draft pr 1](https://github.com/CYCLOP5/amazon2026mlunstopthing/pull/1)
+- the data preparation stage preserves original text creates ascii comparison views and stratifies whole entities by country degree script and address quality
+- full preparation completed in about 2 minutes 35 seconds and verified every supplied positive link
+- azure compute network storage and quota providers are registered
+- eastus has 65 dedicated vcpus available but initially zero dedicated gpu family quota and only 3 spot vcpus
+- the a100 quota request returned `ContactSupport` and the t4 request returned `QuotaNotAvailableForResource`
+- the spot quota request was throttled with an explicit one hour retry delay
+- gpu quota failure is a compute constraint while cpu modeling and local gpu experiments continue
+
+### measured implementation results
+
+the reverse character retrieval probe used 2000 held out anchors per country and searched every reference in that country
+
+| country | true links | retrieved links | link recall | oracle macro f0.5 | mean candidates per target |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| us | 6902 | 6816 | 0.98754 | 0.99623 | 41.00 |
+| india | 6925 | 6524 | 0.94209 | 0.97822 | 39.43 |
+
+results are saved in `reports/lex_val_us.json` and `reports/lex_val_india.json`
+india still has a substantial script and spelling gap
+this is why the next measured experiment uses a multilingual encoder
+
+the first tree used 5000 training anchors per country with hard negative candidates
+its sampled query macro estimate was 0.9860 but the threshold selected on that incomplete population had only 0.5798 pair precision
+wrong links into unsampled anchors were not charged to that sampled macro score
+that threshold is not suitable for submission
+`src/infer.py` therefore requires complete target coverage before producing a full pool calibration
+it tunes on fold 0 and opens fold 1 only for an explicitly requested audit
+
+at a provisional threshold of 0.95 the original tree had 0.99577 pair precision and 0.79967 recall over all true links in the sampled queries
+these are diagnostics rather than a competition score
+the model still needs a better precision recall tradeoff
+
+candidate score version 2 computes both field similarities for every candidate
+previously a candidate introduced by one channel could have a zero score recorded for the other channel despite real overlap
+on the india validation candidates this restored 20146 nonzero name scores and 32536 address scores without changing any candidate or label
+model metadata and inference now require matching score versions
+
+### cloud execution status
+
+the user supplied the existing `mlworkloads` azure ml workspace in eastus
+its cluster quotas are independent of ordinary virtual machine quotas
+the verified dedicated cpu quotas are 350 edsv4 vcpus and 100 esv3 vcpus
+azure ml approved 24 total low priority vcpus after a separate request
+this permits requesting one 24 vcpu a100 spot node subject to capacity
+
+the execution layer resolves model metadata relative to the uploaded source package
+regression checks verify portable model identity and explicit artifact locations
+training and scoring use persistent checkpoints and finite runtime settings
+
+### multilingual retrieval evidence
+
+the frozen e5 base encoder was tested on the same 2000 india anchors against all 883188 india references
+it ran successfully on the local 6 gib gpu
+
+| dense width | dense link recall | dense and lexical union recall |
+| ---: | ---: | ---: |
+| 1 | 0.90296 | 0.96491 |
+| 5 | 0.94267 | 0.97545 |
+| 10 | 0.95437 | 0.97978 |
+| 20 | 0.96217 | 0.98383 |
+| 50 | 0.97227 | 0.98816 |
+| 100 | 0.97718 | 0.99004 |
+| 200 | 0.98209 | 0.99264 |
+
+the curve uses returned fp16 neighbor order and tied scores can change boundary membership
+the top 50 and top 200 reports are saved under `reports/e5_india_k50.json` and `reports/e5_india_k200.json`
+search over the cached reference vectors took about 3 seconds for the top 50 probe
+encoder construction and corpus encoding are measured separately
+
+there are 51 links still missing from the top 200 union
+23 are s2 links and 28 are s3 links
+21 have non ascii alias names and 8 have blank addresses
+blank address residual risk is 3.125 percent versus 0.645 percent for populated addresses
+eight residuals have both normalized name and address string likeness below 50 percent
+two blank address residuals have ambiguous normalized reference names
+no conflicting owners were found in the checked identical raw record groups
+
+going from top 100 to top 200 adds 892500 pairs for 18 more links or roughly 49600 additional pairs per recovered link
+the next experiment is a complementary frozen retrieval model followed by supervised hard negative fine tuning
+large uniform candidate lists and speculative phonetic rules are lower priority
+
+### execution reliability
+
+full inference now filters parquet data before batching
+a real 7974 target pilot retained identical 312428 scored pairs while runtime fell from about 112 to 77 seconds
+index failures now raise errors rather than silently creating empty candidate sets
+when a validation country has no fit partition rows its lexical transform uses other fit partition countries only
+
+the azure ml sdk returned sas credentials where its artifact helpers expected account keys
+this caused log signature and incorrect padding failures
+the runner now waits on normalized job status enum values and downloads from an explicit task output uri using the actual credential type
+this path passed a real 12 file download check without modifying the workspace credentials
+
+### first supervised multilingual matcher
+
+the a100 80 gib spot node completed training with persistent checkpoints
+502635 pair examples contain 34785 positives and supplied data hard negatives
+the encoder is initialized from the pinned mit licensed multilingual e5 base model
+its new binary classification head is trained with bce rather than a regression objective
+the trained checkpoint has 278044417 parameters
+
+two epochs completed in about 1516 seconds including validation
+complete candidate pair validation contains 1508516 pairs
+the last validation pass processed about 6356 pairs per second on the a100
+these are stage timings rather than end to end inference guarantees
+
+with at most one predicted owner per target the selected query diagnostic reaches about 0.916 link recall at 0.995 precision
+at a fixed 0.98 probability cutoff it has 12522 true links and 49 false links
+false links into unsampled references are counted
+this remains a selected query diagnostic and final thresholds still require complete target pool calibration
+
+directory markers in mounted azure output use `hdi_isfolder` metadata
+the downloader now ignores those markers instead of treating a directory as an empty file
+the completed training checkpoint was recovered and verified
+
+### complementary retrieval and candidate filtering
+
+qwen3 embedding 0.6b is weaker than e5 alone on india but recovers different links
+lexical retrieval plus both encoders reaches 0.99292 link recall at dense width 50 each
+width 100 each reaches 0.99538 and width 200 each reaches 0.99639
+the model licenses revisions and measured parameter counts are pinned in `reports/model_sources.json`
+the width curve is in `reports/retrieval_union_india.json`
+
+the final matcher can blend neural and existing tree log odds
+on the selected query diagnostic a 0.6 neural weight raises recall at 0.995 precision from 0.91611 to 0.93397
+a top 3 upstream tree filter retains essentially the same precision focused result while reducing neural calls from about 1.5 million to 53481
+its lower candidate recall is measured explicitly rather than hidden
+the full width and precision comparisons are in `reports/neural_gate_diagnostics.json`
+this motivates a learned blocking filter followed by the final neural matcher
+only the last candidate set actually scored by that final matcher is exported
+full pool calibration and the locked audit remain required before final selection
+
+## production execution and review
+
+the complete a100 pilot processed 7974 records and scored 23922 final candidates with exact coverage
+reference and model setup took 1301.85 seconds
+steady processing took 95.03 seconds comprising 52.29 retrieval 33.68 feature and gate work and 9.06 neural matching
+this is about 84 records per second on one node and motivates parallel country and row shards
+
+the multi-gpu execution used `Standard_NC96ads_A100_v4` with 96 vcpus and four a100 80 gb gpus
+single-gpu training and parallel scoring used `Standard_NC24ads_A100_v4` with 24 vcpus and one a100 80 gb
+cpu aggregation and export used `Standard_E16ds_v4` with 16 vcpus
+
+review fixes require resumed children to revalidate current model hashes before reusing predictions
+final packages require all selected retriever snapshots and automatically use their local offline cache
+missing or unmatched country labels use an explicitly marked unpartitioned reference fallback
+normal country retrieval including france remains partitioned
+production workers receive explicit gpu affinity and bounded tree inference threads
+run indexes bind dataset and model content rather than azure mount paths so interrupted shards can resume in a new job
+root inference signatures and exact coverage are rechecked after relocation
+
+the dataset-wide validation score final cutoff test outputs and submission archive are still pending
+
+## follow up on indic language and address suggestions
+
+sources checked on 2026-09-25
+
+- `https://huggingface.co/intfloat/multilingual-e5-base`
+- `https://huggingface.co/intfloat/multilingual-e5-large-instruct`
+- `https://arxiv.org/html/2402.05672v1`
+- `Ml_Challenge.txt` lines 141 to 150
+
+the task includes cross-script matching from indian-language aliases to predominantly latin-script references
+the existing anyascii comparison view therefore remains important
+raw unicode is retained for neural input and within-script comparisons but a raw-unicode-only lexical index would not bridge scripts
+
+the claim that e5-base is suitable only for monolingual search is incorrect
+its official card describes multilingual training including translation pairs and support inherited from xlm-roberta for 100 languages
+the technical report evaluates cross-lingual bitext mining as well as multilingual retrieval
+language coverage does not guarantee business identity accuracy in every language
+
+large-instruct initializes from xlm-roberta-large and has 24 layers and 1024-dimensional embeddings
+it also uses different instruction-tuning data rather than being only a wider base model
+queries require `Instruct: <task>\nQuery: <record>` while reference documents have no query or passage prefix
+the cited sources do not establish that token fragmentation alone explains an indic performance gap or that every larger variant is better for this dataset
+
+existing features already include character tfidf raw unicode fuzzy comparisons token overlap transliterated ratios number-set agreement missing-address flags and mined hard negatives
+a matched isolated experiment added compact and transliterated name comparisons token containment 2/3/4-gram evidence and soft address number/locality cues
+both baselines used the same india training entities fixed lexical candidate universe 800 lightgbm trees and fold-0 tuning queries
+recall at 0.995 pair precision improved from 0.855303 to 0.880135
+top-3 candidate-owner recall changed from 0.939206 to 0.939061 so this is mainly a scoring gain rather than a retrieval gain
+the possible-pin feature had zero tree importance in this experiment
+details are in `reports/indic_feature_followup.json`
+
+an exact-pair intersection check reused existing neural scores without new inference
+it covered all 351878 lexical candidates but only 46.72 percent of the larger lexical-plus-e5 neural universe
+conditional recall at 0.995 precision improved from 0.938535 to 0.950950 with the 0.6 neural logit blend
+that denominator contains only the 6524 positive owners covered by the intersection rather than all 6925 selected positive owners
+the corresponding all-selected-positive recall is 6123/6925 versus 6204/6925
+performance at 0.999 precision was slightly worse
+these are sampled diagnostics not official full-target macro f0.5 and do not by themselves justify replacing the production configuration
+the locked fold-1 audit must not be repurposed to select a feature variant
+
+a separate pinned large-instruct experiment uses the full india reference pool and the same 8925 held-out queries
+revision `274baa43b0e13e37fafa6428dbc7938e62e5c439` has 559890432 parameters and mit metadata
+its local benchmark uses the documented instruction format and records truncation recall and runtime
+the existing production configuration continues while this experiment runs
+
+geocoding apis are explicitly prohibited by the challenge
+an offline external gazetteer would still add external reference data
+address cues must instead come from the supplied strings and training labels
+numeric evidence remains soft because genuine matching pairs can contain edited or missing numbers
+
+### completed large-instruct comparison
+
+the local large-instruct run completed against all 883188 india references and the same 8925 tuning queries
+none of these records were truncated at 512 tokens; the longest query was 124 tokens and reference 107
+the original export failed because its output directory was absent
+that was fixed and both fully encoded caches were reused for the final retrieval result
+the reported cache-reload times are not fresh encoding throughput measurements
+
+at equal dense width 100 the current lexical plus base plus qwen union recalls 0.995379
+replacing base with large-instruct recalls 0.995090
+replacing qwen with large-instruct recalls 0.995235
+adding large-instruct as a third dense encoder recalls 0.996101 and recovers 5 additional positive queries
+at width 200 the third encoder recovers only 3 additional positive queries
+large-instruct performs better at some narrow widths but is not a better two-encoder replacement at the selected production width
+this initially left the two-retriever baseline unchanged pending a direct matcher comparison
+the five-link gain did justify that follow-up; the later three-retriever deployment is described below
+
+full same-width comparisons and scope are recorded in `reports/e5_large_same_width_india.json`
+the individual model result is in `reports/e5_large_instruct_india.json`
+
+the updated submission planning cutoff is sunday 2026-09-27 at 21:00 ist
+team amazites comprises varun jhaveri, shivsharan sanjawad, raj mathuria, and aastha singh
+
+## current execution update
+
+the baseline and upgraded implementations are now distinct frozen configurations
+
+| item | baseline | upgrade |
+| --- | --- | --- |
+| dense retrievers | e5-base and qwen | e5-base qwen and e5-large |
+| gate | native lightgbm/catboost mean | 54-feature lightgbm without four sampled s1 aggregates |
+| final matcher | trained e5 pair classifier | same trained e5 pair classifier |
+| final candidates per target | up to 3 | up to 3 |
+| neural logit weight | 0.6 | 0.6 |
+
+our feature implementation matched the original transform arrays and checkpoint probabilities exactly on 2613 pairs from 64 queries
+the real upgraded runtime smoke covered 12 targets and 36 final candidates
+the sharded launcher was also checked with the actual selected models
+these establish implementation parity and execution, not final matching quality
+
+our validated gate improved paired recall at 99.5 percent precision from about 91.89 to 93.32 percent with unchanged neural scores
+the compared population is a fixed selected candidate diagnostic
+the uploaded diagnostics referenced a 0.9688 validation result and an earlier 0.958 leaderboard figure; they did not verify a new 0.97 leaderboard result for the uploaded ensemble version
+
+validation target scoring and competition test scoring now run independently
+the upgraded work is divided into four validation partitions and four test partitions on separate single-a100 workers
+the original baseline test work also runs across four single-a100 workers
+each worker uses two processes with twelve cpu threads per process
+calibration and export are downstream cpu work
+
+the original four-a100 validation worker lost allocation after 9161442 targets
+its 41 manifests had no missing or unlisted checkpoint files
+remaining work was moved to a smaller a100 using a byte-verified original runtime archive and copied outputs
+copied checkpoint counts are distinguished from new scoring progress
+
+an initial eight-job upgrade launch failed before inference when the azure sdk concurrently uploaded the same local gate folder
+the fix was to stage and byte-verify that asset once and use its datastore uri for every job
+all eight retry jobs subsequently reached running state and began writing prediction parts
+
+## submission size criterion and remaining gates
+
+candidate count per s1 is now an explicit organizer ranking criterion
+the strict validator reports total pairs empty rows mean nearest-rank p50/p95/p99 maximum and the full size histogram
+the file remains the actual final pre-neural candidate set, including pairs the matcher rejects
+three candidates per target does not imply three candidates per reference
+
+the current dense search uses exact chunked similarity scans
+it bounds memory but does not establish billion-record approximate-search scalability
+an ann replacement remains a measured future scaling change rather than an implemented result
+
+quota is distinct from regional physical gpu availability
+
+the saved upgraded training-pool scores now have complete target coverage and verified hashes across all 10,320,219 targets
+the one-time fold1 audit scored frozen upgraded v1 at 0.9758741644794233 source1 macro f0.5 and the fold0-selected logistic stack at 0.9786888883553567
+these are offline training-pool results; the team-reported public scores remain 0.964 for the baseline and 0.969 for upgraded v1, with no new public score for the logistic selection
+the baseline offline/public difference is descriptive across different evaluation populations and does not identify a cause
+complete test coverage correct file format and exact candidate membership remain mandatory
+
+current operator documentation is in [arch](docs/arch.md), [ops](docs/ops.md), [training](docs/training.md), and [status](docs/status.md)
+the [evidence index](reports/README.md) maps every main result to its scope
+
+## overnight cpu screening and score update
+
+the team-reported public scores remain 0.964 for the original baseline and 0.969 for upgraded v1. the baseline's offline fold-1 source1 macro f0.5 is 0.9755015568. these figures use different evaluation populations; the difference is observed, not causally attributed. no new public score is available for the overnight logistic selection. [entity-resolution research](reports/overnight-er-research.md) · [tree research](reports/overnight-tree-research.md)
+
+the cached fold-0 screen tested 17 gate variants across the first 13 and extended 4 variants on selected lexical-only candidates. the existing safe lightgbm remained best at recall for pair precision ≥0.995; longer catboost fits got closer but did not surpass it. the gap diagnostic found 487 candidate misses among 13,827 linked targets; its blank-address slice had 69 candidate misses among 580 targets, 61 top-3 losses, and 162 cutoff misses at 0.80. these are selected-pair diagnostics, not source1 macro f0.5 or a hybrid full-pool candidate ceiling. [tuning summary](reports/overnight-tune.md) · [tuning data](reports/overnight-tune.json) · [extended summary](reports/overnight-tune-extended.md) · [gap summary](reports/overnight-gap.md) · [gap data](reports/overnight-gap.json)
+
+the blank10 width policy increased selected-lexical candidate pairs by 7.6% and true-candidate retention by 0.32 percentage points over k3, with no gain in recall at pair precision ≥0.995. this does not represent the production hybrid pool. [width diagnostic](reports/overnight-width.md) · [width data](reports/overnight-width.json)
+
+## completed overnight full-pool audit
+
+the saved score pool covers all 10,320,219 train targets; hashes and target coverage were verified before replay. eight full-pool variants were compared: six weighted-logit blends, a logistic stack, and a nonlinear lightgbm model. fold0 selection used held-out anchors; the logistic fit's full-pool tune negatives reuse fit-side target groups, so selection is transductive rather than target-group-independent. fold1 remained untouched until the one-time audit. base models were not retrained and raw features were not regenerated. see the [full-pool report](reports/overnight-fullpool.md) and [exact results](reports/overnight-fullpool.json).
+
+the logistic stack, using gate and neural logits, was selected at cutoff 0.8649235367774963. it scored 0.9784026779294054 held-out fold0 source1 macro f0.5, then 0.9786888883553567 on the locked fold1 audit. frozen v1 at cutoff 0.8 scored 0.9758741644794233 on that same audit. cutoff recalibration accounts for most of the full-fold0 gain: unchanged w=0.6 scored 0.9782766540469559 with its selected cutoff versus frozen v1's 0.9756860071259694 at 0.8; the logistic stack reached 0.9785152900449455 on that same full-fold0 population. the existing `infer._fixed` scorer independently reproduced both locked audit results exactly.
+
+the fold0 postgate perfect-matcher oracle scored 0.9955514140602323, below 0.998, and is constrained to the saved postgate candidate pairs. it is not a global ceiling: changing retrieval or gate candidates can change this oracle. the json field `gate_lost` is a pre-matcher count of linked targets absent from saved final pairs; it combines initial retrieval misses and gate pruning, which the saved final-pair artifact cannot separate. of 763,741 linked targets, 33,646 (4.4%) have blank addresses. blank targets account for 8,081 of 11,080 pre-matcher missing targets (72.9%) and 3,664 of 4,373 wrong-top1 outcomes (83.8%). the ambiguity audit found zero exact raw-input groups with multiple owners; the blank-address errors are not thereby shown to be intrinsically irresolvable.
+
+the full-pool metrics are offline source1 macro f0.5, not selected-query pair precision/recall and not a public score. cached gate and width diagnostics use selected lexical pairs only. there is no new public submission score for the overnight logistic selection.
+
+## reference repository comparison
+
+the supplied reference repository has a user-reported public score of 0.984. source inspection identifies several untested differences: supervised contrastive retrieval, dense/rank and full-corpus name-ambiguity features in the gate, test-density calibration by country and house relation, a tree fallback for unseen countries, and per-reference approximate expected-f0.5 decoding. its final blend can consume original pair features alongside cross-encoder scores. these were not covered by the fixed-feature overnight tree sweep.
+
+the current safe gate explicitly declares no dense features, although hybrid retrieval computes dense similarities before the top-3 gate. the reference's learned dictionary and french suffix/department normalization add further differences; french legal forms and first-house-number membership already exist locally. the reference's projected 0.993x test scores are not leaderboard measurements, and its learned dictionary consumes all training labels, so its holdout is not an independent dictionary audit. current fold1 remains consumed.
+
+the [source-grounded comparison](reports/reference-repo-gap.md) records code locations, verified normalization examples, actual submission country counts, candidate-size tradeoffs and ranked follow-up experiments. no new matching score is claimed from this comparison.
+
+## team method integration
+
+the new path adds fold-safe token normalization, dense-aware gate features, full-corpus ambiguity/idf statistics, numeric-distance features, country/house posterior correction, selective neural scoring and source1 set decoding. a compact contrastive retriever is fitting locally. the rich pairwise stack is fitted from out-of-sample base scores and uses separate fitting, calibration/search and development reference partitions.
+
+on the same 73,752 development references, the rich stack with empirical calibration and set decoding scored 0.983963 macro f0.5 versus v1's 0.976006. its extra-orphan stress score with density correction was 0.982302 versus 0.974118. these are development results on cached inference, not public leaderboard scores.
+
+the azure search uses a 64-vcpu `standard_e64ds_v4` node, eight trial processes, eight threads each and 64 optuna trials. its cache preserves all competing candidates for every target touching the 73,522 search references. final comparison references are excluded from search labels. the first two-thread smoke trial completed in 36.1 seconds with search macro f0.5 0.984374.
+
+implementation, scope and reproduction commands: [team integration](reports/team-integration.md).
+
+the 64-trial search completed with best search macro f0.5 0.985203, versus baseline 0.984374 on the same search references. trial 47 is reserved for a separate development comparison. the current completed rich-stack test export contains 5,786,941 matches and 29,908,767 authentic candidates, with the candidate tsv byte-identical to v1. both validators passed with id checks. the retriever and optional full-population reverse retrieval lane remain separate from this cached-score checkpoint.
+
+trial 47 subsequently scored 0.984547 on the separate development references, versus 0.983963 for the first rich stack and 0.976006 for submitted v1. density-corrected extra-orphan stress reached 0.983149. the selected model's test scoring and calibration use its own frozen score provenance. [development results](reports/optuna-development.json).
+
+additional completed team experiments exposed a later sibling-context scope mismatch: projecting targets before constructing the confident-owner bank removes evidence from rival references. a miniature reproduction confirms the changed features; the score impact remains unmeasured. edit-channel and frozen multiview branches did not beat their tuning baseline. [additional full-pool findings](reports/additional-workspace-findings.md).

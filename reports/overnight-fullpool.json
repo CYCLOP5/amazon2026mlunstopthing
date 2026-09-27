@@ -1,0 +1,1237 @@
+{
+  "audit": {
+    "finalist": {
+      "macro_f05": 0.9786888883553567,
+      "pair_precision": 0.9906675956679677,
+      "pair_recall": 0.9587898706332164,
+      "pairs": 739145,
+      "threshold": 0.8649235367774963,
+      "true_pairs": 763720
+    },
+    "selection_sha256": "9be170dbb423c74e442f24bb0a6dc57aafbdcc26e32e7434d74f1e42849da03e",
+    "source": {
+      "config": {
+        "block_score_version": 2,
+        "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+        "data_version": null,
+        "feature_contract": [
+          "bscore",
+          "cos_name",
+          "cos_addr",
+          "brank",
+          "o_ncand",
+          "o_bmax",
+          "o_nrank",
+          "o_arank",
+          "o_nmax",
+          "o_amax",
+          "o_gap",
+          "o_ngap",
+          "o_agap",
+          "n_ratio",
+          "n_tsort",
+          "n_tset",
+          "n_partial",
+          "n_jw",
+          "nf_tset",
+          "ns_ratio",
+          "ns_tset",
+          "nc_ratio",
+          "nc_partial",
+          "n_alt12",
+          "n_alt21",
+          "a_ratio",
+          "a_tset",
+          "a_tsort",
+          "a_partial",
+          "as_tset",
+          "as_tsort",
+          "n_len1",
+          "n_len2",
+          "n_ntok1",
+          "n_ntok2",
+          "n_first_eq",
+          "legal_eq",
+          "legal_empty1",
+          "legal_empty2",
+          "has_alt2",
+          "nonascii2",
+          "is_dom2",
+          "addr_missing2",
+          "addr_empty2",
+          "a_len1",
+          "a_len2",
+          "state_eq",
+          "num_n1",
+          "num_n2",
+          "num_inter",
+          "num_first_eq",
+          "num_first1_in2",
+          "num_ovl",
+          "num_conflict"
+        ],
+        "gate": {
+          "dense_features": [],
+          "feature_backend": "teammate-v1-nos1",
+          "feature_names": [
+            "bscore",
+            "cos_name",
+            "cos_addr",
+            "brank",
+            "o_ncand",
+            "o_bmax",
+            "o_nrank",
+            "o_arank",
+            "o_nmax",
+            "o_amax",
+            "o_gap",
+            "o_ngap",
+            "o_agap",
+            "n_ratio",
+            "n_tsort",
+            "n_tset",
+            "n_partial",
+            "n_jw",
+            "nf_tset",
+            "ns_ratio",
+            "ns_tset",
+            "nc_ratio",
+            "nc_partial",
+            "n_alt12",
+            "n_alt21",
+            "a_ratio",
+            "a_tset",
+            "a_tsort",
+            "a_partial",
+            "as_tset",
+            "as_tsort",
+            "n_len1",
+            "n_len2",
+            "n_ntok1",
+            "n_ntok2",
+            "n_first_eq",
+            "legal_eq",
+            "legal_empty1",
+            "legal_empty2",
+            "has_alt2",
+            "nonascii2",
+            "is_dom2",
+            "addr_missing2",
+            "addr_empty2",
+            "a_len1",
+            "a_len2",
+            "state_eq",
+            "num_n1",
+            "num_n2",
+            "num_inter",
+            "num_first_eq",
+            "num_first1_in2",
+            "num_ovl",
+            "num_conflict"
+          ],
+          "files": {
+            "lgb.txt": "fff266e01ccc0e3da0d7599d386dd53914895cc266fc6277c89a422effff5d63"
+          },
+          "metadata_sha256": "7da97594c6dfb1f8192f5c02a720e1d3f51d55c4ca365efb46155496a363c89b",
+          "score_version": 2,
+          "sha256": "86d6da9d2f1898ff5a8c9720fcef7b254cfb28cb1cefb65631f898b57cd80481"
+        },
+        "k": {
+          "dense": 100,
+          "gate": 3,
+          "lexical": 20
+        },
+        "model": {
+          "sha256": "8ded7e75a1cb31279968b30f1a53faf0ff9e2f9289ab6f3f47c733a20bd89107"
+        },
+        "neural": {
+          "metadata_sha256": "79cb714f07df57c57c91f00cf5a425391bdda94b5b79c47d97b9979becd54ebc",
+          "parameters": 278044417,
+          "sha256": "c6d8e8889586eeacda90c0688f2a816284fd0a06e4560c8e198e40ea5bf4975d",
+          "tokenization": {
+            "config.json": "caf605dd32aeea78525379d5e00fccf1b613df7efb531c09e3d231c22578ac7e",
+            "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+            "tokenizer.json": "3a56def25aa40facc030ea8b0b87f3688e4b3c39eb8b45d5702b3a1300fe2a20",
+            "tokenizer_config.json": "dfb4021b23969fc942e96b2c4ac906d94712b4b96ef7081cb66a0ea211896d51"
+          },
+          "weights": {
+            "model.safetensors": "6f6b95e00ce00265ff1f8af18c6b97b2167f60a215d0a32d0040a03eb144f400"
+          }
+        },
+        "normalization": "data.norm",
+        "numeric": {
+          "blend": {
+            "method": "weighted_logit",
+            "neural_weight": 0.6
+          },
+          "device": "cuda",
+          "gate": "mean_probability",
+          "neural": "sigmoid_probability",
+          "neural_precision": "bf16",
+          "retrieval_precision": "fp16",
+          "topk_ties": "qid_asc"
+        },
+        "retriever_sources_sha256": "b6bee6d0ac9975e65a6b50f37bcfdf109bea0ddd8d2713acae26e917cf40a8f9",
+        "retrievers": [
+          {
+            "family": "e5",
+            "feature": "ds_e5",
+            "format": "{role}: name: {nm}\naddress: {ad}\ncountry: {co}",
+            "model": "intfloat/multilingual-e5-base",
+            "revision": "d128750597153bb5987e10b1c3493a34e5a4502a"
+          },
+          {
+            "family": "qwen3",
+            "feature": "ds_qwen3",
+            "format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+            "model": "Qwen/Qwen3-Embedding-0.6B",
+            "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+          },
+          {
+            "family": "e5-large",
+            "feature": "ds_e5_large",
+            "format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+            "model": "intfloat/multilingual-e5-large-instruct",
+            "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439"
+          }
+        ],
+        "source_files": {
+          "block.py": "cd9628163fdb7630f52a6d4d422b1d39e841966aa389cec3c4155cb5c089826f",
+          "data.py": "9e2797e6b8884db67fd62d06df070abc2dc2df16766fa644ac31f4396103e093",
+          "embed.py": "f52421d39de0223fa7005c69ce89096eab1cf94c7812facdae70110570604276",
+          "feat.py": "5e7b7abc43b41e41e7a5b0032b5af4cb4a2edce7f2946ffb6a79e00425aad7c3",
+          "hybrid.py": "b8fa1eafdbe1ef8884bf7a9220d4c0f725248ca281b0457d751268ae58dc0c28",
+          "match.py": "a3ff7a0044f254f9a958eaba2f1dd0a2922909436a11c7ca21c5d0a2a268020b",
+          "neural.py": "fdffbc4dac000e945f0f49abb76c2e447d5d483efc44879d501a79813c7f8bbc",
+          "tfeat.py": "d0a3747e99bbe1093b98ce191a97b09a3fce39f7dc9fdf1f244038511769ec35",
+          "tm_prep.py": "c46098e0df0cea436a7c97f1c1b332a000ce406374b27dbe0cc163b26b3d6e43",
+          "tm_rules.py": "6b00a4013d487d1bf48e0ad96b9109f1d836db678e871a1e8085f19b67dec0e6",
+          "train.py": "0e93042ae24d7a209200b6cec7fc7f871cc799d77ef7339ee6a40dbbbc536c2a"
+        },
+        "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+        "version": 1
+      },
+      "config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+      "data": "/home/cyclops/Documents/GitHub/Amazon ML/cache/data",
+      "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+      "indices": [
+        {
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/runs.json",
+          "sha256": "d5400cd4c346b08f585adfa5e203f1ba92024dd2fa6e7f26a64ef830af195afd"
+        },
+        {
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/runs.json",
+          "sha256": "205e79dccc9eac777af3c5fcf87d09bc1cef5f5782c604c3bc535578a984a610"
+        },
+        {
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/runs.json",
+          "sha256": "0d659e5c8bc5c159e9c33ac8f10fe71f3bb4b729d64acd3199947647589d5bc3"
+        },
+        {
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/runs.json",
+          "sha256": "02bab54388ec0d7a401f8c6c9628842e58239004b8164e913f4c4a78f9f34749"
+        }
+      ],
+      "runs": [
+        {
+          "manifest_sha256": "f596b9b2742e2617de8f30cff148a5ad69f6b59eba8a15f771de4f4ea9ec8140",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_fb54e9062429a937_r_0_622717"
+        },
+        {
+          "manifest_sha256": "9e28f5717129db7764aac65012656088138644c1d838ceff186b9f708be7dd0b",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_fb54e9062429a937_r_622717_1248054"
+        },
+        {
+          "manifest_sha256": "b7ff5e546d825f5bccdff8bc5b02c2260779a3f9a5677594541c9d42f612e3e5",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_fb54e9062429a937_r_1248054_1873196"
+        },
+        {
+          "manifest_sha256": "1296f9190d7a31728b808c59b8280d35490d41ace1f3391a58a61a5e0014d3de",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_fb54e9062429a937_r_1873196_2496686"
+        },
+        {
+          "manifest_sha256": "a3b9c28c8e0ce1f85a1b0c88530a4e50c66e115565d782d7c40565c94de8cda0",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_fb54e9062429a937_r_2496686_2600000"
+        },
+        {
+          "manifest_sha256": "b621ace9b714f0d9f6de7b0d884c125edbbc0560926533881b6c73f9b89e7de4",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_1_417521"
+        },
+        {
+          "manifest_sha256": "8915f3dde761d24b67a11b69f6970f62639728f140c127248c8d119b9c9f1daa",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_417521_835026"
+        },
+        {
+          "manifest_sha256": "faafdfa81e72d9b89ce115ee737fbab9fbb66076797b37a5f7934b38a870e0af",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_835026_1251317"
+        },
+        {
+          "manifest_sha256": "9ff03d04a9b741880cf4fafd8762ac683a98001e27922dde97fb494ac9634b50",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_1251317_1667920"
+        },
+        {
+          "manifest_sha256": "db9a2c815460a9e8b5ed21b9f76609f7b718a13f45e65267c0b4b6aeb59c0686",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_1667920_2084676"
+        },
+        {
+          "manifest_sha256": "c8c563747d2da9fb2ca19a5c4aefdc6ae4666d8170e34caf68882b138326dc02",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_2084676_2502179"
+        },
+        {
+          "manifest_sha256": "68052120d0cfd15109bfe78ea5e8f17ed368a3944c7adffbe1715bdf403b68e5",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_2502179_2600000"
+        },
+        {
+          "manifest_sha256": "d58d378724afbefc2e94c96e6e1bcb8b29449a5044d42e14118c61a20de10100",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_fb54e9062429a937_r_2600000_3223075"
+        },
+        {
+          "manifest_sha256": "25d47f7359c3cbb004c2d6a82ec64d39b91dd17558d92e49ef351b7c23eca362",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_fb54e9062429a937_r_3223075_3845593"
+        },
+        {
+          "manifest_sha256": "b293f9f2c79c02a7bd969b3128f41be142ac8ef7c8d3c0cfd5c16334a8bc9daa",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_fb54e9062429a937_r_3845593_4469196"
+        },
+        {
+          "manifest_sha256": "b533ad9341478f3ebc802c4e42a95db7bc98f1e568397c49fc43dcde9a4760ea",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_fb54e9062429a937_r_4469196_5093064"
+        },
+        {
+          "manifest_sha256": "3ff4841cc38f2a2bc3e6a30ce8dc37fe738678d7810b6f1bf32b4c275f571423",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_fb54e9062429a937_r_5093064_5200000"
+        },
+        {
+          "manifest_sha256": "f7672be515026c07d0120b5e6697c2efb1654d14935c17689833d28f2774ff17",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_2600001_3017551"
+        },
+        {
+          "manifest_sha256": "806d6a418f75a011d79a06dcfd0f27ea1be5a8dc35c89e1973b8abdb9ba00a50",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_3017551_3435315"
+        },
+        {
+          "manifest_sha256": "a1c13dd43b5d8cf9765de5cfac998a34848428cbe881cbea6b699f4e8f9c85c8",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_3435315_3853034"
+        },
+        {
+          "manifest_sha256": "1fdc63e8af3e62f4ef929ea3bd906a3ea48b05ac1d01821f2fd3110d92f9b295",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_3853034_4269992"
+        },
+        {
+          "manifest_sha256": "974d63c6b3875bcd750cf34a938803ab2fa2c1d65edfec246b56cebaccdf9b72",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_4269992_4686668"
+        },
+        {
+          "manifest_sha256": "57f10cb19b1da1ec9f62f9321bed4039cf49ff9dc36ecc6cf9ca3d40774c0039",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_4686668_5104504"
+        },
+        {
+          "manifest_sha256": "f407d834736e074776bfe9c896faf176d8bee0fcc04e0e5a20a4cc237d1d5b61",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_5104504_5200000"
+        },
+        {
+          "manifest_sha256": "f501acd6db8c396d9369b04724ca700d8de92accd7a2d09c9c98a265b54dbb9f",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_fb54e9062429a937_r_5200001_5824294"
+        },
+        {
+          "manifest_sha256": "8748f8e306ee71ce1ba92b20f3aaa4fa0dbbff4e9cf5a7835347ca8f206feeae",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_fb54e9062429a937_r_5824294_6446447"
+        },
+        {
+          "manifest_sha256": "5e9be8507d55bcf1fd4bd20b08f38dce72ee19a61c6ab0cbcb90c7ded5e0436c",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_fb54e9062429a937_r_6446447_7072595"
+        },
+        {
+          "manifest_sha256": "1c812d01890dcf769490fa3b35feff8ae3c84686e55ae15bc496ec953175cd62",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_fb54e9062429a937_r_7072595_7698383"
+        },
+        {
+          "manifest_sha256": "5713cfa456e004ac7927534ccad500eae32e52213ae6ded63632999802088a8d",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_fb54e9062429a937_r_7698383_7800000"
+        },
+        {
+          "manifest_sha256": "56a46b737ccb597fca80648a4f5c1d953b2210f81681daef4f1f321963393806",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_5200000_5617374"
+        },
+        {
+          "manifest_sha256": "de9ca88b9993d7547672c890156f763d750c0e9b08ee883c07c5312f15d438d5",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_5617374_6034406"
+        },
+        {
+          "manifest_sha256": "ea0de41e7cb9add4b5a27f12dc55e5291f4479f333fdd2476cc3572d28de6c1a",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_6034406_6452350"
+        },
+        {
+          "manifest_sha256": "6f3166ee3e23683baa2f63887f83ce3cc3e0a48eb82151ca86be0b2476a86ecb",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_6452350_6868339"
+        },
+        {
+          "manifest_sha256": "1ac5fc810397030baa170249c48b6ddd46a28310938e8fd78f68c9998b0f09df",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_6868339_7284733"
+        },
+        {
+          "manifest_sha256": "c0a6cf1a228e974114cd78e70b5c8707a361581a6c0fa29041db8ecbdea01261",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_7284733_7700980"
+        },
+        {
+          "manifest_sha256": "7af763582f7cb1fcdcf5f82b35561223de4fb1d7dc46b876c2f78ad0c5efcafc",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_7700980_7800000"
+        },
+        {
+          "manifest_sha256": "b56a016819321cf7697b433bea1e44a7a1d3fa967ee38ba312f5243dd3311860",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_fb54e9062429a937_r_7800006_8424857"
+        },
+        {
+          "manifest_sha256": "9e82842c7d5015b7964de0b12b63fa97ae32fbb0a29bb241c0c51ab19e5ddb01",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_fb54e9062429a937_r_8424857_9050762"
+        },
+        {
+          "manifest_sha256": "8de74a35cbfe7425347864c0b59b202eabc7bf6043777fbe49bb4746cc10013f",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_fb54e9062429a937_r_9050762_9675370"
+        },
+        {
+          "manifest_sha256": "2260009d2598718f9a839c167e64fe8e844f28b543b825ad0db0abcc0434cfd5",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_fb54e9062429a937_r_9675370_10298245"
+        },
+        {
+          "manifest_sha256": "6ec38fd299d2229ee2f92b40315672e11e2c0d178d6eb67267a8f021d1bf4670",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_fb54e9062429a937_r_10298245_10320219"
+        },
+        {
+          "manifest_sha256": "358481c2b27d4d2d00603979e317d11388c8dcc0d3dd7885c5a6d5db904981bd",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_7800000_8217200"
+        },
+        {
+          "manifest_sha256": "a3e931c35d14564428e980802df82a5c88619053bb6ea3574526d39ce557ce36",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_8217200_8632784"
+        },
+        {
+          "manifest_sha256": "422ef0a68241b12fe11f32be0c2457e128381d7f751273ebd4f3da5700effe46",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_8632784_9049513"
+        },
+        {
+          "manifest_sha256": "e1a5a378431ba910e5231c0142beb0cd272a6e83df5f620de7a4710b841bf7dc",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_9049513_9466836"
+        },
+        {
+          "manifest_sha256": "f992184548a5a85c709793367801349cbca300e0cc3016faf5ec8c8e37616d3b",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_9466836_9883532"
+        },
+        {
+          "manifest_sha256": "6474e6a92356be83e7ee7faff06332fb91320cf8367f3322f59a32856cc283f9",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_9883532_10301105"
+        },
+        {
+          "manifest_sha256": "a6e475afbb28721642cc4357cf3c40e02ea135bcb51d1fa9939656eea98013c4",
+          "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_10301105_10320219"
+        }
+      ]
+    },
+    "v1": {
+      "macro_f05": 0.9758741644794233,
+      "pair_precision": 0.9939884191712617,
+      "pair_recall": 0.9415597339339025,
+      "pairs": 723437,
+      "threshold": 0.8,
+      "true_pairs": 763720
+    }
+  },
+  "limitations": [
+    "base models fit fold2 but developed on fold0; fold0 screening is not independent",
+    "stack fit uses disjoint fold0 anchor/owner groups, sampled negatives weighted 50; cutoff anchors are held out but full-pool negatives reuse fit-side target groups; tune is transductive; excluding other-owner-fold fit negatives shifts calibration; fold1 audit untouched",
+    "target-top1 is computed on all references, including non-tune folds, before filtering"
+  ],
+  "losses": {
+    "by_anchor_has_blank_alias": {
+      "false": {
+        "anchors": 189409,
+        "cutoff_lost": 12835,
+        "gate_lost": 2645,
+        "linked_targets": 630988,
+        "macro_f05_at_0_8": 0.9860588880466464,
+        "postgate_recall": 0.9958081611694676,
+        "postgate_true_targets": 628343,
+        "wrong_top1": 599
+      },
+      "true": {
+        "anchors": 31248,
+        "cutoff_lost": 16764,
+        "gate_lost": 8435,
+        "linked_targets": 132753,
+        "macro_f05_at_0_8": 0.9128110390542685,
+        "postgate_recall": 0.9364609462686342,
+        "postgate_true_targets": 124318,
+        "wrong_top1": 3774
+      }
+    },
+    "by_country": {
+      "india": {
+        "anchors": 88307,
+        "cutoff_lost": 12927,
+        "gate_lost": 5558,
+        "linked_targets": 305944,
+        "macro_f05_at_0_8": 0.9730629759786265,
+        "postgate_recall": 0.9818332766780848,
+        "postgate_true_targets": 300386,
+        "wrong_top1": 1417
+      },
+      "us": {
+        "anchors": 132350,
+        "cutoff_lost": 16672,
+        "gate_lost": 5522,
+        "linked_targets": 457797,
+        "macro_f05_at_0_8": 0.9774361545496824,
+        "postgate_recall": 0.9879378851324933,
+        "postgate_true_targets": 452275,
+        "wrong_top1": 2956
+      }
+    },
+    "by_singleton_anchor": {
+      "false": {
+        "anchors": 208333,
+        "cutoff_lost": 29599,
+        "gate_lost": 11080,
+        "linked_targets": 763741,
+        "macro_f05_at_0_8": 0.9757405081019092,
+        "postgate_recall": 0.9854924640683164,
+        "postgate_true_targets": 752661,
+        "wrong_top1": 4373
+      },
+      "true": {
+        "anchors": 12324,
+        "cutoff_lost": 0,
+        "gate_lost": 0,
+        "linked_targets": 0,
+        "macro_f05_at_0_8": 0.9747646867900033,
+        "postgate_recall": 1.0,
+        "postgate_true_targets": 0,
+        "wrong_top1": 0
+      }
+    },
+    "by_target_blank_address": {
+      "false": {
+        "cutoff_lost": 14739,
+        "gate_lost": 2999,
+        "linked_targets": 730095,
+        "postgate_recall": 0.9958923153836144,
+        "postgate_true_targets": 727096,
+        "wrong_top1": 709
+      },
+      "true": {
+        "cutoff_lost": 14860,
+        "gate_lost": 8081,
+        "linked_targets": 33646,
+        "postgate_recall": 0.7598228615585805,
+        "postgate_true_targets": 25565,
+        "wrong_top1": 3664
+      }
+    },
+    "overall": {
+      "anchors": 220657,
+      "cutoff_lost": 29599,
+      "gate_lost": 11080,
+      "linked_targets": 763741,
+      "macro_f05_at_0_8": 0.9756860071259694,
+      "postgate_recall": 0.9854924640683164,
+      "postgate_true_targets": 752661,
+      "wrong_top1": 4373
+    }
+  },
+  "nonlinear": {
+    "features": [
+      "gate_logit",
+      "neural_logit",
+      "gate_top_gap",
+      "neural_top_gap",
+      "gate_rank",
+      "neural_rank",
+      "target_blank_address",
+      "source_3"
+    ],
+    "fit_pairs": 380209,
+    "fit_positive": 375493,
+    "params": {
+      "deterministic": true,
+      "force_col_wise": true,
+      "lambda_l2": 10.0,
+      "learning_rate": 0.05,
+      "min_data_in_leaf": 100,
+      "num_leaves": 15,
+      "num_threads": 12,
+      "objective": "binary",
+      "seed": 42,
+      "verbosity": -1
+    },
+    "path": "nonlinear.txt",
+    "sha256": "76c0b5d3c1c6fefb03dd7183a05e1752bcaa68810076f82097997125f7844210"
+  },
+  "postgate_oracle": {
+    "macro_f05": 0.9955514140602323,
+    "pair_recall": 0.9854924640683164
+  },
+  "scope": "complete hybrid postgate train target pool; source1 macro f0.5",
+  "selection": {
+    "threshold": 0.8649235367774963,
+    "tune": {
+      "macro_f05": 0.9784026779294054,
+      "pair_precision": 0.9907218026829498,
+      "pair_recall": 0.9580044676098287,
+      "pairs": 370115,
+      "threshold": 0.8649235367774963,
+      "true_pairs": 382755
+    },
+    "variant": "stack"
+  },
+  "source": {
+    "config": {
+      "block_score_version": 2,
+      "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+      "data_version": null,
+      "feature_contract": [
+        "bscore",
+        "cos_name",
+        "cos_addr",
+        "brank",
+        "o_ncand",
+        "o_bmax",
+        "o_nrank",
+        "o_arank",
+        "o_nmax",
+        "o_amax",
+        "o_gap",
+        "o_ngap",
+        "o_agap",
+        "n_ratio",
+        "n_tsort",
+        "n_tset",
+        "n_partial",
+        "n_jw",
+        "nf_tset",
+        "ns_ratio",
+        "ns_tset",
+        "nc_ratio",
+        "nc_partial",
+        "n_alt12",
+        "n_alt21",
+        "a_ratio",
+        "a_tset",
+        "a_tsort",
+        "a_partial",
+        "as_tset",
+        "as_tsort",
+        "n_len1",
+        "n_len2",
+        "n_ntok1",
+        "n_ntok2",
+        "n_first_eq",
+        "legal_eq",
+        "legal_empty1",
+        "legal_empty2",
+        "has_alt2",
+        "nonascii2",
+        "is_dom2",
+        "addr_missing2",
+        "addr_empty2",
+        "a_len1",
+        "a_len2",
+        "state_eq",
+        "num_n1",
+        "num_n2",
+        "num_inter",
+        "num_first_eq",
+        "num_first1_in2",
+        "num_ovl",
+        "num_conflict"
+      ],
+      "gate": {
+        "dense_features": [],
+        "feature_backend": "teammate-v1-nos1",
+        "feature_names": [
+          "bscore",
+          "cos_name",
+          "cos_addr",
+          "brank",
+          "o_ncand",
+          "o_bmax",
+          "o_nrank",
+          "o_arank",
+          "o_nmax",
+          "o_amax",
+          "o_gap",
+          "o_ngap",
+          "o_agap",
+          "n_ratio",
+          "n_tsort",
+          "n_tset",
+          "n_partial",
+          "n_jw",
+          "nf_tset",
+          "ns_ratio",
+          "ns_tset",
+          "nc_ratio",
+          "nc_partial",
+          "n_alt12",
+          "n_alt21",
+          "a_ratio",
+          "a_tset",
+          "a_tsort",
+          "a_partial",
+          "as_tset",
+          "as_tsort",
+          "n_len1",
+          "n_len2",
+          "n_ntok1",
+          "n_ntok2",
+          "n_first_eq",
+          "legal_eq",
+          "legal_empty1",
+          "legal_empty2",
+          "has_alt2",
+          "nonascii2",
+          "is_dom2",
+          "addr_missing2",
+          "addr_empty2",
+          "a_len1",
+          "a_len2",
+          "state_eq",
+          "num_n1",
+          "num_n2",
+          "num_inter",
+          "num_first_eq",
+          "num_first1_in2",
+          "num_ovl",
+          "num_conflict"
+        ],
+        "files": {
+          "lgb.txt": "fff266e01ccc0e3da0d7599d386dd53914895cc266fc6277c89a422effff5d63"
+        },
+        "metadata_sha256": "7da97594c6dfb1f8192f5c02a720e1d3f51d55c4ca365efb46155496a363c89b",
+        "score_version": 2,
+        "sha256": "86d6da9d2f1898ff5a8c9720fcef7b254cfb28cb1cefb65631f898b57cd80481"
+      },
+      "k": {
+        "dense": 100,
+        "gate": 3,
+        "lexical": 20
+      },
+      "model": {
+        "sha256": "8ded7e75a1cb31279968b30f1a53faf0ff9e2f9289ab6f3f47c733a20bd89107"
+      },
+      "neural": {
+        "metadata_sha256": "79cb714f07df57c57c91f00cf5a425391bdda94b5b79c47d97b9979becd54ebc",
+        "parameters": 278044417,
+        "sha256": "c6d8e8889586eeacda90c0688f2a816284fd0a06e4560c8e198e40ea5bf4975d",
+        "tokenization": {
+          "config.json": "caf605dd32aeea78525379d5e00fccf1b613df7efb531c09e3d231c22578ac7e",
+          "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+          "tokenizer.json": "3a56def25aa40facc030ea8b0b87f3688e4b3c39eb8b45d5702b3a1300fe2a20",
+          "tokenizer_config.json": "dfb4021b23969fc942e96b2c4ac906d94712b4b96ef7081cb66a0ea211896d51"
+        },
+        "weights": {
+          "model.safetensors": "6f6b95e00ce00265ff1f8af18c6b97b2167f60a215d0a32d0040a03eb144f400"
+        }
+      },
+      "normalization": "data.norm",
+      "numeric": {
+        "blend": {
+          "method": "weighted_logit",
+          "neural_weight": 0.6
+        },
+        "device": "cuda",
+        "gate": "mean_probability",
+        "neural": "sigmoid_probability",
+        "neural_precision": "bf16",
+        "retrieval_precision": "fp16",
+        "topk_ties": "qid_asc"
+      },
+      "retriever_sources_sha256": "b6bee6d0ac9975e65a6b50f37bcfdf109bea0ddd8d2713acae26e917cf40a8f9",
+      "retrievers": [
+        {
+          "family": "e5",
+          "feature": "ds_e5",
+          "format": "{role}: name: {nm}\naddress: {ad}\ncountry: {co}",
+          "model": "intfloat/multilingual-e5-base",
+          "revision": "d128750597153bb5987e10b1c3493a34e5a4502a"
+        },
+        {
+          "family": "qwen3",
+          "feature": "ds_qwen3",
+          "format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+          "model": "Qwen/Qwen3-Embedding-0.6B",
+          "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+        },
+        {
+          "family": "e5-large",
+          "feature": "ds_e5_large",
+          "format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+          "model": "intfloat/multilingual-e5-large-instruct",
+          "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439"
+        }
+      ],
+      "source_files": {
+        "block.py": "cd9628163fdb7630f52a6d4d422b1d39e841966aa389cec3c4155cb5c089826f",
+        "data.py": "9e2797e6b8884db67fd62d06df070abc2dc2df16766fa644ac31f4396103e093",
+        "embed.py": "f52421d39de0223fa7005c69ce89096eab1cf94c7812facdae70110570604276",
+        "feat.py": "5e7b7abc43b41e41e7a5b0032b5af4cb4a2edce7f2946ffb6a79e00425aad7c3",
+        "hybrid.py": "b8fa1eafdbe1ef8884bf7a9220d4c0f725248ca281b0457d751268ae58dc0c28",
+        "match.py": "a3ff7a0044f254f9a958eaba2f1dd0a2922909436a11c7ca21c5d0a2a268020b",
+        "neural.py": "fdffbc4dac000e945f0f49abb76c2e447d5d483efc44879d501a79813c7f8bbc",
+        "tfeat.py": "d0a3747e99bbe1093b98ce191a97b09a3fce39f7dc9fdf1f244038511769ec35",
+        "tm_prep.py": "c46098e0df0cea436a7c97f1c1b332a000ce406374b27dbe0cc163b26b3d6e43",
+        "tm_rules.py": "6b00a4013d487d1bf48e0ad96b9109f1d836db678e871a1e8085f19b67dec0e6",
+        "train.py": "0e93042ae24d7a209200b6cec7fc7f871cc799d77ef7339ee6a40dbbbc536c2a"
+      },
+      "text_format": "name: {nm}\naddress: {ad}\ncountry: {co}",
+      "version": 1
+    },
+    "config_sha256": "36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2",
+    "data": "/home/cyclops/Documents/GitHub/Amazon ML/cache/data",
+    "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+    "indices": [
+      {
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/runs.json",
+        "sha256": "d5400cd4c346b08f585adfa5e203f1ba92024dd2fa6e7f26a64ef830af195afd"
+      },
+      {
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/runs.json",
+        "sha256": "205e79dccc9eac777af3c5fcf87d09bc1cef5f5782c604c3bc535578a984a610"
+      },
+      {
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/runs.json",
+        "sha256": "0d659e5c8bc5c159e9c33ac8f10fe71f3bb4b729d64acd3199947647589d5bc3"
+      },
+      {
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/runs.json",
+        "sha256": "02bab54388ec0d7a401f8c6c9628842e58239004b8164e913f4c4a78f9f34749"
+      }
+    ],
+    "runs": [
+      {
+        "manifest_sha256": "f596b9b2742e2617de8f30cff148a5ad69f6b59eba8a15f771de4f4ea9ec8140",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_fb54e9062429a937_r_0_622717"
+      },
+      {
+        "manifest_sha256": "9e28f5717129db7764aac65012656088138644c1d838ceff186b9f708be7dd0b",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_fb54e9062429a937_r_622717_1248054"
+      },
+      {
+        "manifest_sha256": "b7ff5e546d825f5bccdff8bc5b02c2260779a3f9a5677594541c9d42f612e3e5",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_fb54e9062429a937_r_1248054_1873196"
+      },
+      {
+        "manifest_sha256": "1296f9190d7a31728b808c59b8280d35490d41ace1f3391a58a61a5e0014d3de",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_fb54e9062429a937_r_1873196_2496686"
+      },
+      {
+        "manifest_sha256": "a3b9c28c8e0ce1f85a1b0c88530a4e50c66e115565d782d7c40565c94de8cda0",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_fb54e9062429a937_r_2496686_2600000"
+      },
+      {
+        "manifest_sha256": "b621ace9b714f0d9f6de7b0d884c125edbbc0560926533881b6c73f9b89e7de4",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_1_417521"
+      },
+      {
+        "manifest_sha256": "8915f3dde761d24b67a11b69f6970f62639728f140c127248c8d119b9c9f1daa",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_417521_835026"
+      },
+      {
+        "manifest_sha256": "faafdfa81e72d9b89ce115ee737fbab9fbb66076797b37a5f7934b38a870e0af",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_835026_1251317"
+      },
+      {
+        "manifest_sha256": "9ff03d04a9b741880cf4fafd8762ac683a98001e27922dde97fb494ac9634b50",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_1251317_1667920"
+      },
+      {
+        "manifest_sha256": "db9a2c815460a9e8b5ed21b9f76609f7b718a13f45e65267c0b4b6aeb59c0686",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_1667920_2084676"
+      },
+      {
+        "manifest_sha256": "c8c563747d2da9fb2ca19a5c4aefdc6ae4666d8170e34caf68882b138326dc02",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_2084676_2502179"
+      },
+      {
+        "manifest_sha256": "68052120d0cfd15109bfe78ea5e8f17ed368a3944c7adffbe1715bdf403b68e5",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q0/train/countries/country_79adb2a2fce5c6ba_r_2502179_2600000"
+      },
+      {
+        "manifest_sha256": "d58d378724afbefc2e94c96e6e1bcb8b29449a5044d42e14118c61a20de10100",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_fb54e9062429a937_r_2600000_3223075"
+      },
+      {
+        "manifest_sha256": "25d47f7359c3cbb004c2d6a82ec64d39b91dd17558d92e49ef351b7c23eca362",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_fb54e9062429a937_r_3223075_3845593"
+      },
+      {
+        "manifest_sha256": "b293f9f2c79c02a7bd969b3128f41be142ac8ef7c8d3c0cfd5c16334a8bc9daa",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_fb54e9062429a937_r_3845593_4469196"
+      },
+      {
+        "manifest_sha256": "b533ad9341478f3ebc802c4e42a95db7bc98f1e568397c49fc43dcde9a4760ea",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_fb54e9062429a937_r_4469196_5093064"
+      },
+      {
+        "manifest_sha256": "3ff4841cc38f2a2bc3e6a30ce8dc37fe738678d7810b6f1bf32b4c275f571423",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_fb54e9062429a937_r_5093064_5200000"
+      },
+      {
+        "manifest_sha256": "f7672be515026c07d0120b5e6697c2efb1654d14935c17689833d28f2774ff17",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_2600001_3017551"
+      },
+      {
+        "manifest_sha256": "806d6a418f75a011d79a06dcfd0f27ea1be5a8dc35c89e1973b8abdb9ba00a50",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_3017551_3435315"
+      },
+      {
+        "manifest_sha256": "a1c13dd43b5d8cf9765de5cfac998a34848428cbe881cbea6b699f4e8f9c85c8",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_3435315_3853034"
+      },
+      {
+        "manifest_sha256": "1fdc63e8af3e62f4ef929ea3bd906a3ea48b05ac1d01821f2fd3110d92f9b295",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_3853034_4269992"
+      },
+      {
+        "manifest_sha256": "974d63c6b3875bcd750cf34a938803ab2fa2c1d65edfec246b56cebaccdf9b72",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_4269992_4686668"
+      },
+      {
+        "manifest_sha256": "57f10cb19b1da1ec9f62f9321bed4039cf49ff9dc36ecc6cf9ca3d40774c0039",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_4686668_5104504"
+      },
+      {
+        "manifest_sha256": "f407d834736e074776bfe9c896faf176d8bee0fcc04e0e5a20a4cc237d1d5b61",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q1/train/countries/country_79adb2a2fce5c6ba_r_5104504_5200000"
+      },
+      {
+        "manifest_sha256": "f501acd6db8c396d9369b04724ca700d8de92accd7a2d09c9c98a265b54dbb9f",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_fb54e9062429a937_r_5200001_5824294"
+      },
+      {
+        "manifest_sha256": "8748f8e306ee71ce1ba92b20f3aaa4fa0dbbff4e9cf5a7835347ca8f206feeae",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_fb54e9062429a937_r_5824294_6446447"
+      },
+      {
+        "manifest_sha256": "5e9be8507d55bcf1fd4bd20b08f38dce72ee19a61c6ab0cbcb90c7ded5e0436c",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_fb54e9062429a937_r_6446447_7072595"
+      },
+      {
+        "manifest_sha256": "1c812d01890dcf769490fa3b35feff8ae3c84686e55ae15bc496ec953175cd62",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_fb54e9062429a937_r_7072595_7698383"
+      },
+      {
+        "manifest_sha256": "5713cfa456e004ac7927534ccad500eae32e52213ae6ded63632999802088a8d",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_fb54e9062429a937_r_7698383_7800000"
+      },
+      {
+        "manifest_sha256": "56a46b737ccb597fca80648a4f5c1d953b2210f81681daef4f1f321963393806",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_5200000_5617374"
+      },
+      {
+        "manifest_sha256": "de9ca88b9993d7547672c890156f763d750c0e9b08ee883c07c5312f15d438d5",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_5617374_6034406"
+      },
+      {
+        "manifest_sha256": "ea0de41e7cb9add4b5a27f12dc55e5291f4479f333fdd2476cc3572d28de6c1a",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_6034406_6452350"
+      },
+      {
+        "manifest_sha256": "6f3166ee3e23683baa2f63887f83ce3cc3e0a48eb82151ca86be0b2476a86ecb",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_6452350_6868339"
+      },
+      {
+        "manifest_sha256": "1ac5fc810397030baa170249c48b6ddd46a28310938e8fd78f68c9998b0f09df",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_6868339_7284733"
+      },
+      {
+        "manifest_sha256": "c0a6cf1a228e974114cd78e70b5c8707a361581a6c0fa29041db8ecbdea01261",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_7284733_7700980"
+      },
+      {
+        "manifest_sha256": "7af763582f7cb1fcdcf5f82b35561223de4fb1d7dc46b876c2f78ad0c5efcafc",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q2/train/countries/country_79adb2a2fce5c6ba_r_7700980_7800000"
+      },
+      {
+        "manifest_sha256": "b56a016819321cf7697b433bea1e44a7a1d3fa967ee38ba312f5243dd3311860",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_fb54e9062429a937_r_7800006_8424857"
+      },
+      {
+        "manifest_sha256": "9e82842c7d5015b7964de0b12b63fa97ae32fbb0a29bb241c0c51ab19e5ddb01",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_fb54e9062429a937_r_8424857_9050762"
+      },
+      {
+        "manifest_sha256": "8de74a35cbfe7425347864c0b59b202eabc7bf6043777fbe49bb4746cc10013f",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_fb54e9062429a937_r_9050762_9675370"
+      },
+      {
+        "manifest_sha256": "2260009d2598718f9a839c167e64fe8e844f28b543b825ad0db0abcc0434cfd5",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_fb54e9062429a937_r_9675370_10298245"
+      },
+      {
+        "manifest_sha256": "6ec38fd299d2229ee2f92b40315672e11e2c0d178d6eb67267a8f021d1bf4670",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_fb54e9062429a937_r_10298245_10320219"
+      },
+      {
+        "manifest_sha256": "358481c2b27d4d2d00603979e317d11388c8dcc0d3dd7885c5a6d5db904981bd",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_7800000_8217200"
+      },
+      {
+        "manifest_sha256": "a3e931c35d14564428e980802df82a5c88619053bb6ea3574526d39ce557ce36",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_8217200_8632784"
+      },
+      {
+        "manifest_sha256": "422ef0a68241b12fe11f32be0c2457e128381d7f751273ebd4f3da5700effe46",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_8632784_9049513"
+      },
+      {
+        "manifest_sha256": "e1a5a378431ba910e5231c0142beb0cd272a6e83df5f620de7a4710b841bf7dc",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_9049513_9466836"
+      },
+      {
+        "manifest_sha256": "f992184548a5a85c709793367801349cbca300e0cc3016faf5ec8c8e37616d3b",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_9466836_9883532"
+      },
+      {
+        "manifest_sha256": "6474e6a92356be83e7ee7faff06332fb91320cf8367f3322f59a32856cc283f9",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_9883532_10301105"
+      },
+      {
+        "manifest_sha256": "a6e475afbb28721642cc4357cf3c40e02ea135bcb51d1fa9939656eea98013c4",
+        "path": "/home/cyclops/Documents/GitHub/Amazon ML/artifacts/upgraded-train-q3/train/countries/country_79adb2a2fce5c6ba_r_10301105_10320219"
+      }
+    ]
+  },
+  "stack": {
+    "coefficients": [
+      0.41550174355506897,
+      0.47509413957595825
+    ],
+    "epsilon": 1.1920928955078125e-07,
+    "features": [
+      "gate_logit",
+      "neural_logit"
+    ],
+    "fit_negative_sample": "target hash modulo 50; inverse-probability weight 50",
+    "fit_pairs": 380209,
+    "fit_positive": 375493,
+    "intercept": 1.8613258600234985,
+    "split": "even deterministic group hash held out; fold0 anchors and fold0-owned/orphan target groups only; crossing edges and fold1/2-owned target negatives excluded"
+  },
+  "v1": {
+    "macro_f05": 0.9756860071259694,
+    "pair_precision": 0.9942051079158586,
+    "pair_recall": 0.9410114161738076,
+    "pairs": 722878,
+    "threshold": 0.8,
+    "true_pairs": 763741
+  },
+  "variants": {
+    "nonlinear": {
+      "fold0_at_tune_cut": {
+        "macro_f05": 0.972785421350731,
+        "pair_precision": 0.9837745781080662,
+        "pair_recall": 0.9567811601053237,
+        "pairs": 742785,
+        "threshold": 0.92666095495224,
+        "true_pairs": 763741
+      },
+      "fold0_optimized_descriptive": {
+        "macro_f05": 0.9727901738842323,
+        "pair_precision": 0.9839914635510065,
+        "pair_recall": 0.9562757531676315,
+        "pairs": 742229,
+        "threshold": 0.9287524819374084,
+        "true_pairs": 763741
+      },
+      "tune": {
+        "macro_f05": 0.9727237071234832,
+        "pair_precision": 0.9836844678713241,
+        "pair_recall": 0.956614544551998,
+        "pairs": 372222,
+        "threshold": 0.92666095495224,
+        "true_pairs": 382755
+      }
+    },
+    "stack": {
+      "fold0_at_tune_cut": {
+        "macro_f05": 0.9785152900449455,
+        "pair_precision": 0.9908003617576657,
+        "pair_recall": 0.9582057268105287,
+        "pairs": 738616,
+        "threshold": 0.8649235367774963,
+        "true_pairs": 763741
+      },
+      "fold0_optimized_descriptive": {
+        "macro_f05": 0.9785373554262594,
+        "pair_precision": 0.9908920754962295,
+        "pair_recall": 0.9579726635076551,
+        "pairs": 738368,
+        "threshold": 0.8671829104423523,
+        "true_pairs": 763741
+      },
+      "tune": {
+        "macro_f05": 0.9784026779294054,
+        "pair_precision": 0.9907218026829498,
+        "pair_recall": 0.9580044676098287,
+        "pairs": 370115,
+        "threshold": 0.8649235367774963,
+        "true_pairs": 382755
+      }
+    },
+    "w=0.0": {
+      "fold0_at_tune_cut": {
+        "macro_f05": 0.967599783993783,
+        "pair_precision": 0.9881025626844933,
+        "pair_recall": 0.9357360675935952,
+        "pairs": 723265,
+        "threshold": 0.5291096568107605,
+        "true_pairs": 763741
+      },
+      "fold0_optimized_descriptive": {
+        "macro_f05": 0.9676183865838608,
+        "pair_precision": 0.9883921108423331,
+        "pair_recall": 0.9351651934359947,
+        "pairs": 722612,
+        "threshold": 0.5392605662345886,
+        "true_pairs": 763741
+      },
+      "tune": {
+        "macro_f05": 0.9672792089951712,
+        "pair_precision": 0.988072865354737,
+        "pair_recall": 0.9354417316560202,
+        "pairs": 362367,
+        "threshold": 0.5291096568107605,
+        "true_pairs": 382755
+      }
+    },
+    "w=0.2": {
+      "fold0_at_tune_cut": {
+        "macro_f05": 0.9748252532179328,
+        "pair_precision": 0.9905999964481893,
+        "pair_recall": 0.949457996886379,
+        "pairs": 732021,
+        "threshold": 0.44305726885795593,
+        "true_pairs": 763741
+      },
+      "fold0_optimized_descriptive": {
+        "macro_f05": 0.9748495639684662,
+        "pair_precision": 0.9908450800508607,
+        "pair_recall": 0.9489002161727601,
+        "pairs": 731410,
+        "threshold": 0.4554486572742462,
+        "true_pairs": 763741
+      },
+      "tune": {
+        "macro_f05": 0.9746860286985396,
+        "pair_precision": 0.9905587332399113,
+        "pair_recall": 0.949252132565218,
+        "pairs": 366794,
+        "threshold": 0.44305726885795593,
+        "true_pairs": 382755
+      }
+    },
+    "w=0.4": {
+      "fold0_at_tune_cut": {
+        "macro_f05": 0.9779305827651429,
+        "pair_precision": 0.9908175299236828,
+        "pair_recall": 0.9570469570181515,
+        "pairs": 737710,
+        "threshold": 0.4314977824687958,
+        "true_pairs": 763741
+      },
+      "fold0_optimized_descriptive": {
+        "macro_f05": 0.9779557109060878,
+        "pair_precision": 0.9915459002848384,
+        "pair_recall": 0.955343499956137,
+        "pairs": 735856,
+        "threshold": 0.4754210114479065,
+        "true_pairs": 763741
+      },
+      "tune": {
+        "macro_f05": 0.9778626724966529,
+        "pair_precision": 0.9907564707409973,
+        "pair_recall": 0.9568705830100195,
+        "pairs": 369664,
+        "threshold": 0.4314977824687958,
+        "true_pairs": 382755
+      }
+    },
+    "w=0.6": {
+      "fold0_at_tune_cut": {
+        "macro_f05": 0.9782766540469559,
+        "pair_precision": 0.989945553048624,
+        "pair_recall": 0.9593933021796657,
+        "pairs": 740170,
+        "threshold": 0.5069302320480347,
+        "true_pairs": 763741
+      },
+      "fold0_optimized_descriptive": {
+        "macro_f05": 0.97829194726042,
+        "pair_precision": 0.9895775008938389,
+        "pair_recall": 0.9603517422791235,
+        "pairs": 741185,
+        "threshold": 0.48252037167549133,
+        "true_pairs": 763741
+      },
+      "tune": {
+        "macro_f05": 0.9781291446144351,
+        "pair_precision": 0.9898492348506908,
+        "pair_recall": 0.959211506054787,
+        "pairs": 370908,
+        "threshold": 0.5069302320480347,
+        "true_pairs": 382755
+      }
+    },
+    "w=0.8": {
+      "fold0_at_tune_cut": {
+        "macro_f05": 0.9755431048110915,
+        "pair_precision": 0.9887052494873733,
+        "pair_recall": 0.9539464294832934,
+        "pairs": 736891,
+        "threshold": 0.6563835740089417,
+        "true_pairs": 763741
+      },
+      "fold0_optimized_descriptive": {
+        "macro_f05": 0.9755671669222844,
+        "pair_precision": 0.9879658595196086,
+        "pair_recall": 0.956043999209156,
+        "pairs": 739064,
+        "threshold": 0.6169358491897583,
+        "true_pairs": 763741
+      },
+      "tune": {
+        "macro_f05": 0.9753846864424981,
+        "pair_precision": 0.9886003628388075,
+        "pair_recall": 0.9538738879962378,
+        "pairs": 369310,
+        "threshold": 0.6563835740089417,
+        "true_pairs": 382755
+      }
+    },
+    "w=1.0": {
+      "fold0_at_tune_cut": {
+        "macro_f05": 0.9715470316246011,
+        "pair_precision": 0.9843375776355493,
+        "pair_recall": 0.9524891291681342,
+        "pairs": 739030,
+        "threshold": 0.6959583163261414,
+        "true_pairs": 763741
+      },
+      "fold0_optimized_descriptive": {
+        "macro_f05": 0.9716105868427388,
+        "pair_precision": 0.9836657800521172,
+        "pair_recall": 0.9544033906782535,
+        "pairs": 741021,
+        "threshold": 0.671470582485199,
+        "true_pairs": 763741
+      },
+      "tune": {
+        "macro_f05": 0.9714471889698871,
+        "pair_precision": 0.9842273762862666,
+        "pair_recall": 0.9525910830688038,
+        "pairs": 370452,
+        "threshold": 0.6959583163261414,
+        "true_pairs": 382755
+      }
+    }
+  }
+}

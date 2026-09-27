@@ -1,0 +1,95 @@
+{
+  "anchors": 73752,
+  "anchors_sha256": "1ae937127dd542959ca69f361141e6114bbcbb2a28f3266e61e7753edc1a64d6",
+  "control": {
+    "scope": "current base-score configuration",
+    "score_column": "prob",
+    "threshold": 0.8
+  },
+  "data_meta_sha256": "38422482e868bab2577e17021aaacd90e978c873892ac8b4084239f8c658ef0f",
+  "known_score": "stack_prob",
+  "public_score": null,
+  "results": {
+    "base_threshold_double_orphans": {
+      "macro_f05": 0.9854502139840493,
+      "pair_precision": 0.9950244127391215,
+      "pair_recall": 0.9655130454579354,
+      "pairs": 247207,
+      "true_pairs": 254763
+    },
+    "base_threshold_original": {
+      "macro_f05": 0.9857085887967705,
+      "pair_precision": 0.9956809313320704,
+      "pair_recall": 0.9655130454579354,
+      "pairs": 247044,
+      "true_pairs": 254763
+    },
+    "empirical_expected_double_orphans": {
+      "approximate_groups": 0,
+      "exact_limit": 64,
+      "groups": 73711,
+      "macro_f05": 0.9899530123952955,
+      "pair_precision": 0.9978415991495256,
+      "pair_recall": 0.9726530147627402,
+      "pairs": 248332,
+      "true_pairs": 254763
+    },
+    "empirical_expected_original": {
+      "approximate_groups": 0,
+      "exact_limit": 64,
+      "groups": 73711,
+      "macro_f05": 0.9903538925031248,
+      "pair_precision": 0.9985613656146233,
+      "pair_recall": 0.9726490895459702,
+      "pairs": 248152,
+      "true_pairs": 254763
+    },
+    "raw_expected_double_orphans": {
+      "approximate_groups": 0,
+      "exact_limit": 64,
+      "groups": 73712,
+      "macro_f05": 0.9894741396954269,
+      "pair_precision": 0.9968512032901713,
+      "pair_recall": 0.9742388023378591,
+      "pairs": 248984,
+      "true_pairs": 254763
+    },
+    "raw_expected_original": {
+      "approximate_groups": 0,
+      "exact_limit": 64,
+      "groups": 73712,
+      "macro_f05": 0.9901044803893926,
+      "pair_precision": 0.9979694655874678,
+      "pair_recall": 0.974230951904319,
+      "pairs": 248703,
+      "true_pairs": 254763
+    },
+    "shift_corrected_expected_double_orphans": {
+      "approximate_groups": 0,
+      "exact_limit": 64,
+      "groups": 73711,
+      "macro_f05": 0.9899846121518542,
+      "pair_precision": 0.9979892248240068,
+      "pair_recall": 0.9721348861490876,
+      "pairs": 248163,
+      "true_pairs": 254763
+    },
+    "shift_corrected_expected_original": {
+      "approximate_groups": 0,
+      "exact_limit": 64,
+      "groups": 73711,
+      "macro_f05": 0.9903176504037818,
+      "pair_precision": 0.9986652956712837,
+      "pair_recall": 0.9721348861490876,
+      "pairs": 247995,
+      "true_pairs": 254763
+    }
+  },
+  "scope": "fold0 held-out reference development, full-target competitors; transductive target reuse; no fold1 audit",
+  "source_score_sha256": "f0ac2299944de95e59f6a88b3b78a4923ec8a6c3e58b243f9c49c2054180a92c",
+  "stress": "duplicate every orphan target once with a distinct synthetic id; true links unchanged; not real test labels",
+  "validation_partition": {
+    "modulus": 3,
+    "remainder": 2
+  }
+}
