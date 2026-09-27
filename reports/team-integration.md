@@ -1,4 +1,4 @@
-# teammate method integration
+# team method integration
 
 ## implemented paths
 

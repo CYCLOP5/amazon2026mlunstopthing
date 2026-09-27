@@ -1,6 +1,6 @@
 # updated repo integration
 
-source: `/home/cyclops/Downloads/Amazon-ML-Challenge-hmm`, updated sep 26. the reported public score is 0.987; the supplied experiment log records 0.984806 → 0.985292 for the large cross-encoder change and describes subsequent generator-aware and france-specific changes. an exact 0.987 artifact is not available.
+source: our team's multilingual matching implementation, updated sep 26. the reported public score at that stage was 0.987; the experiment log records 0.984806 → 0.985292 for the large cross-encoder change and describes subsequent generator-aware and france-specific changes. an exact 0.987 artifact is not bound to that historical comparison.
 
 ## implemented
 

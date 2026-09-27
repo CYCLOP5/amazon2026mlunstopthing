@@ -2,9 +2,13 @@
 
 > updated: 2026-09-27
 >
-> updated planning cutoff: sunday 2026-09-27 21:00 ist / 15:30 utc, based on 18 hours remaining at about 03:08 ist
+> final team-reported public leaderboard f0.5: **0.989**
 >
-> team-reported public leaderboard f0.5: baseline **0.964**; upgraded v1 **0.969**; learned france-rule submission **0.986416**
+> earlier checkpoint results: baseline **0.964**; upgraded v1 **0.969**; first learned france-rule archive **0.986416**
+
+our team completed multilingual retrieval, dense-aware candidate filtering, neural matching, calibrated set decoding and cached cpu tuning
+the final team result is reported separately from the hash-bound checkpoint measurements below
+[final result](../reports/final-result.json)
 
 ## learned pipeline
 
@@ -41,7 +45,11 @@ local score relocation preserves data/model hashes and reproduces identical expo
 the next search uses corrected production tie-breaking and two-fold reference-disjoint calibration inside partition1
 the frozen stack scores 0.9904283336 under this stricter search objective; the original search figure is not directly comparable
 3 real-data smoke trials passed, including a learned-model family ablation and bundle validation
-running search: 2,560 trials on 3 × 64-core and 1 × 16-core cpu workers; full gpu scores are reused
+completed search: 2,560 trials on 3 × 64-core and 1 × 16-core cpu workers; full gpu scores were reused
+four study winners were frozen before development evaluation
+selected run01 improves development macro f0.5 from 0.9903538925 to 0.9905552568, a gain of 0.0201364 percentage points
+we investigated france-specific routing with india/us predictions fixed; the optuna-only change has no separately measured public result
+[finalist comparison](../reports/learned-r2-finalists.json)
 france currently uses the gate-only fallback, so its score routing and calibration are a separate comparison
 [retuning plan](../reports/learned-retune-plan.md) · [baseline diagnostics](../reports/learned-r2-baseline.json)
 the country-transfer probe favors full-stack empirical calibration over gate-only density transfer; it does not measure france accuracy
@@ -53,8 +61,8 @@ a france-only variant passed strict and official id validation, with unchanged i
 | variant | retrieval | gate | matcher | measured result |
 | --- | --- | --- | --- | --- |
 | original baseline | lexical + e5-base + qwen | native lightgbm/catboost mean | fine-tuned e5 pair classifier | **0.964** team-reported public; **0.9755015568** locked offline source1 macro f0.5 |
-| upgraded v1 | lexical + e5-base + qwen + e5-large | 54-feature teammate lightgbm | same fine-tuned e5 pair classifier | **0.969** team-reported public leaderboard f0.5 |
-| overnight logistic selection | same saved hybrid pool as upgraded v1 | same 54-feature teammate lightgbm | logistic stack over gate and neural logits | **0.9786888883553567** locked offline source1 macro f0.5 |
+| upgraded v1 | lexical + e5-base + qwen + e5-large | 54-feature lightgbm | same fine-tuned e5 pair classifier | **0.969** team-reported public leaderboard f0.5 |
+| overnight logistic selection | same saved hybrid pool as upgraded v1 | same 54-feature lightgbm | logistic stack over gate and neural logits | **0.9786888883553567** locked offline source1 macro f0.5 |
 
 the baseline offline/public difference is **0.0115015568** across different evaluation populations; it is descriptive and does not identify a cause
 the overnight logistic result is an offline train-pool result, not a new public submission score; the team-reported public scores remain 0.964 for the baseline and 0.969 for upgraded v1
@@ -93,7 +101,7 @@ the long candidate tail is reported explicitly; three candidates per target does
 - full supplied-data eda and label-integrity audit
 - entity-grouped folds with separate fitting, selection, and locked-audit populations
 - two-epoch e5 pair-classifier training on 502,635 supplied-data pairs
-- exact teammate transform, 54-feature, and checkpoint-probability parity on the diagnostic sample
+- exact transform, 54-feature, and checkpoint-probability parity on the diagnostic sample
 - complete country reference pools for multilingual and lexical retrieval
 - original and upgraded test scoring completed with exact target coverage
 - 16 disjoint single-a100 assignments for accelerated upgraded test inference

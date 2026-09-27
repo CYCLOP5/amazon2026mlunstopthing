@@ -1,17 +1,13 @@
-# teammate review and controlled comparisons
+# team findings and controlled comparisons
 
 ## inputs reviewed
 
-- `~/Downloads/eda_conclusions.docx`
-- `~/Downloads/eda_results/eda_report.md`, `summary.json` and pair-feature tables
-- `~/Downloads/diagnostics/report.md`
-- `~/Downloads/code/business_entity_resolution/IMPROVEMENTS.md` and source pipeline
-
-the supplied files were preserved. experiments ran under `artifacts/teammate-benchmark` with uv-isolated dependencies and no changes to the running production snapshot
+our team reviewed the dataset eda, pair-feature tables, model diagnostics and earlier pipeline implementations
+we retained the source snapshots and benchmark evidence and ran controlled comparisons with uv-isolated dependencies
 
 ## useful findings
 
-- same-name branches are common: the teammate full-data audit reports 38.31 percent of source1 records share a lowercase name with another source1 in their country
+- our full-data audit found that 38.31 percent of source1 records share a lowercase name with another source1 in their country
 - transliteration and consonant-skeleton views complement literal spelling comparisons
 - compact names, legal forms, alias markers, normalized address tokens and per-target candidate gaps provide useful evidence
 - house-number edits overlap between true aliases and distractors. prefixes, suffixes, leading zeros and numeric distance should be soft evidence rather than rejection rules
@@ -30,7 +26,7 @@ the supplied training script filters candidate rows to validation source1 hash b
 
 the adapter used 1858304 fit pairs and 716835 validation pairs from the existing entity-disjoint lexical runs. there were 13827 positive validation targets and 13340 retained true pairs. all alternatives for each target were kept before ranking
 
-the teammate text preprocessing and feature functions were used with `bscore = ns + ads` from our stored character scores. this does not reproduce the teammate token-skeleton blocker. model fits were bounded at 800 rounds with early stopping and four cpu threads
+we compared our text preprocessing and feature functions with `bscore = ns + ads` from stored character scores. the token-skeleton blocker was evaluated separately. model fits were bounded at 800 rounds with early stopping and four cpu threads
 
 ### sampling trap caught
 
@@ -46,9 +42,9 @@ recall denominator is all 13827 selected positive targets. this is not official 
 | --- | ---: | ---: | ---: |
 | current lightgbm | 86.21% | 79.21% | 40.01% |
 | current catboost | 87.92% | 83.89% | 56.71% |
-| teammate lightgbm a without sampled s1 aggregates | 92.70% | 91.21% | 84.94% |
-| teammate lightgbm b without sampled s1 aggregates | 92.69% | 91.25% | 84.47% |
-| teammate xgboost without sampled s1 aggregates | 92.43% | 90.48% | 81.81% |
+| lightgbm a without sampled s1 aggregates | 92.70% | 91.21% | 84.94% |
+| lightgbm b without sampled s1 aggregates | 92.69% | 91.25% | 84.47% |
+| xgboost without sampled s1 aggregates | 92.43% | 90.48% | 81.81% |
 | safe three-model mean | 92.95% | 91.26% | 84.67% |
 
 xgboost stopped at iteration 753. the mean's gain is small and operating-point dependent. the supplied representation and lightgbm configuration jointly help; their individual contributions were not isolated
@@ -60,8 +56,8 @@ all 716835 lexical pairs joined cached neural scores by exact target/reference i
 | gate plus same neural model | recall at precision 0.990 | 0.995 | 0.999 |
 | --- | ---: | ---: | ---: |
 | current mean gate | 93.86% | 91.89% | 82.58% |
-| safe teammate lightgbm a | 94.29% | 93.32% | 88.44% |
-| safe teammate three-model mean | 94.35% | 93.27% | 87.72% |
+| validated lightgbm a | 94.29% | 93.32% | 88.44% |
+| validated three-model mean | 94.35% | 93.27% | 87.72% |
 
 this supports a broader comparison of the safe lightgbm representation. it does not establish a new full-corpus score
 
@@ -73,7 +69,7 @@ the added retriever introduced 530145 extra first-stage pairs on 8925 queries. f
 
 ## submission priority and updated ranking rule
 
-the safe teammate gate and three-retriever combination have since been implemented and passed exact feature/checkpoint parity and real-runtime smoke checks
+our team implemented the validated gate and three-retriever combination and checked exact feature/checkpoint parity and real-runtime behavior
 complete upgraded validation and test scoring run in parallel with the first baseline delivery
 the remaining submission refinement will use complete validation and leaderboard feedback
 

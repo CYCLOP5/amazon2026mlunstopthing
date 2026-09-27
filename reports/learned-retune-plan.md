@@ -1,5 +1,9 @@
 # learned cached cpu retuning
 
+final team-reported public leaderboard f0.5: **0.989**
+our team completed the 2,560-trial search and frozen development comparison below
+the detailed run measurements are distinct from the [final team leaderboard result](final-result.json)
+
 ## measured starting point
 
 - user-reported public score: 0.986416 for the first learned france-rule tsv
@@ -27,8 +31,26 @@ old objective values must not be mixed into the new studies
 - vary tree size/depth, learning rate, round limit, leaf/hessian constraints, l1/l2, split gain, row/column sampling, class weighting, histogram resolution, path smoothing and extra trees
 - native feature-gain masks compare all features, generator-free features, score-only features, large-model members and exclusion of bge members
 - family masks are bound to the frozen 15-member score configuration; shared mean logits are excluded when a family is excluded
-- retain every trial model, metadata and study journal locally
+- retain trial models, metadata and study journals with the experiment outputs
 - keep partition2 out of search; its prior checkpoint result has already been viewed, so later comparisons are separate development checks rather than a pristine blind test
+
+## frozen finalist comparison
+
+all 2,560 trials completed; one winner per study was frozen before the partition2 comparison
+the cached evaluator exactly reproduced the existing full-population checkpoint result
+
+| model | search macro f0.5 | development macro f0.5 | trees |
+| --- | ---: | ---: | ---: |
+| existing public checkpoint | 0.990428334 | 0.990353893 | 182 |
+| run00 | 0.990554707 | 0.990390528 | 514 |
+| run01, selected | 0.990584158 | 0.990555257 | 180 |
+| run02 | 0.990632547 | 0.990369390 | 377 |
+| run03 | 0.990556652 | 0.990351300 | 112 |
+
+run01 adds 0.000201364 on development, or 0.0201364 percentage points
+pair precision rises from 0.998561366 to 0.998570048; recall rises from 0.972649090 to 0.973080863
+this is a small development gain, not a measured leaderboard increase
+[complete comparison](learned-r2-finalists.json) · [cache parity](learned-development-cache-parity.json)
 
 ## france and calibration
 
@@ -50,8 +72,14 @@ strict and official id-enabled validation passed; public effect remains unmeasur
 development feature preparation now has an explicit partition2 mode, and search rejects development-purpose caches
 this avoids recomputing the full feature corpus for every finalist while keeping development labels out of the searches
 
+our team investigated france-specific candidates while preserving the uploaded india/us predictions
+france has 259,452 of 1,732,544 test references, or 14.9752%
+under that country mix, closing the public gap from 0.986416 to 0.99 through france alone would require about 0.023933 additional france macro f0.5
+the actual public country mix and france labels are unknown, so this is a scenario calculation
+`src/fra.py` audits gate/stack routing, density/empirical calibration and rules on/off, checks cross-country rival separation and reproduces existing full exports before comparing the changed pairs
+
 ## release gate
 
 freeze a small finalist set before development comparison, calibrate on partition1 and validate full exports against original challenge ids
 export the same actual pre-matcher candidate set and preserve the uploaded checkpoint
-finish selection and remaining public submissions before 21:00 ist on 2026-09-27
+record the final team result separately from every checkpoint-specific receipt

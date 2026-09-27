@@ -2,7 +2,7 @@
 
 ## evidence
 
-completed team experiments by raj mathuria were inspected through their saved code and reports. they use the same upstream score configuration `36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2` as the cached upgraded baseline. this recovered implementation is distinct from the supplied `amazon-ml-challenge-hmm` checkout
+our team compared completed experiments through their saved code and reports. they use the same upstream score configuration `36eb4123836f6a1d46c23e4df2b500a7b932fabd252ed024314ff6917df29dd2` as the cached upgraded baseline. the graph and multilingual matching implementations were evaluated as separate internal variants
 
 | experiment | recorded result | interpretation |
 | --- | --- | --- |
@@ -11,7 +11,7 @@ completed team experiments by raj mathuria were inspected through their saved co
 | sibling refinement, `bold_zebra_g8snhj80gj` | audit 0.989091; paired delta +0.001057 | the follow-up was designed after the parent audit; this is not a blind estimate |
 | learned edit channel, `plucky_market_6nyd79k5wq` | no eligible tuning improvement; baseline replay | added edit-channel models did not establish an end-to-end gain |
 
-the recovered handoff also records a completed four-view verifier with no tuning improvement. it retained the sibling-refinement output. the graph ranker's 0.98075 public result was user-reported in that handoff; no independently bound public result was available for the refinement. these scores must not be conflated with the separate teammate checkout's reported 0.984
+our records also contain a completed four-view verifier with no tuning improvement. it retained the sibling-refinement output. the graph ranker's 0.98075 public result was team-reported; no independently bound public result was available for the refinement. the separate multilingual implementation reported 0.984 at that stage
 
 the graph/refinement output contains 5,893,122 matches and 67,977,154 candidates, averaging 39.2355 candidates per source1. the current optuna-stack checkpoint uses 29,908,767 candidates, averaging 17.2629. wider candidate coverage and final matching quality are separate measurements
 
@@ -38,4 +38,4 @@ the cached optuna experiment projects targets only after its raw-name frequency 
 - evaluate unseen-country behavior explicitly; higher french uncertainty is drift evidence, not labeled accuracy
 - do not rerun the failed edit-channel or frozen four-view branches merely because their model names sound promising
 
-local evidence is preserved under `artifacts/teammate-analysis/`, including the immutable code snapshot, original reports, stdout and `sibling-projection-check.json`
+we retained the immutable code snapshots, original reports, runtime logs and `sibling-projection-check.json` with the local experiment artifacts

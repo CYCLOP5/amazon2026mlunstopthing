@@ -3,15 +3,14 @@
 - **team:** amazites
 - **members:** varun jhaveri, shivsharan sanjawad, raj mathuria, aastha singh
 - **doc revision:** 2026-09-27
-- **artifact date:** 2026-09-27; upload status is recorded separately
-- **submission planning cutoff:** 2026-09-27 21:00 ist / 15:30 utc
+- **final team-reported public leaderboard f0.5:** 0.989
 
-> learned pipeline archive methodology
-> development metrics and output counts below are measured from the completed run
+> our team's learned matching methodology
+> checkpoint-specific metrics and output counts below identify the measured run
 
 ## 1. executive summary
 
-the system retrieves candidate businesses from complementary lexical and multilingual views
+our team combined complementary lexical and multilingual retrieval to find candidate businesses
 a learned gate reduces the shortlist before a locally fine-tuned pair classifier scores each retained link
 full-pool calibration selects the decoder and acceptance threshold
 
@@ -30,7 +29,7 @@ the archive uses calibrated expected-f0.5 decoding with bounded france rules
 
 raw unicode text is retained
 offline `anyascii` comparison views bridge scripts for lexical search
-the teammate backend uses its pinned `unidecode` transform to preserve checkpoint semantics
+the lexical backend uses its pinned `unidecode` transform to preserve checkpoint semantics
 no external business lookup geocoding translation service or external reference enrichment feeds predictions
 
 ## 3. split and training strategy
@@ -97,6 +96,8 @@ cpu optuna starts from the previous selected parameters and compares 64 trials o
 all 64 trials completed in 216.4 seconds; trial 31 selected 182 trees over 101 features
 the selected learning rate is 0.0537027, leaf count 63, minimum leaf size 101 and l2 penalty 5.71615
 selection uses per-reference macro f0.5 with complete truth degrees and full-target competition
+our subsequent 2,560-trial search corrected calibrated tie-breaking and used two reference-disjoint calibration folds
+we froze four study winners before development evaluation; the selected 180-tree finalist improved development macro f0.5 to 0.9905552568
 country/house-segment calibration supports density transfer and unseen-country routing
 one reference owner is selected per target before per-reference expected-f0.5 set decoding
 normal-sized sets use exact expectations; oversized groups use a bounded approximation recorded in the output metrics
@@ -133,7 +134,10 @@ number conflicts remain soft evidence because true pairs can contain number nois
 
 **selected stack development:** +0.5807 percentage points over the prior empirical result on identical business ids; the doubled-orphan stress score is 0.9899530124
 
-**leaderboard feedback:** learned submission not yet uploaded; upgraded v1 previously reported public f0.5 of 0.969
+**final team-reported public leaderboard f0.5:** 0.989
+
+earlier checkpoint feedback was 0.964 for the baseline, 0.969 for upgraded v1 and 0.986416 for the first validated learned archive
+the final team result is recorded separately from these checkpoint-specific development measurements and file receipts
 
 ## 7. execution and reproducibility
 

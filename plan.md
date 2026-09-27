@@ -2,6 +2,14 @@
 
 research date 2026-09-26
 
+## final team result
+
+**team amazites reported a final public leaderboard f0.5 of 0.989 on 2026-09-27**
+our team combined learned multilingual retrieval, dense-aware filtering, 15 cross-encoders, calibrated set decoding and cached cpu tuning
+the neural pool totals 6,515,651,343 parameters, below the 8b limit
+the sections below retain the dated research, measurements and decisions that led to the implemented pipeline
+[final result](reports/final-result.json) · [final documentation](README.md) · [2,560-trial comparison](reports/learned-r2-finalists.json)
+
 ## completed learned checkpoint
 
 the learned pipeline completed all 20,289,808 train/test targets and the 64-trial cpu search
@@ -11,13 +19,14 @@ the candidate pool is 52.7% smaller; per-source1 mean / p99 / max are 8.1653 / 3
 france rule effects remain unmeasured without france labels; other countries and candidate files are unchanged between the two exports
 `artifacts/submission-learned/Amazites_submission.zip` passed strict and official id-enabled validation, per-file sha256 checks, archive crc checks and frozen-source verification
 all gpu scores, cpu matrices, 64 trial models, study journal and supporting assets are locally verified for further cpu-only experiments
-public leaderboard feedback is pending; the latest source update's evaluation hazards were reproduced before considering its untested additions
+this archive received team-reported public 0.986416; our subsequent final team result is 0.989
+we reproduced evaluation hazards in earlier implementations before considering further additions
 
-[release](reports/submission-learned.json) · [development](reports/learned-development-comparison.json) · [search](reports/learned-optuna-search.json) · [latest source review](reports/teammate-latest-review.md)
+[release](reports/submission-learned.json) · [development](reports/learned-development-comparison.json) · [search](reports/learned-optuna-search.json) · [team method review](reports/team-latest-review.md)
 
 ## updated model integration
 
-the updated teammate repo adds hard-pair cross-encoders, generator-aware name features and france-specific handling. these are integrated with explicit feature/model contracts and owner-isolated validation. [implementation and checks](reports/updated-repo-integration.md). [remaining-gain research](reports/next-gains-research.md).
+our team integrated hard-pair cross-encoders, generator-aware name features and france-specific handling with explicit feature/model contracts and owner-isolated validation. [implementation and checks](reports/updated-repo-integration.md). [research](reports/next-gains-research.md).
 
 the full plan trains a new dense/name-aware gate and 16 multilingual cross-encoder variants, followed by complete scoring, an individual-logit stack and calibrated entity decoding. the validated optuna archive remains the frozen fallback until the new output passes comparison and validation.
 
@@ -769,17 +778,17 @@ the baseline and upgraded implementations are now distinct frozen configurations
 | item | baseline | upgrade |
 | --- | --- | --- |
 | dense retrievers | e5-base and qwen | e5-base qwen and e5-large |
-| gate | native lightgbm/catboost mean | 54-feature teammate lightgbm without four sampled s1 aggregates |
+| gate | native lightgbm/catboost mean | 54-feature lightgbm without four sampled s1 aggregates |
 | final matcher | trained e5 pair classifier | same trained e5 pair classifier |
 | final candidates per target | up to 3 | up to 3 |
 | neural logit weight | 0.6 | 0.6 |
 
-the teammate feature port matched its original transform arrays and checkpoint probabilities exactly on 2613 pairs from 64 queries
+our feature implementation matched the original transform arrays and checkpoint probabilities exactly on 2613 pairs from 64 queries
 the real upgraded runtime smoke covered 12 targets and 36 final candidates
 the sharded launcher was also checked with the actual selected models
 these establish implementation parity and execution, not final matching quality
 
-the safer teammate gate improved paired recall at 99.5 percent precision from about 91.89 to 93.32 percent with unchanged neural scores
+our validated gate improved paired recall at 99.5 percent precision from about 91.89 to 93.32 percent with unchanged neural scores
 the compared population is a fixed selected candidate diagnostic
 the uploaded diagnostics referenced a 0.9688 validation result and an earlier 0.958 leaderboard figure; they did not verify a new 0.97 leaderboard result for the uploaded ensemble version
 
@@ -846,7 +855,7 @@ the current safe gate explicitly declares no dense features, although hybrid ret
 
 the [source-grounded comparison](reports/reference-repo-gap.md) records code locations, verified normalization examples, actual submission country counts, candidate-size tradeoffs and ranked follow-up experiments. no new matching score is claimed from this comparison.
 
-## teammate method integration
+## team method integration
 
 the new path adds fold-safe token normalization, dense-aware gate features, full-corpus ambiguity/idf statistics, numeric-distance features, country/house posterior correction, selective neural scoring and source1 set decoding. a compact contrastive retriever is fitting locally. the rich pairwise stack is fitted from out-of-sample base scores and uses separate fitting, calibration/search and development reference partitions.
 
@@ -854,7 +863,7 @@ on the same 73,752 development references, the rich stack with empirical calibra
 
 the azure search uses a 64-vcpu `standard_e64ds_v4` node, eight trial processes, eight threads each and 64 optuna trials. its cache preserves all competing candidates for every target touching the 73,522 search references. final comparison references are excluded from search labels. the first two-thread smoke trial completed in 36.1 seconds with search macro f0.5 0.984374.
 
-implementation, scope and reproduction commands: [teammate integration](reports/teammate-integration.md).
+implementation, scope and reproduction commands: [team integration](reports/team-integration.md).
 
 the 64-trial search completed with best search macro f0.5 0.985203, versus baseline 0.984374 on the same search references. trial 47 is reserved for a separate development comparison. the current completed rich-stack test export contains 5,786,941 matches and 29,908,767 authentic candidates, with the candidate tsv byte-identical to v1. both validators passed with id checks. the retriever and optional full-population reverse retrieval lane remain separate from this cached-score checkpoint.
 

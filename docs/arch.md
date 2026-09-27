@@ -102,7 +102,7 @@ strata include country link degree unicode aliases and blank aliases
 - preserve raw unicode for neural input and raw-text comparisons
 - use nfkc casefold punctuation normalization and whitespace normalization
 - use `anyascii` for the shared lexical comparison view
-- use the pinned `unidecode` implementation inside the teammate feature backend because its checkpoint was trained with that exact transform
+- use the pinned `unidecode` implementation inside the lexical feature backend because its checkpoint was trained with that exact transform
 - do not replace names with external translations
 - do not enrich records through business lookup geocoding or external gazetteers
 
@@ -187,7 +187,7 @@ final candidate size and upstream retrieval work are different quantities and bo
 | version | feature backend | fitted model | dense lanes |
 | --- | --- | --- | --- |
 | baseline | native 44-feature contract | lightgbm / catboost mean | e5 and qwen |
-| upgrade | `teammate-v1-nos1`, 54 features | safe teammate lightgbm, 248 trees | e5 qwen and e5-large |
+| upgrade | versioned lexical backend, 54 features | validated lightgbm, 248 trees | e5 qwen and e5-large |
 
 ### baseline
 
@@ -209,7 +209,7 @@ the upgrade includes
 - soft number agreement conflict and first-number cues
 - state agreement missingness and target-side retrieval ranks/gaps
 
-the uploaded teammate code did not contain the house-number features referenced by an older diagnostic report
+our team found that an earlier implementation lacked the house-number features referenced by its diagnostic report
 this implementation does not claim to have recovered that missing version
 
 ### removed sampling shortcut
@@ -232,7 +232,7 @@ its held-out candidate evaluation used 716,835 pairs and 13,827 selected positiv
 these are sampled diagnostics
 
 the production port matched the supplied preprocessing feature arrays and checkpoint probabilities exactly on 2,613 pairs from 64 queries
-see [runtime parity](../reports/teammate_runtime_parity.json)
+see [runtime parity](../reports/team_runtime_parity.json)
 
 ## 6. final neural matching
 

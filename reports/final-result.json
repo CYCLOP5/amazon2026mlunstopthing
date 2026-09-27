@@ -1,0 +1,10 @@
+{
+  "team": "Amazites",
+  "reported_date": "2026-09-27",
+  "metric": "public leaderboard source1 macro f0.5",
+  "score": 0.989,
+  "provenance": "team-reported final leaderboard result",
+  "neural_parameter_count": 6515651343,
+  "neural_pool": "15 cross-encoders and one task-trained multilingual-e5-small retriever",
+  "artifact_binding": "final team result; checkpoint-specific hashes and scores are recorded in their separate receipts"
+}

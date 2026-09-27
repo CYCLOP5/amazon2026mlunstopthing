@@ -1,31 +1,29 @@
 # business entity resolution
 
-supplied business records → compact candidate sets → calibrated matching sets
+our team built a multilingual business-matching pipeline from supplied records, compact candidate sets and calibrated entity-level decisions
 
-> updated planning cutoff: sunday 2026-09-27 at 21:00 ist / 15:30 utc, based on 18 hours remaining at about 03:08 ist
->
-> attempts: three total; recorded leaderboard feedback: baseline 0.964, upgraded v1 0.969
+**team amazites · final team-reported public leaderboard f0.5: 0.989**
 
-## current state
+varun jhaveri · shivsharan sanjawad · raj mathuria · aastha singh
 
-the optuna-selected rich stack has completed full training/test score replay, calibration, export and both submission validators
+## final overview
+
+our learned model pool contains **6,515,651,343 neural parameters**: 15 cross-encoders and one task-trained multilingual-e5-small retriever
+the pipeline combines lexical and learned retrieval, a dense-aware gate, neural scores, a rich lightgbm stack and expected-f0.5 set decoding
+we identified candidate loss, sampled-reference leakage, calibration drift and inconsistent tie-breaking through controlled comparisons
+the measured run-level results and reproducibility records are indexed in [status](docs/status.md) and [evidence](reports/README.md)
 
 | variant | retrieval | learned gate | final matcher |
 | --- | --- | --- | --- |
 | baseline | lexical + e5-base + qwen | original lightgbm/catboost mean | fine-tuned e5 pair classifier |
-| upgrade | lexical + e5-base + qwen + e5-large | verified teammate lightgbm, 54 features | same fine-tuned e5 pair classifier |
-| selected cached-score upgrade | same upgraded candidate pool | same upstream gate | 60-feature optuna lightgbm stack, country/house posterior correction and source1 set decoding |
+| upgrade | lexical + e5-base + qwen + e5-large | verified 54-feature lightgbm | fine-tuned e5 pair classifier |
+| learned pipeline | lexical + task-trained e5-small + reverse ranks | adaptive 103-feature lightgbm | 15 cross-encoders, 101-feature stack and calibrated set decoding |
 
-the upstream variants keep up to three candidates per target and use neural logit weight 0.6 before the additional stack
-three per target is not a cap of three per s1
-the exported source1 candidate distribution is measured separately
-
-the selected stack scored 0.984547 on 73,752 separate development references, compared with 0.976006 for the uploaded v1 configuration on those same references. these are development results, not leaderboard feedback
-
-validated files are under `artifacts/submission-optuna/output/`; the complete model/code archive is `artifacts/submission-optuna/Amazites_submission.zip`. it contains 5,786,357 matches and 29,908,767 authentic candidates. archive integrity and the original base-runtime source hashes were verified
-
-the learned pipeline uses the task-trained compact retriever, adaptive 103-feature gate and 15 complete-epoch cross-encoders
-full train/test scoring feeds a fresh cpu optuna search; its final matching and leaderboard results are not yet available
+the learned gate retains probabilities >=0.001, up to 50 candidates per target, with one fallback
+our validated learned candidate export contains **14,146,782 pairs**, averaging **8.1653 candidates per source1 business**
+all **20,289,808 train/test targets** have saved scores, including all 15 neural member columns
+cpu retuning completed 2,560 trials; its selected finalist scored **0.990555257** on separate development references, versus **0.990353893** for the preceding learned checkpoint
+development measurements and per-archive public results are recorded separately from the final team leaderboard result
 
 ## docs
 
@@ -34,12 +32,12 @@ full train/test scoring feeds a fresh cpu optuna search; its final matching and 
 | [arch](docs/arch.md) | data model modules retrieval gates matcher calibration caches and lifecycle |
 | [ops](docs/ops.md) | parallel scoring cpu export validation packaging and recovery commands |
 | [training](docs/training.md) | native candidate/gate fit neural training and checkpoint provenance |
-| [status](docs/status.md) | timestamped progress dependencies and first-upload gates |
+| [status](docs/status.md) | final team result and checkpoint-specific evidence |
 | [evidence](reports/README.md) | measured results and their evaluation scope |
 | [research / eda](plan.md) | primary sources dataset analysis and decision history |
-| [methodology](Documentation_template.md) | submission-method draft awaiting final measured results |
+| [methodology](Documentation_template.md) | team methodology, training and measured results |
 | [learned reproduction](docs/learned-submission.md) | offline model paths, exact inference options and cpu tuning workflow |
-| [teammate integration](reports/teammate-integration.md) | implemented methods, measured development results and reproduction commands |
+| [team method integration](reports/team-integration.md) | implemented methods, measured development results and reproduction commands |
 | [additional findings](reports/additional-workspace-findings.md) | recovered experiment evidence and the sibling-context projection pitfall |
 
 ## why infer and validate
@@ -105,7 +103,7 @@ uv run python src/package.py --check
 ```
 
 these runnable checks are separate from the expensive labeled-pool inference job
-real-model smoke tests and exact teammate-feature parity are linked in the evidence index
+real-model smoke tests and exact feature/checkpoint parity are linked in the evidence index
 
 ## entry points
 
@@ -115,13 +113,15 @@ real-model smoke tests and exact teammate-feature parity are linked in the evide
 | `src/data.py` | parquet prep and entity-grouped folds |
 | `src/block.py` | lexical candidates and complete field similarity scores |
 | `src/feat.py`, `src/train.py` | native feature contract and tree models |
-| `src/tm_rules.py`, `src/tm_prep.py`, `src/tfeat.py` | verified teammate feature backend |
+| `src/tm_rules.py`, `src/tm_prep.py`, `src/tfeat.py` | verified lexical feature backend |
 | `src/embed.py`, `src/hybrid.py` | pinned multilingual encoders and hybrid retrieval |
 | `src/neural.py` | hard-negative pair data fine-tuning and pair scoring |
 | `src/retr.py`, `src/retr_eval.py` | grouped compact-encoder fitting and complete-reference validation |
 | `src/rfeat.py`, `src/norm2.py`, `src/reverse.py` | corpus-aware features, fold-safe normalization and optional reverse retrieval |
 | `src/stack2.py`, `src/post.py`, `src/decode.py` | pairwise stack, score-density calibration and expected-f0.5 sets |
 | `src/opt.py` | parallel macro-f0.5 hyperparameter search with complete competitor incidence |
+| `src/xcal.py`, `src/fra.py` | country-transfer and france policy diagnostics |
+| `src/rescore.py` | replay a selected stack over cached train/test scores |
 | `src/match.py`, `src/run.py` | learned filtering neural inference shards and resume |
 | `src/infer.py` | full-pool calibration and final tsv export |
 | `src/validate.py` | ids coverage duplicates candidate membership and size stats |
@@ -138,12 +138,12 @@ gpu is preferred for this corpus's embedding and neural matching workload
 - 2,206,821 training refs and 1,732,544 test refs
 - 10,320,219 labeled targets and 9,969,589 competition test targets
 - france is about 15% of test refs and has no labeled training counterpart
-- frozen baseline retrieval and its separately trained matcher total about 1.152b neural parameters
-- the three-retriever upgrade and matcher total about 1.712b
-- the teammate port matched 54 feature values and checkpoint predictions exactly on the parity sample
+- the learned neural pool totals 6.515651343b parameters, below the 8b limit
+- the earlier baseline and three-retriever upgrade used about 1.152b and 1.712b respectively
+- our feature implementation matched 54 values and checkpoint predictions exactly on the parity sample
 - full scored coverage includes every labeled and test target
-- 64 optuna trials selected a model at search macro f0.5 0.985203; its separate development result is 0.984547
-- the selected checkpoint has no recorded leaderboard feedback
+- the 2,560-trial cached search selected a finalist at development macro f0.5 0.990555257
+- final team-reported public leaderboard f0.5: 0.989
 
 immutable model revisions licenses and parameter evidence are in [model sources](reports/model_sources.json)
 upstream notices are in [licenses](licenses/readme.md)
@@ -175,7 +175,7 @@ the current exact dense scan is memory-bounded but is not claimed to be a billio
 | `Standard_E16ds_v4` | 16 vcpus | cpu aggregation and submission export |
 | `Standard_E64ds_v4` | 64 vcpus | 8-process, 8-thread-per-process optuna search |
 
-the pair classifier trained for two epochs on 502,635 hard-negative pair examples
-the accelerated test pass used 16 disjoint single-a100 assignments with two 12-thread processes per worker
-shared reference embeddings and completed score batches were reused
+the learned cross-encoders trained on entity-isolated three-million-pair hard-pair datasets
+full scoring used 16 disjoint assignments with explicit device and target ownership
+our team reused shared reference embeddings, completed score batches and full-corpus cpu caches
 see [training](docs/training.md), [arch](docs/arch.md), and [reproduction commands](docs/ops.md)

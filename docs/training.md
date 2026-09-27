@@ -83,7 +83,7 @@ retain weights tokenizer files and `neural_metadata.json`
 inference uses the saved local checkpoint rather than downloading a replacement classifier
 the checkpoint and numeric precision must match the calibration
 
-## 6. teammate gate provenance
+## 6. team gate provenance
 
 the upgraded gate is a separately fitted lightgbm booster with 54 ordered features and 248 trees
 the controlled experiment used 1,858,304 fit pairs and 716,835 validation pairs
@@ -97,13 +97,13 @@ artifacts/upgraded-gate/
   metadata.json
 ```
 
-the metadata stores the backend feature order score version fit population and hashes of the supplied teammate feature/prep/rule files
+the metadata stores the backend feature order score version fit population and hashes of our feature/prep/rule files
 the booster retains its fitted trees and model parameters
 experimental scripts and feature matrices are local artifacts rather than a public dataset distribution
 
 `src/tfeat.py`, `src/tm_prep.py`, and `src/tm_rules.py` are the verified runtime port
 their arrays and checkpoint predictions matched the earlier experiment exactly on the recorded parity sample
-see [parity evidence](../reports/teammate_runtime_parity.json)
+see [parity evidence](../reports/team_runtime_parity.json)
 
 the native `src/train.py` fit command above does not recreate this different checkpoint
 reuse the packaged verified booster for inference reproduction

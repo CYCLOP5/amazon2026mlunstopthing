@@ -36,15 +36,15 @@ real trained-model and three-encoder smoke evidence is recorded separately in [u
 student_resource/dataset/       supplied raw files
 cache/data/                    prepared parquet and metadata
 artifacts/gate-inference/      compact original tree checkpoint
-artifacts/upgraded-gate/       safe teammate lightgbm checkpoint
+artifacts/upgraded-gate/       validated lightgbm checkpoint
 artifacts/neural-e5/model/     trained pair matcher
 artifacts/cloud/               private job journals and runtime snapshots
 output/                        exported files and final archives
 ```
 
 the upgraded checkpoint is not interchangeable with a native 44-feature checkpoint
-its metadata must declare `teammate-v1-nos1` and the exact 54-feature order
-`src/train.py` provides the native tree training path; the teammate checkpoint was produced by the documented controlled experiment and is loaded by its verified production backend
+its metadata must preserve the backend identifier and exact 54-feature order expected by `src/tfeat.py`
+`src/train.py` provides the native tree training path; our team produced the upgraded checkpoint through a controlled comparison and verified its production backend
 do not claim the native training example regenerates that different checkpoint
 
 ## 2. prepare data

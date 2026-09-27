@@ -4,6 +4,10 @@
 > only complete full-pool calibration supports a final cutoff claim
 > team-reported leaderboard results are labeled separately from offline metrics
 
+**final team-reported public leaderboard f0.5: 0.989** · [result record](final-result.json)
+
+our team developed and compared the methods below using fixed candidates, entity-grouped splits and explicit artifact fingerprints
+
 ## completed learned submission
 
 - [release evidence](submission-learned.json): validated archive, output hashes, candidate counts and local-cache inventory
@@ -13,15 +17,17 @@
 - [candidate counts](learned-candidate-counts.json): 14,146,782 actual candidates, 52.7% fewer than the previous pool
 - [france rule delta](learned-france-rule-delta.json): changed rows restricted to france; identical candidate files
 - [local training scores](learned-local-train-scores.json), [local test scores](learned-local-test-scores.json), [local cpu cache](learned-local-cpu-cache.json): complete reusable experiment assets
-- [latest source review](teammate-latest-review.md): unvalidated additions and reproduced evaluation risks
+- [team method review](team-latest-review.md): methods and reproduced evaluation findings
+- [2,560-trial finalist comparison](learned-r2-finalists.json): selected development macro f0.5 0.9905552568
 
 the ready archive is `artifacts/submission-learned/Amazites_submission.zip`
-the bounded france-rule variant contains 5,823,095 matches; public performance and the isolated france-rule score effect remain unmeasured
+the bounded france-rule archive contains 5,823,095 matches and received team-reported public 0.986416
+its isolated france-rule score effect remains unmeasured; the final team public result is 0.989
 
 ## reported results and upgraded v1
 
 upgraded v1 received a **team-reported** public leaderboard f0.5 of **0.969**
-it used the three-retriever pipeline, teammate lightgbm gate, fine-tuned e5 matcher, and provisional cutoff 0.8
+it used our three-retriever pipeline, validated lightgbm gate, fine-tuned e5 matcher, and provisional cutoff 0.8
 both complete output files passed strict validation and the supplied validator with id checking
 see [v1 result and output evidence](submission_v1.json)
 
@@ -40,7 +46,7 @@ the baseline output is complete and validated; see [baseline file evidence](subm
 | [labels](labels.json) | label and ownership audit |
 | [research plan](../plan.md) | primary sources analysis decisions and experimental history |
 
-raw records caches detailed local probes and teammate diagnostic rows are not public outputs
+raw records caches and detailed local diagnostic rows are retained separately from public reports
 
 ## retrieval
 
@@ -71,11 +77,11 @@ the combined runtime completed test scoring with exact target coverage; the over
 | [gate diagnostics](neural_gate_diagnostics.json) | neural shortlist and blend comparisons |
 | [indic features](indic_feature_followup.json) | isolated fixed-candidate india comparison |
 | [indic neural intersection](indic_neural_followup.json) | explicitly conditional candidate intersection |
-| [teammate review](teammate_review.md) | supplied code/report findings and version differences |
-| [safe teammate ensemble](teammate_safe_ensemble.json) | reference-aggregate sampling shortcut removed |
-| [teammate neural gate](teammate_neural_gate.json) | paired comparison using the same neural scores |
+| [team review](team_review.md) | our code/report findings and version differences |
+| [validated ensemble](team_safe_ensemble.json) | reference-aggregate sampling shortcut removed |
+| [neural gate comparison](team_neural_gate.json) | paired comparison using the same neural scores |
 
-the teammate diagnostics reported 0.9688 validation f0.5
+our earlier diagnostics reported 0.9688 validation f0.5
 the supplied improvement note referenced an earlier 0.958 leaderboard result
 neither is the provenance for the current team-reported 0.969 public score
 
@@ -108,7 +114,7 @@ the first 13 and extended four cached gate variants did not displace the existin
 | artifact | what it verifies |
 | --- | --- |
 | [model sources](model_sources.json) | immutable revisions license metadata and parameter bounds |
-| [runtime parity](teammate_runtime_parity.json) | exact teammate transforms 54-feature arrays and checkpoint predictions on the parity sample |
+| [runtime parity](team_runtime_parity.json) | exact transforms 54-feature arrays and checkpoint predictions on the parity sample |
 | [upgraded smoke](upgraded_runtime_smoke.json) | real three-retriever checkpoint execution and sharded launcher coverage |
 | [redistribution recovery](scatter_runtime_check.json) | missing checkpoint batch recomputed with exact pair/probability parity and disjoint coverage |
 | [offline runtime](offline_runtime_proof.json) | packaged-cache model loading without network access |
@@ -117,10 +123,10 @@ the first 13 and extended four cached gate variants did not displace the existin
 passing a smoke test establishes executable wiring and output contracts
 it does not establish competition accuracy
 
-## remaining feedback and experiments
+## final reporting
 
-- portal result for the learned archive and updated submission-attempt count
-- controlled cpu-only composition, calibration and france-rule comparisons using the retained scores
-- preserve per-variant output hashes and distinguish development metrics from leaderboard feedback
+- final team-reported public score: 0.989
+- per-variant output hashes distinguish checkpoint results from the final team score
+- retained scores support reproducible composition, calibration and france-rule diagnostics
 
 see [arch](../docs/arch.md), [ops](../docs/ops.md), and [status](../docs/status.md)
