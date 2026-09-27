@@ -73,7 +73,9 @@ def fit_params(threads, file=None):
             selected = selected["best"]["details"]["training_params"]
         else:
             selected = selected.get("params", selected)
-        allowed = set(params) | {"deterministic", "force_col_wise"}
+        allowed = set(params) | {"deterministic", "force_col_wise", "lambda_l1", "min_gain_to_split",
+                                 "min_sum_hessian_in_leaf", "scale_pos_weight", "feature_fraction_bynode",
+                                 "max_bin", "path_smooth", "extra_trees", "feature_contri"}
         if not isinstance(selected, dict) or not selected or set(selected) - allowed:
             raise ValueError("invalid or unsupported stack parameters")
         if selected.get("objective", "binary") != "binary":

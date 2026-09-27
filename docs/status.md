@@ -4,7 +4,7 @@
 >
 > updated planning cutoff: sunday 2026-09-27 21:00 ist / 15:30 utc, based on 18 hours remaining at about 03:08 ist
 >
-> team-reported public leaderboard f0.5: baseline **0.964**; upgraded v1 **0.969**
+> team-reported public leaderboard f0.5: baseline **0.964**; upgraded v1 **0.969**; learned france-rule submission **0.986416**
 
 ## learned pipeline
 
@@ -30,11 +30,20 @@ ready archive: `artifacts/submission-learned/Amazites_submission.zip`, 12,393,79
 sha256: `db8d69c13dfd0d1584cf4f36b8f1d94afe28f122eba1e831b1c3028949b120eb`
 all 196 manifest-listed files, archive crcs, frozen scoring sources and output-file hashes passed verification
 strict and official id-enabled validators passed: [release evidence](../reports/submission-learned.json)
-public leaderboard feedback is not yet available
+team-reported public leaderboard score: **0.986416**, reported 2026-09-27
 
 all gpu scores, four prepared score caches, fitting/evaluation matrices, 64 trial models and the study journal are verified locally
 the complete local inventory covers 20,843 files and 30,936,099,215 logical bytes: [cpu cache check](../reports/learned-local-cpu-cache.json)
 local score relocation preserves data/model hashes and reproduces identical exports in its check
+
+## cached cpu retuning
+
+the next search uses corrected production tie-breaking and two-fold reference-disjoint calibration inside partition1
+the frozen stack scores 0.9904283336 under this stricter search objective; the original search figure is not directly comparable
+3 real-data smoke trials passed, including a learned-model family ablation and bundle validation
+planned search: 2,560 trials on 3 × 64-core and 1 × 16-core cpu workers; full gpu scores are reused
+france currently uses the gate-only fallback, so its score routing and calibration are a separate comparison
+[retuning plan](../reports/learned-retune-plan.md) · [baseline diagnostics](../reports/learned-r2-baseline.json)
 
 ## model comparison
 

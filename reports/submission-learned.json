@@ -330,7 +330,8 @@
     }
   },
   "output_files_match_validated_files": true,
-  "public_score": null,
+  "public_score": 0.986416,
+  "public_score_source": "user reported 2026-09-27; submitted primary france-rule tsv",
   "sha256": "db8d69c13dfd0d1584cf4f36b8f1d94afe28f122eba1e831b1c3028949b120eb",
   "strict_validation_passed": true,
   "variant": {
@@ -346,7 +347,7 @@
     "france_dropped_pairs": 22669,
     "france_rule_effect_on_score": "unmeasured; france labels unavailable",
     "matching_pairs": 5823095,
-    "public_score": null,
+    "public_score": 0.986416,
     "variant": "learned-with-bounded-france-rules"
   }
 }

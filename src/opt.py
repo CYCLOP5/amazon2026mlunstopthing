@@ -61,25 +61,81 @@ def prepare(prepared, root, cache, threads=8):
     return metadata
 
 
-def metric(e, probability, countries, threads=1):
+def metric(e, probability, countries, threads=1, folds=1):
+    if not isinstance(folds, int) or folds < 1:
+        raise ValueError("invalid calibration fold count")
     selected = e["local"] >= 0
     edges = np.linspace(post.logit([.02])[0], post.logit([.999])[0], 25)
     bins = np.searchsorted(edges, post.logit(probability), side="right")
-    hist = {}
-    for country in countries:
-        for segment in range(3):
-            take = selected & (e["country"] == country) & (e["segment"] == segment)
-            hist[f"{country}|{segment}"] = [np.bincount(bins[take], minlength=len(edges) + 1).astype(float),
-                                           np.bincount(bins[take], weights=e["y"][take], minlength=len(edges) + 1)]
-    curves = post.curves(hist, hist, countries, countries, edges, transfer=False)
-    calibrated = post.adjust(probability, e["country"], e["segment"], {"curves": curves})
-    top = decode.winners(e["qid"], e["tid"], calibrated, e["raw"])
-    top = top[selected[top]]
-    keep, _ = decode.choose(e["local"][top], e["tid"][top], calibrated[top], e["raw"][top], threads=threads)
     n = len(e["degree"])
-    result = post_eval.metric(e["local"][top], e["y"][top], keep, e["degree"], np.ones(n, bool))
-    return {"macro_f05": result["macro_f05"], "precision": result["pair_precision"], "recall": result["pair_recall"],
-            "pairs": result["pairs"]}
+    if not n or folds > n:
+        raise ValueError("insufficient references for calibration folds")
+    group = post.partition(np.arange(n), folds)
+    row_group = np.full(len(selected), -1, np.int32)
+    row_group[selected] = group[e["local"][selected]]
+    total, hits, count = 0., 0, 0
+    for fold in range(folds):
+        anchors = group == fold
+        if not anchors.any():
+            continue
+        fitting = selected if folds == 1 else selected & (row_group != fold)
+        if not fitting.any():
+            raise ValueError("empty cross-calibration fitting fold")
+        hist = {}
+        for country in countries:
+            for segment in range(3):
+                take = fitting & (e["country"] == country) & (e["segment"] == segment)
+                hist[f"{country}|{segment}"] = [np.bincount(bins[take], minlength=len(edges) + 1).astype(float),
+                                               np.bincount(bins[take], weights=e["y"][take], minlength=len(edges) + 1)]
+        curves = post.curves(hist, hist, countries, countries, edges, transfer=False)
+        calibrated = post.adjust(probability, e["country"], e["segment"], {"curves": curves})
+        top = decode.winners(e["qid"], e["tid"], calibrated, probability)
+        top = top[selected[top] & (row_group[top] == fold)]
+        keep, _ = decode.choose(e["local"][top], e["tid"][top], calibrated[top], probability[top], threads=threads)
+        result = post_eval.metric(e["local"][top], e["y"][top], keep, e["degree"], anchors)
+        total += result["macro_f05"] * int(anchors.sum())
+        hits += int(e["y"][top][keep].sum())
+        count += result["pairs"]
+    truth = int(e["degree"].sum())
+    return {"macro_f05": total / n, "precision": hits / count if count else 1.,
+            "recall": hits / truth if truth else 1., "pairs": count}
+
+
+def parameters(trial, threads, names, wide=False):
+    params = {"objective": "binary", "metric": "binary_logloss", "seed": 19, "verbosity": -1,
+              "num_threads": threads, "deterministic": True, "force_col_wise": True, "bagging_freq": 1,
+              "learning_rate": trial.suggest_float("learning_rate", .008 if wide else .02, .15 if wide else .12, log=True),
+              "num_leaves": trial.suggest_categorical("num_leaves", [7, 15, 31, 63, 127, 255] if wide else [15, 31, 63, 127]),
+              "max_depth": trial.suggest_categorical("max_depth", [4, 6, 8, 10, 12, -1] if wide else [6, 8, 10, -1]),
+              "min_data_in_leaf": trial.suggest_int("min_data_in_leaf", 10 if wide else 20, 1000 if wide else 400, log=True),
+              "lambda_l2": trial.suggest_float("lambda_l2", .0001 if wide else .001, 300. if wide else 100., log=True),
+              "bagging_fraction": trial.suggest_float("bagging_fraction", .5 if wide else .6, 1.),
+              "feature_fraction": trial.suggest_float("feature_fraction", .5 if wide else .65, 1.)}
+    if wide:
+        params.update({"lambda_l1": trial.suggest_float("lambda_l1", 0., 20.),
+                       "min_gain_to_split": trial.suggest_float("min_gain_to_split", 0., 1.),
+                       "min_sum_hessian_in_leaf": trial.suggest_float("min_sum_hessian_in_leaf", .0001, 10., log=True),
+                       "scale_pos_weight": trial.suggest_float("scale_pos_weight", .3, 3., log=True),
+                       "feature_fraction_bynode": trial.suggest_float("feature_fraction_bynode", .6, 1.),
+                       "max_bin": trial.suggest_categorical("max_bin", [127, 255, 511]),
+                       "path_smooth": trial.suggest_categorical("path_smooth", [0., .1, 1., 10.]),
+                       "extra_trees": trial.suggest_categorical("extra_trees", [False, True])})
+        group = trial.suggest_categorical("feature_set", ["all", "stable", "scores", "large", "no_bge"])
+        keep = np.ones(len(names), float)
+        for i, name in enumerate(names):
+            if group == "stable" and name.startswith("g_"):
+                keep[i] = 0
+            if group == "scores" and name not in ("gate_logit", "neural_logit") and not name.startswith("logit_np_"):
+                keep[i] = 0
+            if group in ("large", "no_bge"):
+                if name == "neural_logit":
+                    keep[i] = 0
+                if name.startswith("logit_np_m"):
+                    member = int(name.removeprefix("logit_np_m"))
+                    if (group == "large" and member >= 6) or (group == "no_bge" and member in (6, 7, 8)):
+                        keep[i] = 0
+        params["feature_contri"] = keep.tolist()
+    return params
 
 
 def load(root):
@@ -102,7 +158,7 @@ def storage(journal):
     return optuna.storages.JournalStorage(optuna.storages.journal.JournalFileBackend(str(journal)))
 
 
-def worker(root, journal, models, count, threads, seed):
+def worker(root, journal, models, count, threads, seed, wide=False, folds=1):
     meta, fit, evaluate = load(root)
     names = meta["fit"]["features"]
     study = optuna.load_study(study_name="source1-macro-f05", storage=storage(journal),
@@ -111,16 +167,8 @@ def worker(root, journal, models, count, threads, seed):
     train_mask, val_mask = fit["train"], fit["valid"]
 
     def objective(trial):
-        params = {"objective": "binary", "metric": "binary_logloss", "seed": 19, "verbosity": -1,
-                  "num_threads": threads, "deterministic": True, "force_col_wise": True, "bagging_freq": 1,
-                  "learning_rate": trial.suggest_float("learning_rate", .02, .12, log=True),
-                  "num_leaves": trial.suggest_categorical("num_leaves", [15, 31, 63, 127]),
-                  "max_depth": trial.suggest_categorical("max_depth", [6, 8, 10, -1]),
-                  "min_data_in_leaf": trial.suggest_int("min_data_in_leaf", 20, 400, log=True),
-                  "lambda_l2": trial.suggest_float("lambda_l2", .001, 100., log=True),
-                  "bagging_fraction": trial.suggest_float("bagging_fraction", .6, 1.),
-                  "feature_fraction": trial.suggest_float("feature_fraction", .65, 1.)}
-        maximum = trial.suggest_categorical("round_limit", [400, 800, 1200])
+        params = parameters(trial, threads, names, wide)
+        maximum = trial.suggest_categorical("round_limit", [400, 800, 1200, 2000] if wide else [400, 800, 1200])
         train_set = lgb.Dataset(x[train_mask], label=y[train_mask], weight=w[train_mask], feature_name=names)
         val_set = lgb.Dataset(x[val_mask], label=y[val_mask], weight=w[val_mask], feature_name=names, reference=train_set)
         model = lgb.train(params, train_set, num_boost_round=maximum, valid_sets=[val_set], callbacks=[lgb.early_stopping(40, verbose=False)])
@@ -128,7 +176,7 @@ def worker(root, journal, models, count, threads, seed):
         model = lgb.train(params, lgb.Dataset(x, label=y, weight=w, feature_name=names), num_boost_round=rounds)
         probability = evaluate["raw"].copy()
         probability[evaluate["active"]] = model.predict(evaluate["x"], num_threads=threads)
-        result = metric(evaluate, probability, meta["countries"], threads)
+        result = metric(evaluate, probability, meta["countries"], threads, folds)
         model.save_model(str(path(models) / f"trial-{trial.number}.txt"))
         infer._write(path(models) / f"trial-{trial.number}.json", {"number": trial.number, "params": params,
                                                                    "rounds": rounds, "metrics": result})
@@ -140,7 +188,7 @@ def worker(root, journal, models, count, threads, seed):
     study.optimize(objective, n_trials=count, gc_after_trial=True)
 
 
-def run(root, out, trials=64, workers=8, threads=8, selected_file=None):
+def run(root, out, trials=64, workers=8, threads=8, selected_file=None, wide=False, folds=1, seed=42):
     root, out = path(root).resolve(), path(out).resolve()
     if min(trials, workers, threads) < 1 or workers > trials or workers * threads > (os.cpu_count() or 1):
         raise ValueError("invalid trial parallelism")
@@ -151,6 +199,11 @@ def run(root, out, trials=64, workers=8, threads=8, selected_file=None):
     models.mkdir(exist_ok=True)
     sh.copyfile(root / "fit/normalizer.json", out / "normalizer.json")
     meta, _, _ = load(root)
+    if not isinstance(folds, int) or not 1 <= folds <= meta["references"]:
+        raise ValueError("invalid calibration fold count")
+    if wide and (meta["fit"].get("neural_columns") != [f"np_m{i}" for i in range(15)] or
+                 meta["fit"]["source_config_sha256"] != "7106e3923df375cb62753ba0c8bbf77fb5bf0ab2f7f7b1db98fe49931ff26017"):
+        raise ValueError("wide feature ablations require the frozen 15-member learned ensemble")
     start = time.monotonic()
     with tf.TemporaryDirectory() as temp:
         scratch = path(temp)
@@ -161,13 +214,19 @@ def run(root, out, trials=64, workers=8, threads=8, selected_file=None):
         selected = {key: selected_params[key] for key in ("learning_rate", "num_leaves", "max_depth", "min_data_in_leaf",
                                                         "lambda_l2", "bagging_fraction", "feature_fraction")}
         selected["round_limit"] = 800
+        defaults = {"lambda_l1": 0., "min_gain_to_split": 0., "min_sum_hessian_in_leaf": .001,
+                    "scale_pos_weight": 1., "feature_fraction_bynode": 1., "max_bin": 255,
+                    "path_smooth": 0., "extra_trees": False, "feature_set": "all"} if wide else {}
+        selected.update({key: selected_params.get(key, value) for key, value in defaults.items()})
+        if wide:
+            selected["feature_set"] = infer._json(selected_file).get("feature_set", "all")
         study.enqueue_trial(selected)
         if trials > 1:
             study.enqueue_trial({"learning_rate": .05, "num_leaves": 31, "max_depth": 6, "min_data_in_leaf": 100,
-                                  "lambda_l2": 10., "bagging_fraction": .8, "feature_fraction": .9, "round_limit": 400})
+                                  "lambda_l2": 10., "bagging_fraction": .8, "feature_fraction": .9, "round_limit": 400, **defaults})
         try:
             with cf.ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("spawn")) as pool:
-                jobs = [pool.submit(worker, root, journal, models, trials // workers + (i < trials % workers), threads, 42 + i)
+                jobs = [pool.submit(worker, root, journal, models, trials // workers + (i < trials % workers), threads, seed + i, wide, folds)
                         for i in range(workers)]
                 for job in jobs:
                     job.result()
@@ -185,7 +244,8 @@ def run(root, out, trials=64, workers=8, threads=8, selected_file=None):
                 "source_scores_sha256": meta["fit"]["source_scores_sha256"], "fit_pairs": meta["fit"]["fit_pairs"],
                 "fit_positive": meta["fit"]["fit_positive"], "fit_partition": {"modulus": 3, "remainder": 0},
                 "calibration_partition": {"modulus": 3, "remainder": 1}, "validation_partition": {"modulus": 3, "remainder": 2},
-                "params": best.user_attrs["training_params"], "rounds": best.user_attrs["rounds"],
+                 "params": best.user_attrs["training_params"], "rounds": best.user_attrs["rounds"],
+                 "calibration_folds": folds, "feature_set": best.params.get("feature_set", "all"),
                 "selection": "optuna maximizes complete-incidence source1 macro f0.5 on partition1; partition2 excluded",
                 "files": {name: infer._sha(out / name) for name in ("lgb.txt", "normalizer.json")}}
     infer._write(out / "metadata.json", metadata)
@@ -194,6 +254,8 @@ def run(root, out, trials=64, workers=8, threads=8, selected_file=None):
               "references": meta["references"], "targets": meta["targets"], "pairs": meta["pairs"],
                "cache_sha256": infer._sha(root / "cache.json"), "public_score": None}
     report["queued_selection_sha256"] = infer._sha(selected_file)
+    report.update({"wide": wide, "calibration_folds": folds, "seed": seed,
+                   "objective_version": 2, "tie_breaker": "candidate model probability, matching production decoding"})
     infer._write(out / "study.json", report)
     return report
 
@@ -215,6 +277,28 @@ def check():
     reduced = {k: v[:-1] if k != "degree" else v for k, v in e.items()}
     assert full == metric(reduced, reduced["raw"], {"us": 2}) and full["macro_f05"] == 1.
     assert not np.any(e["y"][e["local"] < 0])
+    tied = {"qid": np.array([0, 1]), "tid": np.array([0, 0]), "local": np.array([0, -1]),
+            "y": np.array([1, 0]), "raw": np.array([.99, .01]), "country": np.array(["us", "us"]),
+            "segment": np.zeros(2, np.uint8), "degree": np.array([1])}
+    assert metric(tied, np.array([.91, .93]), {"us": 1})["macro_f05"] == 0.
+    cross = {"qid": np.array([0, 1]), "tid": np.array([0, 1]), "local": np.array([0, 1]),
+             "y": np.array([0, 1]), "raw": np.array([.8, .2]), "country": np.array(["us", "us"]),
+             "segment": np.zeros(2, np.uint8), "degree": np.array([0, 1])}
+    assert metric(cross, cross["raw"], {"us": 2})["macro_f05"] == .5
+    assert metric(cross, cross["raw"], {"us": 2}, folds=2)["macro_f05"] == 0.
+    names = ["gate_logit", "neural_logit", "logit_np_m0", "logit_np_m6"]
+    fixed = {"learning_rate": .05, "num_leaves": 15, "max_depth": 4, "min_data_in_leaf": 20,
+             "lambda_l2": 1., "bagging_fraction": 1., "feature_fraction": 1., "lambda_l1": 0.,
+             "min_gain_to_split": 0., "min_sum_hessian_in_leaf": .001, "scale_pos_weight": 1.,
+             "feature_fraction_bynode": 1., "max_bin": 255, "path_smooth": 0., "extra_trees": False,
+             "feature_set": "large"}
+    params = parameters(optuna.trial.FixedTrial(fixed), 1, names, wide=True)
+    assert params["feature_contri"] == [1., 0., 1., 0.]
+    x = np.random.default_rng(19).normal(size=(256, len(names)))
+    model = lgb.train(params, lgb.Dataset(x, label=x[:, 0] > 0, feature_name=names), num_boost_round=8)
+    changed = x.copy()
+    changed[:, [1, 3]] += 100
+    assert np.array_equal(model.predict(x), model.predict(changed))
     with tf.TemporaryDirectory() as tmp:
         root = path(tmp) / "cache"
         (root / "fit").mkdir(parents=True)
@@ -259,11 +343,16 @@ if __name__ == "__main__":
     parser.add_argument("--trials", type=int, default=64)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--threads", type=int, default=8)
+    parser.add_argument("--parameters", type=path)
+    parser.add_argument("--wide", action="store_true")
+    parser.add_argument("--cal-folds", type=int, default=1)
+    parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     if args.command == "check":
         check()
     elif args.command == "prepare":
         print(json.dumps(prepare(args.scores, args.root, args.cache, args.threads), indent=2))
     else:
-        result = run(args.root, args.out, args.trials, args.workers, args.threads)
+        result = run(args.root, args.out, args.trials, args.workers, args.threads, args.parameters,
+                     args.wide, args.cal_folds, args.seed)
         print(json.dumps({k: v for k, v in result.items() if k != "trials"}, indent=2))
