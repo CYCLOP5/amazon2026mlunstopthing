@@ -18,25 +18,11 @@ uv python install 3.11.16
 uv sync --frozen --group neural
 export DATA=/absolute/path/to/dataset
 uv run --frozen python src/data.py --data "$DATA" --out cache/data
-uv run --frozen python - <<'PY'
-import json
-from pathlib import Path
-root = Path('../..').resolve()
-manifest = json.loads((root / 'package_manifest.json').read_text())
-specs = manifest['retriever_specs']
-for spec in specs:
-    for field in ('checkpoint', 'reverse_root'):
-        if field in spec:
-            target = (root / spec[field]).resolve()
-            assert target.is_relative_to(root) and target.is_dir()
-            spec[field] = str(target)
-Path('retrievers-local.json').write_text(json.dumps(specs, indent=2) + '\n')
-PY
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
 uv run --frozen python src/run.py \
   --data cache/data --cache cache/inference \
   --gate models/gate --neural models/neural \
-  --retrievers-file retrievers-local.json \
+  --retrievers-file ../../package_manifest.json \
   --split test --out cache/test-scores \
   --device cuda --gpu-ids 0 --workers 2 --threads 10 --shard-size 200000 \
   --k-lex 10 --k-dense 50 --k-gate 50 \
