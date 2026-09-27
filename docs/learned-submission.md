@@ -1,0 +1,89 @@
+# learned submission
+
+amazites: varun jhaveri, shivsharan sanjawad, raj mathuria, aastha singh
+
+the archive contains the matching and actual pre-matcher candidate tsvs, source, dependency lock, trained retriever, 103-feature gate, 15 cross-encoders, selected lightgbm stack, calibration, reverse indexes and methodology
+`package_manifest.json` records member files, model provenance, hashes and retriever locations
+the model pool totals 6,515,651,343 parameters
+
+## reproduce inference
+
+commands below run from `code/business_entity_resolution` inside the extracted archive
+use the original unmodified dataset directory containing `train/` and `test/`
+the recorded gpu configuration uses a bfloat16-capable cuda device; an a100 80 gb supports the shown two-worker setup
+cpu-only retuning uses saved gpu score files and feature caches from the experiment outputs
+
+```sh
+uv python install 3.11.16
+uv sync --frozen --group neural
+export DATA=/absolute/path/to/dataset
+uv run --frozen python src/data.py --data "$DATA" --out cache/data
+uv run --frozen python - <<'PY'
+import json
+from pathlib import Path
+root = Path('../..').resolve()
+manifest = json.loads((root / 'package_manifest.json').read_text())
+specs = manifest['retriever_specs']
+for spec in specs:
+    for field in ('checkpoint', 'reverse_root'):
+        if field in spec:
+            target = (root / spec[field]).resolve()
+            assert target.is_relative_to(root) and target.is_dir()
+            spec[field] = str(target)
+Path('retrievers-local.json').write_text(json.dumps(specs, indent=2) + '\n')
+PY
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
+uv run --frozen python src/run.py \
+  --data cache/data --cache cache/inference \
+  --gate models/gate --neural models/neural \
+  --retrievers-file retrievers-local.json \
+  --split test --out cache/test-scores \
+  --device cuda --gpu-ids 0 --workers 2 --threads 10 --shard-size 200000 \
+  --k-lex 10 --k-dense 50 --k-gate 50 \
+  --gate-floor 0.001 --neural-floor 0.001 --neural-weight 1 \
+  --encoder-batch 512 --neural-batch 128 --query-batch 2048 \
+  --stack-model-dir models/stack --calibration models/calibration.json \
+  --export-out ../../reproduced/output
+uv run --frozen python src/validate.py validate \
+  --matching ../../reproduced/output/matching_results.tsv \
+  --candidate ../../reproduced/output/candidate_pairs.tsv --test-dir "$DATA/test"
+```
+
+the selected calibration carries the country/house transforms, decoder and optional bounded france rules
+the same command uses the bundled selection without retuning
+score directories support checked resume; changed model/data/feature/numeric fingerprints are rejected
+all target ids must be covered exactly once before export
+
+## training and cpu tuning
+
+`src/retr.py` fits the compact retriever; `src/ceprep.py` creates grouped hard-pair datasets; `src/ce.py` fits the pair classifiers
+`src/full.py` orchestrates the gate, parallel score generation and final cpu stage
+`src/stack2.py` creates the rich fit matrix; `src/opt.py` runs the journal-backed parallel macro-f0.5 search
+`src/post.py` calibrates score distributions and `src/decode.py` selects per-reference match sets
+
+training targets retain full owner/reference competition during evaluation
+fitting, calibration/search and stack-development reference partitions are disjoint
+the prior tuned parameters are included as the new search's first trial; the selected trial and boosting rounds are in stack metadata
+cross-encoder member probabilities are cached separately; ensemble combination uses mean logits
+
+after downloading experiment scores, bind their dataset location to a local prepared copy
+relocation verifies score and dataset hashes before atomically updating each metadata file
+
+```sh
+export SCORES=/absolute/path/to/downloaded/scores
+uv run --frozen python src/post.py rebase --data cache/data --scores \
+  "$SCORES/train.parquet" "$SCORES/test.parquet" \
+  "$SCORES/stack-train.parquet" "$SCORES/stack-test.parquet"
+```
+
+`train.parquet` and `test.parquet` are the base scores for a new stack; `stack-*` files preserve the previously selected stack outputs
+
+## checks
+
+```sh
+uv run --frozen python src/run.py --check
+uv run --frozen python src/opt.py check
+uv run --frozen python src/package.py --check
+```
+
+the methodology contains the measured validation results and candidate-count statistics for this archive

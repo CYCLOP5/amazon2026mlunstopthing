@@ -97,9 +97,11 @@ def prepare(data, roots, split, out):
     return source
 
 
-def verified(p, split=None, runs=None):
+def verified(p, split=None, runs=None, data=None):
     p = path(p)
     meta = infer._json(p.with_suffix(".json"))
+    if data is not None:
+        meta = {**meta, "data": str(path(data).resolve())}
     if meta.get("version") != 1 or (split and meta.get("split") != split) or infer._sha(p) != meta["score_sha256"]:
         raise ValueError("prepared scores changed or use the wrong split")
     if infer._sha(path(meta["data"]) / "meta.json") != meta["data_meta_sha256"]:
@@ -109,6 +111,12 @@ def verified(p, split=None, runs=None):
         recorded = {str(path(r["path"]).resolve()): r["sha256"] for r in meta["runs"]}
         if expected != recorded:
             raise ValueError("base score manifests changed since preparation")
+    return meta
+
+
+def rebase(p, data):
+    meta = verified(p, data=data)
+    infer._write(path(p).with_suffix(".json"), meta)
     return meta
 
 
@@ -406,6 +414,27 @@ def check():
             assert "does not match" in str(error)
         else:
             raise AssertionError("mismatched calibration accepted")
+        moved = root / "moved-data"
+        data.rename(moved)
+        scores = root / "test.parquet"
+        before = scores.with_suffix(".json").read_bytes()
+        original = scores.read_bytes()
+        infer._write(root / "wrong-data/meta.json", {"changed": True})
+        for target, content in ((root / "wrong-data", original), (moved, original + b"changed")):
+            scores.write_bytes(content)
+            try:
+                rebase(scores, target)
+            except ValueError:
+                assert scores.with_suffix(".json").read_bytes() == before
+            else:
+                raise AssertionError("changed cache accepted during relocation")
+        scores.write_bytes(original)
+        relocated = rebase(scores, moved)
+        assert relocated["config"] == cfg and relocated["runs"][0]["sha256"] == infer._sha(root / "test/manifest.json")
+        assert verified(scores)["data"] == str(moved.resolve())
+        export(scores, recipe_path, root / "moved-out", threads=2)
+        for name in ("matching_results.tsv", "candidate_pairs.tsv"):
+            assert infer._sha(root / "out" / name) == infer._sha(root / "moved-out" / name)
     decode.check()
     print("postprocessor checks passed")
 
@@ -433,6 +462,9 @@ def main():
     z.add_argument("--threads", type=int, default=12)
     z.add_argument("--normalizer", type=path)
     z.add_argument("--cache", type=path)
+    z = sub.add_parser("rebase")
+    z.add_argument("--scores", type=path, nargs="+", required=True)
+    z.add_argument("--data", type=path, required=True)
     sub.add_parser("check")
     a = p.parse_args()
     if a.command == "check":
@@ -441,6 +473,10 @@ def main():
         print(json.dumps(prepare(a.data, a.runs, a.split, a.out), indent=2))
     elif a.command == "fit":
         print(json.dumps(fit(a.train, a.test, a.out, a.weight, not a.blend_unseen, a.france_rules, a.normalizer), indent=2))
+    elif a.command == "rebase":
+        for scores in a.scores:
+            meta = rebase(scores, a.data)
+            print(json.dumps({"scores": str(scores), "data": meta["data"], "score_sha256": meta["score_sha256"]}))
     else:
         print(json.dumps(export(a.scores, a.recipe, a.out, a.threads, a.normalizer, a.cache), indent=2))
 

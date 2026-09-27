@@ -1,5 +1,6 @@
 """development-only scorer checks and explicit orphan-density stress tests"""
 import argparse as ap
+from hashlib import sha256
 import json
 from pathlib import Path as path
 
@@ -63,7 +64,7 @@ def run(prepared, out, threads=8):
     del parts
     q, t, y = arrays["qid"], arrays["tid"], arrays["y"]
     results = {}
-    for label, name, threshold in (("v1", "control", .8), ("raw_expected", "raw", None),
+    for label, name, threshold in (("base_threshold", "control", .8), ("raw_expected", "raw", None),
                                    ("empirical_expected", "empirical", None), ("shift_corrected_expected", "shifted", None)):
         p = arrays[name]
         top = decode.winners(q, t, p, arrays["raw"])
@@ -79,6 +80,9 @@ def run(prepared, out, threads=8):
                 keep, details = pi >= threshold, {}
             results[f"{label}_{'double_orphans' if stress else 'original'}"] = {**metric(qi, yi, keep, deg, anchors), **details}
     result = {"scope": "fold0 held-out reference development, full-target competitors; transductive target reuse; no fold1 audit",
+              "control": {"score_column": "prob", "threshold": .8, "scope": "current base-score configuration"},
+              "data_meta_sha256": source["data_meta_sha256"],
+              "anchors_sha256": sha256(refs["rid"].to_numpy()[anchors].astype("<u4").tobytes()).hexdigest(),
               "anchors": int(anchors.sum()), "source_score_sha256": source["score_sha256"], "validation_partition": valid_partition,
               "known_score": recipe["known_score"],
               "stress": "duplicate every orphan target once with a distinct synthetic id; true links unchanged; not real test labels",

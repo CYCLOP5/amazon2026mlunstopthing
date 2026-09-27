@@ -24,7 +24,8 @@ the selected stack scored 0.984547 on 73,752 separate development references, co
 
 validated files are under `artifacts/submission-optuna/output/`; the complete model/code archive is `artifacts/submission-optuna/Amazites_submission.zip`. it contains 5,786,357 matches and 29,908,767 authentic candidates. archive integrity and the original base-runtime source hashes were verified
 
-the compact task-trained retriever has completed fitting. its authorized full-reference gpu comparison against the frozen encoder is a separate experiment; it is not part of the selected cached-score checkpoint
+the learned pipeline uses the task-trained compact retriever, adaptive 103-feature gate and 15 complete-epoch cross-encoders
+full train/test scoring feeds a fresh cpu optuna search; its final matching and leaderboard results are not yet available
 
 ## docs
 
@@ -37,6 +38,7 @@ the compact task-trained retriever has completed fitting. its authorized full-re
 | [evidence](reports/README.md) | measured results and their evaluation scope |
 | [research / eda](plan.md) | primary sources dataset analysis and decision history |
 | [methodology](Documentation_template.md) | submission-method draft awaiting final measured results |
+| [learned reproduction](docs/learned-submission.md) | offline model paths, exact inference options and cpu tuning workflow |
 | [teammate integration](reports/teammate-integration.md) | implemented methods, measured development results and reproduction commands |
 | [additional findings](reports/additional-workspace-findings.md) | recovered experiment evidence and the sibling-context projection pitfall |
 
