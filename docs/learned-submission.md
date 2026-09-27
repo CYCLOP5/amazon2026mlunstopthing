@@ -81,3 +81,77 @@ uv run --frozen python src/package.py --check
 
 the methodology contains the measured validation results and candidate-count statistics for this archive
 the final team result is recorded separately in [final-result.json](../reports/final-result.json)
+
+## this checkpoint's measured result
+
+the learned-only archive was reported at **0.986416** on the public leaderboard
+its labeled-country development comparison used 73,752 reference businesses and scored 0.990353893 macro f0.5, versus 0.984546610 for the preceding tuned stack
+the evaluation populations and the actual france route are different, so the development value is not a substitute for the public result
+
+| learned-only artifact property | value |
+| --- | ---: |
+| source1 rows | 1,732,544 |
+| accepted matches with its bounded france rules | 5,823,095 |
+| actual candidates | 14,146,782 |
+| mean candidates per reference | 8.1653 |
+| p50 / p95 / p99 | 7 / 15 / 30 |
+| maximum candidates for one reference | 298 |
+
+the plain learned export had 5,834,027 matches
+the bounded-rule version changed 29,986 reference rows while preserving india/us outputs and the candidate file
+its isolated france-rule accuracy effect was not measured
+
+## why this was an important component
+
+the task-trained retriever materially improved complete-reference recall, especially for blank-address india
+the dense/name-aware gate and adaptive 0.001 floor preserved more of that retrieved evidence
+the cross-encoder ensemble then supplied separate member probabilities, allowing the 101-feature stack to learn complementary behavior
+
+the completed full-scoring pass covered 10,320,219 train targets and 9,969,589 test targets
+all fifteen member columns were retained
+that made the results useful beyond this one archive: later cpu and fusion work could reuse the learned probabilities without another neural pass
+
+## its role in the final combined release
+
+the final combined pipeline uses this component as a score source, together with run-6, graph/sibling and bounded hybrid evidence
+its `stack_prob` becomes the `newest` score in the full fusion union
+gate, aggregate neural and individual member scores also contribute features
+
+the final score union contains 20,177,322 candidates, so it is a different pool from this learned-only archive
+the final matching policy uses collective probabilities for india/us and a multi-source france blend
+the later sprint2 public result is 0.990284
+
+## what the france result taught us
+
+this early learned release used gate-based handling for the unseen country
+it therefore did not use all the strong rich-stack/neural evidence for france in the same way it did for the labeled countries
+
+the subsequent investigation separated three questions:
+
+1. are the needed candidates present?
+2. which score route does the deployed code actually use for that country?
+3. does its calibration/decision rule transfer under the new distribution?
+
+labeled-country transfer probes supported richer score routing with empirical calibration, but did not measure france accuracy
+the final french policy was evaluated through recorded public submissions and retained as a separate frozen decision layer
+
+## reusable artifact contract
+
+the learned component's local inventory covers 20,843 files and 30,936,099,215 logical bytes
+its checked reusable set includes model bundles, base and stacked train/test scores, the fitting/evaluation matrices, the 64-trial study/model outputs, normalizers and reverse indexes
+that is a component-specific inventory, not a claim that every artifact from every later branch is contained in this archive
+
+changing only a later cpu head can reuse compatible member-score tables
+changing retrieval, tokenization, model weights, member order or candidate selection requires regenerated dependent evidence
+hash-checked rebasing changes an artifact's data location without redefining its identity
+
+## review links
+
+- [complete final architecture](../submission/docs/arch.md)
+- [actual azure training/scoring matrix](../submission/docs/compute.md)
+- [full reconstruction](../submission/docs/pipeline.md)
+- [results and submission lessons](../submission/docs/results.md)
+- [final replay](../submission/docs/reproduce.md)
+- [candidate selection record](../reports/learned-candidate-selection.json)
+- [development comparison](../reports/learned-development-comparison.json)
+- [model selection](../reports/learned-model-selection.json)

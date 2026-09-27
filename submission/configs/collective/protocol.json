@@ -1,0 +1,65 @@
+{
+  "seed": 2709,
+  "modulus": 10,
+  "partition_counts": {
+    "fit": {
+      "references": 110186,
+      "name_groups": 89228
+    },
+    "calibration": {
+      "references": 44640,
+      "name_groups": 35731
+    },
+    "check": {
+      "references": 65831,
+      "name_groups": 53183
+    }
+  },
+  "fold1_references": 220657,
+  "excluded_other_fold_references": 1986164,
+  "assignment": "SHA-256(seed2709:JSON(country, normalized full name)), first 64 bits modulo10; fit0..4/cal5..6/check7..9",
+  "historical_upstream_exposure_warning": "Historical upstream models and prepared features may already have exposed these records. This is new-head isolation, not a pristine end-to-end holdout.",
+  "orphan_fraction": 0.049929740563462104,
+  "orphan_sampling": "SplitMix64(tid xor2709) / 2**64 < len(fitrefs)/len(fullrefs)",
+  "protected_references": 110471,
+  "protected_targets": 771306,
+  "excluded_pairs_touching_protected_targets": 5980346,
+  "target_overlap": 0,
+  "held_candidate_qids_in_fit": 0,
+  "held_true_owner_ids_in_fit": 0,
+  "fit_references_without_owned_training_targets": 6439,
+  "fit_reference_scope_note": "Assigned fit references do not guarantee fitting rows or action-model examples; callers must check the actual training population.",
+  "class_counts": {
+    "fit": {
+      "pairs": 796847,
+      "targets": 493713,
+      "positive": 367241,
+      "negative": 429606,
+      "wrong_owner_negative": 280537,
+      "orphan_negative": 149069,
+      "orphan_targets": 126103
+    },
+    "calibration": {
+      "pairs": 137320,
+      "targets": 124672,
+      "positive": 68324,
+      "negative": 68996,
+      "wrong_owner_negative": 41191,
+      "orphan_negative": 27805,
+      "orphan_targets": 27440
+    },
+    "check": {
+      "pairs": 585501,
+      "targets": 481831,
+      "positive": 227332,
+      "negative": 358169,
+      "wrong_owner_negative": 252582,
+      "orphan_negative": 105587,
+      "orphan_targets": 100410
+    }
+  },
+  "original_calibration_references": 44640,
+  "clean_calibration_references": 20043,
+  "calibration_owners_dropped_for_check_target_overlap": 24597,
+  "calibration_check_target_overlap": 0
+}

@@ -1,0 +1,21 @@
+{
+  "checked_local_links": 447,
+  "missing": [],
+  "local_only_links": [],
+  "scope": "root, docs, reports and integrated submission Markdown",
+  "feature_contracts": {
+    "gate": 103,
+    "learned_stack": 101,
+    "collective": 105
+  },
+  "reconstruction_cli_help_checked": [
+    "retr.py",
+    "ceprep.py",
+    "ce.py",
+    "fullprep.py",
+    "full.py ensemble",
+    "full.py score",
+    "full.py finish"
+  ],
+  "submitted_output_hashes_checked": true
+}

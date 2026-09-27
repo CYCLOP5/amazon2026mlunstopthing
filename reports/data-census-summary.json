@@ -1,0 +1,258 @@
+{
+  "files": {
+    "train_source1": {
+      "rows": 2206821,
+      "sha256": "591af0e1dfeb65cab71ea6ee8cb69df00f92d6ba6fa79e05746c938775d14973",
+      "errors": {
+        "dup_id": 0,
+        "bad_id": 0,
+        "id_space": 0
+      }
+    },
+    "train_source2": {
+      "rows": 5034616,
+      "sha256": "6336c1a055eec79cf8a6d99fdc8d32a2e4d9dc2662e00963cb35d66b89ed09ed",
+      "errors": {
+        "dup_id": 0,
+        "bad_id": 0,
+        "id_space": 0
+      }
+    },
+    "train_source3": {
+      "rows": 5285603,
+      "sha256": "67da22f5151898ff3006febd836c1a159e97ae95efa7257a5aff4fda685e58e9",
+      "errors": {
+        "dup_id": 0,
+        "bad_id": 0,
+        "id_space": 0
+      }
+    },
+    "test_source1": {
+      "rows": 1732544,
+      "sha256": "3d4a32c54c2ca9c53fd7c2be105bf26f708f94c4d2f88eb370972a195665c2f5",
+      "errors": {
+        "dup_id": 0,
+        "bad_id": 0,
+        "id_space": 0
+      }
+    },
+    "test_source2": {
+      "rows": 4887273,
+      "sha256": "79d906c7497af2ace70aa277f6e334a652094909de99bd6c57b53420b6a7b2dd",
+      "errors": {
+        "dup_id": 0,
+        "bad_id": 0,
+        "id_space": 0
+      }
+    },
+    "test_source3": {
+      "rows": 5082316,
+      "sha256": "850942b11d2a4343486ed0834e28bce9f3b385f3fd497fd60ccf4ea3b8bda035",
+      "errors": {
+        "dup_id": 0,
+        "bad_id": 0,
+        "id_space": 0
+      }
+    }
+  },
+  "country_files": [
+    {
+      "file": "train_source1",
+      "country": "US",
+      "rows": 1323633,
+      "blank_names": 0,
+      "blank_addresses": 0,
+      "name_non_ascii": 0,
+      "name_urls": 0,
+      "address_na_tokens": 34,
+      "median_name_chars": 22,
+      "median_address_chars": 34
+    },
+    {
+      "file": "train_source1",
+      "country": "India",
+      "rows": 883188,
+      "blank_names": 0,
+      "blank_addresses": 0,
+      "name_non_ascii": 0,
+      "name_urls": 0,
+      "address_na_tokens": 96,
+      "median_name_chars": 27,
+      "median_address_chars": 76
+    },
+    {
+      "file": "train_source2",
+      "country": "India",
+      "rows": 2017799,
+      "blank_names": 0,
+      "blank_addresses": 57846,
+      "name_non_ascii": 562437,
+      "name_urls": 68573,
+      "address_na_tokens": 59279,
+      "median_name_chars": 27,
+      "median_address_chars": 68
+    },
+    {
+      "file": "train_source2",
+      "country": "US",
+      "rows": 3016817,
+      "blank_names": 0,
+      "blank_addresses": 111121,
+      "name_non_ascii": 202171,
+      "name_urls": 132693,
+      "address_na_tokens": 116376,
+      "median_name_chars": 23,
+      "median_address_chars": 32
+    },
+    {
+      "file": "train_source3",
+      "country": "US",
+      "rows": 3170056,
+      "blank_names": 0,
+      "blank_addresses": 110968,
+      "name_non_ascii": 215565,
+      "name_urls": 133786,
+      "address_na_tokens": 116582,
+      "median_name_chars": 23,
+      "median_address_chars": 39
+    },
+    {
+      "file": "train_source3",
+      "country": "India",
+      "rows": 2115547,
+      "blank_names": 0,
+      "blank_addresses": 64948,
+      "name_non_ascii": 391172,
+      "name_urls": 77136,
+      "address_na_tokens": 58253,
+      "median_name_chars": 27,
+      "median_address_chars": 58
+    },
+    {
+      "file": "test_source1",
+      "country": "US",
+      "rows": 663106,
+      "blank_names": 0,
+      "blank_addresses": 0,
+      "name_non_ascii": 0,
+      "name_urls": 0,
+      "address_na_tokens": 23,
+      "median_name_chars": 22,
+      "median_address_chars": 34
+    },
+    {
+      "file": "test_source1",
+      "country": "France",
+      "rows": 259452,
+      "blank_names": 0,
+      "blank_addresses": 0,
+      "name_non_ascii": 40789,
+      "name_urls": 0,
+      "address_na_tokens": 0,
+      "median_name_chars": 19,
+      "median_address_chars": 48
+    },
+    {
+      "file": "test_source1",
+      "country": "India",
+      "rows": 809986,
+      "blank_names": 0,
+      "blank_addresses": 0,
+      "name_non_ascii": 0,
+      "name_urls": 0,
+      "address_na_tokens": 99,
+      "median_name_chars": 27,
+      "median_address_chars": 76
+    },
+    {
+      "file": "test_source2",
+      "country": "India",
+      "rows": 2312565,
+      "blank_names": 0,
+      "blank_addresses": 52764,
+      "name_non_ascii": 638614,
+      "name_urls": 63588,
+      "address_na_tokens": 67721,
+      "median_name_chars": 28,
+      "median_address_chars": 68
+    },
+    {
+      "file": "test_source2",
+      "country": "France",
+      "rows": 703378,
+      "blank_names": 0,
+      "blank_addresses": 21537,
+      "name_non_ascii": 172617,
+      "name_urls": 24565,
+      "address_na_tokens": 3,
+      "median_name_chars": 20,
+      "median_address_chars": 40
+    },
+    {
+      "file": "test_source2",
+      "country": "US",
+      "rows": 1871330,
+      "blank_names": 0,
+      "blank_addresses": 55107,
+      "name_non_ascii": 116927,
+      "name_urls": 67887,
+      "address_na_tokens": 72905,
+      "median_name_chars": 24,
+      "median_address_chars": 32
+    },
+    {
+      "file": "test_source3",
+      "country": "India",
+      "rows": 2405000,
+      "blank_names": 0,
+      "blank_addresses": 59240,
+      "name_non_ascii": 437903,
+      "name_urls": 71125,
+      "address_na_tokens": 68219,
+      "median_name_chars": 28,
+      "median_address_chars": 59
+    },
+    {
+      "file": "test_source3",
+      "country": "France",
+      "rows": 731615,
+      "blank_names": 0,
+      "blank_addresses": 21541,
+      "name_non_ascii": 175185,
+      "name_urls": 25101,
+      "address_na_tokens": 3,
+      "median_name_chars": 20,
+      "median_address_chars": 41
+    },
+    {
+      "file": "test_source3",
+      "country": "US",
+      "rows": 1945701,
+      "blank_names": 0,
+      "blank_addresses": 55317,
+      "name_non_ascii": 124427,
+      "name_urls": 67768,
+      "address_na_tokens": 72700,
+      "median_name_chars": 24,
+      "median_address_chars": 39
+    }
+  ],
+  "truth": [
+    {
+      "country": "US",
+      "references": 1323633,
+      "no_match_references": 73896,
+      "linked_targets": 4578522,
+      "orphan_targets": 1608351,
+      "targets": 6186873
+    },
+    {
+      "country": "India",
+      "references": 883188,
+      "no_match_references": 49351,
+      "linked_targets": 3059843,
+      "orphan_targets": 1073503,
+      "targets": 4133346
+    }
+  ]
+}

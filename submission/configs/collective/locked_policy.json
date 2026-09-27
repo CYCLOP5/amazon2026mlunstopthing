@@ -1,0 +1,232 @@
+{
+  "mode": "collective_graph",
+  "selected": {
+    "strength": 1.0,
+    "policy": {
+      "rule": "country_threshold",
+      "thresholds": {
+        "india": 0.9429982900619507,
+        "us": 0.9515875577926636
+      }
+    },
+    "metrics": {
+      "macro_f05": 0.9943683195156434,
+      "pair_precision": 0.9995983218780684,
+      "pair_recall": 0.9814492922978046,
+      "pairs": 67218
+    },
+    "preservation": {
+      "before": {
+        "overall": {
+          "macro_f05": 0.9934729666606765,
+          "pair_precision": 0.9993586971111542,
+          "pair_recall": 0.9787762375659135,
+          "pairs": 67051
+        },
+        "country": {
+          "india": {
+            "macro_f05": 0.9947613762495415,
+            "pair_precision": 0.9993814943097477,
+            "pair_recall": 0.9829662976031147,
+            "pairs": 24252
+          },
+          "us": {
+            "macro_f05": 0.9927437503889569,
+            "pair_precision": 0.9993457791069885,
+            "pair_recall": 0.976417678750799,
+            "pairs": 42799
+          }
+        }
+      },
+      "after": {
+        "overall": {
+          "macro_f05": 0.9943683195156434,
+          "pair_precision": 0.9995983218780684,
+          "pair_recall": 0.9814492922978046,
+          "pairs": 67218
+        },
+        "country": {
+          "india": {
+            "macro_f05": 0.9955787295904833,
+            "pair_precision": 0.9997529745975544,
+            "pair_recall": 0.9848318935799164,
+            "pairs": 24289
+          },
+          "us": {
+            "macro_f05": 0.993683249542822,
+            "pair_precision": 0.999510820191479,
+            "pair_recall": 0.9795452470094055,
+            "pairs": 42929
+          }
+        }
+      },
+      "checks": {
+        "gain": true,
+        "overall_macro_f05": true,
+        "overall_pair_precision": true,
+        "overall_pair_recall": true,
+        "india_macro_f05": true,
+        "india_pair_precision": true,
+        "india_pair_recall": true,
+        "us_macro_f05": true,
+        "us_pair_precision": true,
+        "us_pair_recall": true
+      },
+      "passed": true
+    }
+  },
+  "calibration_trials": [
+    {
+      "strength": 0.5,
+      "policy": {
+        "rule": "country_threshold",
+        "thresholds": {
+          "us": 0.9060474038124084,
+          "india": 0.8586761355400085
+        }
+      },
+      "metrics": {
+        "macro_f05": 0.9942125470773917,
+        "pair_precision": 0.999568343182055,
+        "pair_recall": 0.980908838608843,
+        "pairs": 67183
+      },
+      "preservation": {
+        "before": {
+          "overall": {
+            "macro_f05": 0.9934729666606765,
+            "pair_precision": 0.9993586971111542,
+            "pair_recall": 0.9787762375659135,
+            "pairs": 67051
+          },
+          "country": {
+            "india": {
+              "macro_f05": 0.9947613762495415,
+              "pair_precision": 0.9993814943097477,
+              "pair_recall": 0.9829662976031147,
+              "pairs": 24252
+            },
+            "us": {
+              "macro_f05": 0.9927437503889569,
+              "pair_precision": 0.9993457791069885,
+              "pair_recall": 0.976417678750799,
+              "pairs": 42799
+            }
+          }
+        },
+        "after": {
+          "overall": {
+            "macro_f05": 0.9942125470773917,
+            "pair_precision": 0.999568343182055,
+            "pair_recall": 0.980908838608843,
+            "pairs": 67183
+          },
+          "country": {
+            "india": {
+              "macro_f05": 0.9955756105965186,
+              "pair_precision": 0.9995884773662551,
+              "pair_recall": 0.9851157886198646,
+              "pairs": 24300
+            },
+            "us": {
+              "macro_f05": 0.9934410780460177,
+              "pair_precision": 0.9995569339831635,
+              "pair_recall": 0.9785407725321889,
+              "pairs": 42883
+            }
+          }
+        },
+        "checks": {
+          "gain": true,
+          "overall_macro_f05": true,
+          "overall_pair_precision": true,
+          "overall_pair_recall": true,
+          "india_macro_f05": true,
+          "india_pair_precision": true,
+          "india_pair_recall": true,
+          "us_macro_f05": true,
+          "us_pair_precision": true,
+          "us_pair_recall": true
+        },
+        "passed": true
+      }
+    },
+    {
+      "strength": 1.0,
+      "policy": {
+        "rule": "country_threshold",
+        "thresholds": {
+          "india": 0.9429982900619507,
+          "us": 0.9515875577926636
+        }
+      },
+      "metrics": {
+        "macro_f05": 0.9943683195156434,
+        "pair_precision": 0.9995983218780684,
+        "pair_recall": 0.9814492922978046,
+        "pairs": 67218
+      },
+      "preservation": {
+        "before": {
+          "overall": {
+            "macro_f05": 0.9934729666606765,
+            "pair_precision": 0.9993586971111542,
+            "pair_recall": 0.9787762375659135,
+            "pairs": 67051
+          },
+          "country": {
+            "india": {
+              "macro_f05": 0.9947613762495415,
+              "pair_precision": 0.9993814943097477,
+              "pair_recall": 0.9829662976031147,
+              "pairs": 24252
+            },
+            "us": {
+              "macro_f05": 0.9927437503889569,
+              "pair_precision": 0.9993457791069885,
+              "pair_recall": 0.976417678750799,
+              "pairs": 42799
+            }
+          }
+        },
+        "after": {
+          "overall": {
+            "macro_f05": 0.9943683195156434,
+            "pair_precision": 0.9995983218780684,
+            "pair_recall": 0.9814492922978046,
+            "pairs": 67218
+          },
+          "country": {
+            "india": {
+              "macro_f05": 0.9955787295904833,
+              "pair_precision": 0.9997529745975544,
+              "pair_recall": 0.9848318935799164,
+              "pairs": 24289
+            },
+            "us": {
+              "macro_f05": 0.993683249542822,
+              "pair_precision": 0.999510820191479,
+              "pair_recall": 0.9795452470094055,
+              "pairs": 42929
+            }
+          }
+        },
+        "checks": {
+          "gain": true,
+          "overall_macro_f05": true,
+          "overall_pair_precision": true,
+          "overall_pair_recall": true,
+          "india_macro_f05": true,
+          "india_pair_precision": true,
+          "india_pair_recall": true,
+          "us_macro_f05": true,
+          "us_pair_precision": true,
+          "us_pair_recall": true
+        },
+        "passed": true
+      }
+    }
+  ],
+  "locked_before_check": true,
+  "candidate_actions": "Full target ownership and abstention re-decoding"
+}

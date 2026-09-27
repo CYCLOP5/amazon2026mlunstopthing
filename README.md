@@ -9,7 +9,7 @@ varun jhaveri · shivsharan sanjawad · raj mathuria · aastha singh
 ## start here for the final submission
 
 this branch's reviewer entry point is the integrated project under [`submission/`](submission/README.md)
-read the [q&a and code map](docs/qa.md), then the [final architecture](submission/docs/arch.md), [full pipeline](submission/docs/pipeline.md) and [exact replay](submission/docs/reproduce.md)
+read the [q&a and code map](submission/docs/qa.md), then the [final architecture](submission/docs/arch.md), [compute design](submission/docs/compute.md), [full pipeline](submission/docs/pipeline.md) and [exact replay](submission/docs/reproduce.md)
 these describe the combined pipeline used for the submitted sprint2 and final-france files
 the root `src/` tree and older component notes remain available as development history and supporting tools
 
@@ -39,13 +39,14 @@ development measurements and per-archive public results are recorded separately 
 
 | doc | contents |
 | --- | --- |
-| [q&a and code map](docs/qa.md) | final execution path, stage ownership, evidence and reviewer questions |
+| [q&a and code map](submission/docs/qa.md) | final execution path, stage ownership, evidence and reviewer questions |
 | [final architecture](submission/docs/arch.md) | retrieval, score fusion, collective context and final decisions |
 | [final replay](submission/docs/reproduce.md) | deterministic regeneration of the submitted tsvs |
 | [full pipeline](submission/docs/pipeline.md) | training and scoring stages that produced the release inputs |
+| [azure compute and execution](submission/docs/compute.md) | actual gpu training matrix, cpu stages, worker layout, sharding, caches and recovery |
 | [status](docs/status.md) | final team result and checkpoint-specific evidence |
 | [evidence](reports/README.md) | measured results and their evaluation scope |
-| [research / eda](plan.md) | primary sources dataset analysis and decision history |
+| [research / eda](submission/docs/research.md) | verified data census, primary sources, experiments and decision history |
 | [methodology](Documentation_template.md) | team methodology, training and measured results |
 | [earlier learned component](docs/learned-submission.md) | historical learned-only archive and its component workflow |
 | [team method integration](reports/team-integration.md) | implemented methods, measured development results and reproduction commands |
@@ -86,7 +87,7 @@ flowchart LR
 ## final release replay
 
 run from the repository root with the original challenge dataset and the preserved score assets
-the final replay uses its own pinned, CPU-only environment
+the final replay uses its own pinned, cpu-only environment
 
 ```sh
 uv venv --python 3.11.16 .venv-replay
@@ -98,7 +99,7 @@ uv pip sync --python .venv-replay/bin/python submission/requirements.txt
 
 use `submission/configs/final.json` and a new output directory for the final-france variant
 the replay checks the original data and score fingerprints, then requires exact equality with the submitted matching and candidate file hashes
-the upstream and later fusion stages have different recorded fitting protocols; see [q&a](docs/qa.md#5-how-were-leakage-and-evaluation-handled)
+the upstream and later fusion stages have different recorded fitting protocols; see [q&a](submission/docs/qa.md#12-how-were-leakage-and-evaluation-handled)
 
 ## supporting component checks
 
@@ -158,7 +159,7 @@ real-model smoke tests and exact feature/checkpoint parity are linked in the evi
 | `src/package.py` | offline reproducibility archive |
 | `src/cloud.py` | azure ml execution and artifact transport |
 | `submission/src/finish.py` | frozen sprint2/final-france replay with exact output-hash checks |
-| `src/release.py`, `src/release_assets.py` | complete submission ZIPs and compact replay inputs |
+| `src/release.py`, `src/release_assets.py` | complete submission zips and compact replay inputs |
 | `src/code_style.py` | scope-aware local-name and comment cleanup |
 
 the [component runbook](docs/ops.md) records earlier operations; use [final replay](submission/docs/reproduce.md) for the delivered files
@@ -183,14 +184,14 @@ upstream notices are in [licenses](licenses/readme.md)
 ## output and packaging
 
 the current two-release source project is under `submission/`
-the binary score assets and ZIPs are retained outside git
+the binary score assets and zips are retained outside git
 use the `assets/` directory from an extracted release, or the locally collected `artifacts/package-assets/`, when rebuilding:
 
 ```sh
 uv run python src/release.py --assets artifacts/package-assets --out artifacts/final-packages
 ```
 
-the builder checks each submitted TSV's hash before packaging, writes a complete archive manifest, and verifies every member hash and CRC
+the builder checks each submitted tsv's hash before packaging, writes a complete archive manifest, and verifies every member hash and crc
 the two output directories are `sprint2/` and `final-france/`, each containing `Amazites_submission.zip`
 
 ```text
@@ -202,7 +203,7 @@ output/
 the final archives carry the complete source, dependency locks, frozen policy, compact recorded scores and completed methodology
 raw datasets must be supplied separately when reproducing the run
 the larger trained checkpoints and full training caches are retained separately from these compact replay archives
-canonical local copies are under `artifacts/final-packages/` and the packager inputs under `artifacts/release-inputs/`; neither depends on Downloads
+canonical local copies are under `artifacts/final-packages/` and the packager inputs under `artifacts/release-inputs/`; neither depends on downloads
 
 the strict validator reports candidate count mean nearest-rank p50/p95/p99 maximum and the complete histogram
 the organizer's final ranking reviews both matching quality and candidate generation

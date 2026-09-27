@@ -37,3 +37,76 @@ using recorded scores does not change which upstream models generated them
 
 upstream license texts retain their original wording
 the software environments separately record the licenses and versions of supporting libraries
+
+## model roles are separate contracts
+
+an upstream model id does not imply one interchangeable checkpoint
+the same family can appear as a frozen retriever, a task-trained retriever, a jointly tokenized pair classifier or a field encoder
+their training state, serialization, pooling and feature roles differ
+
+| use | serialization / representation | learned from challenge labels |
+| --- | --- | --- |
+| task-trained e5-small retrieval | symmetric `query: name | address`, mean pool, normalized vectors | yes, recorded fold-2 positive/hard-pair training |
+| earlier frozen retrieval | model-specific name/address/query views | frozen upstream sources |
+| learned cross-encoder members | joint reference/target name, address and country text | yes, fixed hard-pair populations |
+| hybrid field embeddings | separate name and address views with symmetric query prefix | pinned embedding source for that lane |
+| hybrid neural expert | the retained pair-model configuration and tokenizer | recorded expert training pipeline |
+| tree, graph and fusion heads | ordered challenge-derived numeric/text/score features | yes, their documented reference/owner-group protocols |
+
+the task-trained small retrieval bundle must not be loaded as if it were the untouched public checkpoint
+similarly, the earlier pair classifier and the newer mean-pooled ensemble members remain distinct artifacts even when they share an upstream model family
+
+## selected learned ensemble
+
+the selected member order is part of the score schema:
+
+```text
+m0  large21      m5  large160b   m10 base21
+m1  large41      m6  bge51       m11 base160
+m2  large51      m7  bge131      m12 base160b
+m3  large160     m8  bge160      m13 small21
+m4  large96      m9  base71      m14 small71
+```
+
+`np_m0` through `np_m14` are probabilities from those members
+the ensemble applies mean-logit aggregation and records per-member evaluation/fallback behavior
+the subsequent rich stack may use member logits individually
+
+the selected configurations are in [`configs/training/members.json`](../configs/training/members.json)
+the `bge21` periodic checkpoint is retained as an interrupted experiment and is not a selected scoring member
+the [compute guide](compute.md) maps member names to seed, learning rate, sequence length and batch comparison
+
+## tree and graph heads
+
+the pipeline contains several learned tree roles, each fitted on a specific feature contract:
+
+- the dense/name-aware gate allocates candidate scoring
+- the rich learned stack combines text/corpus features with gate, neural and member logits
+- the run-6 stack uses cross-fitted rounds and confident-sibling evidence
+- the graph/sibling branch supplies a learned `head` score
+- the bounded hybrid fits weighted residual logits around its parent
+- residual fusion learns corrections around the newest stack
+- the collective model consumes the full fusion feature set plus deterministic graph features
+
+the selected collective backend is lightgbm
+the xgboost/catboost contextual mixture is a separate experimental mode
+the graph representation itself is deterministic message passing rather than a separately trained neural graph network
+
+## experimental implementations in the source tree
+
+the source archive preserves unpromoted experiments as well as the final execution path
+examples include learned edit channels, larger reranker experiments, alternative decoder/calibration policies and contextual booster mixtures
+
+their presence in the source tree does not mean their outputs were used in the released score lineage
+the selected model/member records, score-input manifest and [full-pipeline stage map](pipeline.md) identify the actual final inputs
+the [results ledger](results.md) describes which comparisons established gains and which did not
+
+## what must accompany a reused checkpoint
+
+for neural models, retain the model and tokenizer files, base identity/revision, serialization, pooling/head definition, input length and file hashes
+for gates and tree heads, retain the exact feature order, normalization state, model text, fitting protocol and calibration/decision metadata
+for transductive graph/fusion features, retain the complete population and candidate-score inputs used to construct context
+
+the release keeps original machine-readable model records accurate
+the written documentation describes the model identities and their roles, while exact replay binds to the resulting score files
+recorded scores are not anonymous evidence: their producing model lineage remains part of the submission

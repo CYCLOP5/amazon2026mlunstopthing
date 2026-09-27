@@ -1,0 +1,390 @@
+{
+  "producer": "amazites-model-collective-graph-20260927-04",
+  "mode": "collective_graph",
+  "promoted": true,
+  "model": {
+    "mode": "collective_graph",
+    "features": [
+      "newest_present",
+      "newest_logit",
+      "gate_present",
+      "gate_logit",
+      "neural_present",
+      "neural_logit",
+      "hybrid_present",
+      "hybrid_logit",
+      "graph_present",
+      "graph_logit",
+      "friend_present",
+      "friend_logit",
+      "np_m0_present",
+      "np_m0_logit",
+      "np_m1_present",
+      "np_m1_logit",
+      "np_m2_present",
+      "np_m2_logit",
+      "np_m3_present",
+      "np_m3_logit",
+      "np_m4_present",
+      "np_m4_logit",
+      "np_m5_present",
+      "np_m5_logit",
+      "np_m6_present",
+      "np_m6_logit",
+      "np_m7_present",
+      "np_m7_logit",
+      "np_m8_present",
+      "np_m8_logit",
+      "np_m9_present",
+      "np_m9_logit",
+      "np_m10_present",
+      "np_m10_logit",
+      "np_m11_present",
+      "np_m11_logit",
+      "np_m12_present",
+      "np_m12_logit",
+      "np_m13_present",
+      "np_m13_logit",
+      "np_m14_present",
+      "np_m14_logit",
+      "model_spread",
+      "old_models_mean",
+      "new_old_gap",
+      "gate_neural_gap",
+      "models_above_90",
+      "member_spread",
+      "competitor_count_log",
+      "newest_target_max",
+      "newest_target_second",
+      "newest_behind_best",
+      "newest_owner_margin",
+      "gate_target_max",
+      "gate_target_second",
+      "gate_behind_best",
+      "gate_owner_margin",
+      "hybrid_target_max",
+      "hybrid_target_second",
+      "hybrid_behind_best",
+      "hybrid_owner_margin",
+      "graph_target_max",
+      "graph_target_second",
+      "graph_behind_best",
+      "graph_owner_margin",
+      "name_exact",
+      "name_core_exact",
+      "name_ref_empty",
+      "name_target_empty",
+      "name_jaccard",
+      "name_ref_coverage",
+      "name_target_coverage",
+      "name_missing",
+      "name_extra",
+      "name_single_substitution",
+      "extra_before_legal",
+      "extra_after_legal",
+      "extra_at_end",
+      "ref_has_legal",
+      "target_has_legal",
+      "ref_name_twins_log",
+      "target_name_twins_log",
+      "address_exact",
+      "ref_address_empty",
+      "target_address_empty",
+      "street_jaccard",
+      "street_ref_coverage",
+      "street_target_coverage",
+      "house_equal",
+      "house_conflict",
+      "house_gap_log",
+      "baseline_p",
+      "ig_prior_owner",
+      "ig_posterior_owner",
+      "ig_posterior_null",
+      "ig_target_entropy",
+      "ig_owner_margin",
+      "ig_graph_degree_log",
+      "ig_neighbor_count_log",
+      "ig_original_seed_count_log",
+      "ig_neighbor_mean",
+      "ig_neighbor_weight",
+      "ig_logit_shift",
+      "ig_iteration_change",
+      "ig_cavity_shift_max"
+    ],
+    "fit_rows": 796847,
+    "rounds": {
+      "lightgbm": 320,
+      "xgboost": 280,
+      "catboost": 240
+    },
+    "device": "cpu",
+    "full_candidate_reranking": true,
+    "augmented_training_rows": 796847
+  },
+  "check": {
+    "passed": true,
+    "checks": {
+      "gain": true,
+      "positive_lower_bound": true,
+      "precision": true,
+      "recall": true,
+      "india_score": true,
+      "us_score": true
+    },
+    "candidate": {
+      "macro_f05": 0.9922796822090455,
+      "pair_precision": 0.9993535498642006,
+      "pair_recall": 0.9773971610342511,
+      "pairs": 222755
+    },
+    "incumbent": {
+      "macro_f05": 0.9913363023784344,
+      "pair_precision": 0.9991628183315779,
+      "pair_recall": 0.9746618135836564,
+      "pairs": 222174
+    },
+    "countries": {
+      "india": {
+        "candidate": {
+          "macro_f05": 0.993264753269228,
+          "pair_precision": 0.9993909393929327,
+          "pair_recall": 0.9789985246897509,
+          "pairs": 90303
+        },
+        "incumbent": {
+          "macro_f05": 0.9924824179841241,
+          "pair_precision": 0.9992563983041441,
+          "pair_recall": 0.9766879284908444,
+          "pairs": 90102
+        }
+      },
+      "us": {
+        "candidate": {
+          "macro_f05": 0.9916126536828916,
+          "pair_precision": 0.9993280584664633,
+          "pair_recall": 0.9763083164300203,
+          "pairs": 132452
+        },
+        "incumbent": {
+          "macro_f05": 0.9905602245560655,
+          "pair_precision": 0.9990989763159489,
+          "pair_recall": 0.973284160059008,
+          "pairs": 132072
+        }
+      }
+    },
+    "paired_gain": 0.0009433798306110618,
+    "paired_ci95": [
+      0.000764282565942062,
+      0.0011224770952800614
+    ],
+    "paired_family_interval": [
+      0.0007246231405890505,
+      0.001162136520633073
+    ],
+    "paired_standard_error": 9.137783453252004e-05,
+    "family_size": 3,
+    "confidence_level": 0.9833333333333333,
+    "check_owners": 65831,
+    "scope": "Independent of this bounded search; historically exposed to upstream models. Approximate Bonferroni-adjusted normal interval assumes independent owner differences; shared target competition may violate that assumption. paired_ci95 is retained as an unadjusted diagnostic.",
+    "strict_country_preservation": {
+      "before": {
+        "overall": {
+          "macro_f05": 0.9913363023784344,
+          "pair_precision": 0.9991628183315779,
+          "pair_recall": 0.9746618135836564,
+          "pairs": 222174
+        },
+        "country": {
+          "india": {
+            "macro_f05": 0.9924824179841241,
+            "pair_precision": 0.9992563983041441,
+            "pair_recall": 0.9766879284908444,
+            "pairs": 90102
+          },
+          "us": {
+            "macro_f05": 0.9905602245560655,
+            "pair_precision": 0.9990989763159489,
+            "pair_recall": 0.973284160059008,
+            "pairs": 132072
+          }
+        }
+      },
+      "after": {
+        "overall": {
+          "macro_f05": 0.9922796822090455,
+          "pair_precision": 0.9993535498642006,
+          "pair_recall": 0.9773971610342511,
+          "pairs": 222755
+        },
+        "country": {
+          "india": {
+            "macro_f05": 0.993264753269228,
+            "pair_precision": 0.9993909393929327,
+            "pair_recall": 0.9789985246897509,
+            "pairs": 90303
+          },
+          "us": {
+            "macro_f05": 0.9916126536828916,
+            "pair_precision": 0.9993280584664633,
+            "pair_recall": 0.9763083164300203,
+            "pairs": 132452
+          }
+        }
+      },
+      "checks": {
+        "gain": true,
+        "overall_macro_f05": true,
+        "overall_pair_precision": true,
+        "overall_pair_recall": true,
+        "india_macro_f05": true,
+        "india_pair_precision": true,
+        "india_pair_recall": true,
+        "us_macro_f05": true,
+        "us_pair_precision": true,
+        "us_pair_recall": true
+      },
+      "passed": true
+    },
+    "calibration_eligible": true,
+    "promoted": true
+  },
+  "test_preparation": {
+    "method": "competitive_cavity_graph",
+    "graph": {
+      "target_nodes": 9969589,
+      "directed_edges": 2686360,
+      "connected_targets": 1750828,
+      "blocks": {
+        "_name": {
+          "candidate_edges": 3446149,
+          "oversized_blocks_excluded": 30042
+        },
+        "_address": {
+          "candidate_edges": 155154,
+          "oversized_blocks_excluded": 253
+        }
+      },
+      "max_block_size": 16,
+      "max_reciprocal_degree": 4,
+      "text_scoring_chunk_edges": 500000,
+      "edge_features": "Country + legal-form-normalized names, strict addresses, name token Jaccard, house conflict exclusion",
+      "graph_uses_labels": false,
+      "graph_uses_model_scores": false,
+      "edge_samples": [
+        {
+          "src": 2,
+          "dst": 8195386,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 2,
+          "dst": 9492460,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 3,
+          "dst": 5599124,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 4,
+          "dst": 7844971,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 4,
+          "dst": 8289297,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 4,
+          "dst": 8842068,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 5,
+          "dst": 7233989,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 7,
+          "dst": 8223172,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 12,
+          "dst": 5996947,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 16,
+          "dst": 5621483,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 16,
+          "dst": 5865939,
+          "weight": 0.6499999761581421
+        },
+        {
+          "src": 31,
+          "dst": 5788184,
+          "weight": 0.6499999761581421
+        }
+      ]
+    },
+    "message_passing": {
+      "iterations": 3,
+      "damping": 0.35,
+      "shift_strength": 0.8,
+      "directed_owner_messages": 2628882,
+      "max_sending_owners_per_target": 2,
+      "projected_two_owner_messages": 2628882,
+      "message_row_budget": 40000000,
+      "budget_pruned_sending_targets": 0,
+      "score_floor_for_sending": 0.05,
+      "original_seed_confidence": 0.8,
+      "null_normalization_max_error": 4.440892098500626e-16,
+      "rounds": [
+        {
+          "iteration": 1,
+          "mean_absolute_owner_probability_change": 0.00016185439203697513,
+          "positively_reinforced_pairs": 338554
+        },
+        {
+          "iteration": 2,
+          "mean_absolute_owner_probability_change": 5.926671449217559e-08,
+          "positively_reinforced_pairs": 338554
+        },
+        {
+          "iteration": 3,
+          "mean_absolute_owner_probability_change": 3.3951290260924195e-08,
+          "positively_reinforced_pairs": 338554
+        }
+      ],
+      "reinforcement": "Positive shifts require at least two distinct ORIGINAL confident neighbor targets; cavities remove the exact reverse-edge message.",
+      "abstention": "Unit null odds in complete owner competition; unsent owner odds retained in cavity denominator."
+    },
+    "features": [
+      "ig_prior_owner",
+      "ig_posterior_owner",
+      "ig_posterior_null",
+      "ig_target_entropy",
+      "ig_owner_margin",
+      "ig_graph_degree_log",
+      "ig_neighbor_count_log",
+      "ig_original_seed_count_log",
+      "ig_neighbor_mean",
+      "ig_neighbor_weight",
+      "ig_logit_shift",
+      "ig_iteration_change",
+      "ig_cavity_shift_max"
+    ],
+    "baseline_accepted_table_used": false,
+    "truth_or_degree_features_used": false,
+    "initial_score": "Existing baseline_p prior, with complete target competition and explicit null",
+    "learning": "Graph outputs are representation features for a newly fitted full pair scorer; no action-only correction policy."
+  },
+  "historical_exposure": "Historical upstream models and prepared features may already have exposed these records. This is new-head isolation, not a pristine end-to-end holdout."
+}

@@ -1,0 +1,169 @@
+{
+  "cross_encoder_cores": 1392,
+  "cross_encoder_gpus": 58,
+  "separate_gate_gpus": 4,
+  "requested_total_cores": 1488,
+  "requested_total_gpus": 62,
+  "jobs": [
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "large",
+      "length": 128,
+      "lr": 2e-05,
+      "name": "large21",
+      "profile": "gpu4",
+      "seed": 21
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "large",
+      "length": 128,
+      "lr": 1e-05,
+      "name": "large41",
+      "profile": "gpu4",
+      "seed": 41
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "large",
+      "length": 128,
+      "lr": 3e-05,
+      "name": "large51",
+      "profile": "gpu4",
+      "seed": 51
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "large",
+      "length": 160,
+      "lr": 2e-05,
+      "name": "large160",
+      "profile": "gpu4",
+      "seed": 71
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "large",
+      "length": 96,
+      "lr": 2e-05,
+      "name": "large96",
+      "profile": "gpu4",
+      "seed": 131
+    },
+    {
+      "batch_per_gpu": 40,
+      "cores": 96,
+      "family": "large",
+      "length": 128,
+      "lr": 2e-05,
+      "name": "large160b",
+      "profile": "gpu4",
+      "seed": 131
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "bge",
+      "length": 128,
+      "lr": 2e-05,
+      "name": "bge51",
+      "profile": "gpu4",
+      "seed": 51
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "bge",
+      "length": 128,
+      "lr": 1e-05,
+      "name": "bge21",
+      "profile": "gpu4",
+      "seed": 21
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "bge",
+      "length": 128,
+      "lr": 3e-05,
+      "name": "bge131",
+      "profile": "gpu4",
+      "seed": 131
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "bge",
+      "length": 160,
+      "lr": 2e-05,
+      "name": "bge160",
+      "profile": "gpu4",
+      "seed": 41
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "base",
+      "length": 128,
+      "lr": 2e-05,
+      "name": "base71",
+      "profile": "gpu4",
+      "seed": 71
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "base",
+      "length": 128,
+      "lr": 1e-05,
+      "name": "base21",
+      "profile": "gpu4",
+      "seed": 21
+    },
+    {
+      "batch_per_gpu": 20,
+      "cores": 96,
+      "family": "base",
+      "length": 160,
+      "lr": 3e-05,
+      "name": "base160",
+      "profile": "gpu4",
+      "seed": 41
+    },
+    {
+      "batch_per_gpu": 40,
+      "cores": 96,
+      "family": "base",
+      "length": 128,
+      "lr": 2e-05,
+      "name": "base160b",
+      "profile": "gpu4",
+      "seed": 131
+    },
+    {
+      "batch_per_gpu": 80,
+      "cores": 24,
+      "family": "small",
+      "length": 128,
+      "lr": 2e-05,
+      "name": "small21",
+      "profile": "gpu",
+      "seed": 21
+    },
+    {
+      "batch_per_gpu": 80,
+      "cores": 24,
+      "family": "small",
+      "length": 128,
+      "lr": 3e-05,
+      "name": "small71",
+      "profile": "gpu",
+      "seed": 71
+    }
+  ]
+}

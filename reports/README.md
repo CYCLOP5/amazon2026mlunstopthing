@@ -1,17 +1,76 @@
 # evidence index
 
 > sampled retrieval recall pairwise precision and macro f0.5 are different measurements
-> only complete full-pool calibration supports a final cutoff claim
+> cutoff comparisons retain their declared complete truth and candidate competition
 > team-reported leaderboard results are labeled separately from offline metrics
 
 **best recorded public leaderboard f0.5: 0.990284 for sprint2** · [result record](final-result.json)
 
-for the submitted execution path, start with the [q&a code map](../docs/qa.md) and [final package receipts](final-packages.json)
+for the submitted execution path, start with the [q&a code map](../submission/docs/qa.md) and [final package receipts](final-packages.json)
 the experiment reports below preserve the development history of individual components
 
 our team developed and compared the methods below using fixed candidates, entity-grouped splits and explicit artifact fingerprints
 
-## completed learned submission
+## final evidence chain
+
+| reviewer question | primary record | what it establishes |
+| --- | --- | --- |
+| which result belongs to the final measured file | [final-result.json](final-result.json) | sprint2's reported public result and variant distinction |
+| which exact files were packaged | [final-packages.json](final-packages.json) | per-archive location, size and checksums |
+| did the final source regenerate the submitted files | [final-package-replay.json](final-package-replay.json) | raw/prepared replay, output identity and source-style checks |
+| are the required inputs preserved independently of downloads | [final-source-custody.json](final-source-custody.json) | verified local release/source custody |
+| which final policy is executed | [release.json](../submission/configs/release.json), [final.json](../submission/configs/final.json) | exact country cuts, france blend and positional variant |
+| where did the replay scores come from | [replay-inputs.json](../submission/configs/replay-inputs.json) | producer locations, projections, row counts and input hashes |
+| how was the final collective model checked | [collective evidence](../submission/configs/collective/evidence.json), [protocol](../submission/configs/collective/protocol.json) | fitting/check scope, selected model and graph workload |
+| which training/scoring configuration ran | [execution records](../submission/configs/execution/), [training members](../submission/configs/training/members.json) | worker allocation, selected recipes and score coverage |
+
+the readable explanation is split across [architecture](../submission/docs/arch.md), [compute](../submission/docs/compute.md), [pipeline](../submission/docs/pipeline.md), [research/eda](../submission/docs/research.md), [results](../submission/docs/results.md) and [replay](../submission/docs/reproduce.md)
+
+## measurement vocabulary
+
+| measurement | population or denominator | valid interpretation |
+| --- | --- | --- |
+| retrieval true-link recall | all true links in the declared query/reference comparison | whether retrieval found the true owner |
+| post-gate candidate recall | true links after the actual selection policy | whether the matcher can still see the correct pair |
+| candidate macro oracle | original reference truth degrees, predicting only retained true pairs | ceiling for that candidate pool on that evaluated population |
+| pair precision/recall | the stated pair or target population | diagnostic trade-off, not automatically reference macro f0.5 |
+| search score | the optimizer's declared selection references/calibration protocol | ranking configurations within that search |
+| development macro | the stated held/reference-group population with complete incident competitors | a separate development comparison under its exposure assumptions |
+| conditional new-head check | new-head-isolated groups over previously developed upstream scores | a head comparison, not pristine end-to-end generalization |
+| reported public score | organizer's hidden public subset as reported by the team | result for the identified uploaded file |
+| hash/validator/test pass | implementation and artifact contracts | reproducibility or correctness evidence, not new accuracy |
+
+we retain these labels because different rows cannot be ranked as if they were measurements on the same test set
+
+## phase-level outcome ledger
+
+| phase | important observation | next decision |
+| --- | --- | --- |
+| original/upgraded runtime | public 0.964/0.969 and a provisional pair-selected cutoff | audit the complete target pool with the business-level metric |
+| full-pool diagnosis | candidate oracle 0.995551 and concentrated blank-address loss | improve retrieval, gate evidence and candidate survival |
+| rich cpu stack | development 0.983963, then 0.984547 after tuning | retain richer raw/corpus features and exact score lineage |
+| learned retrieval and pair ensemble | better complete-reference recall; learned development 0.990354 | complete gpu scoring and preserve member outputs for reuse |
+| first learned public release | reported 0.986416 with its actual france route | investigate routing/calibration and complementary french evidence |
+| broad cached search | trial689 development 0.990555 | retain the result as separate research; avoid assuming a global france fix |
+| collective fusion | conditional check 0.992280 vs 0.991336 | use the recorded collective score lineage in the final policy comparison |
+| final policy sprint | reported 0.989926 → 0.990108 → 0.990284 | freeze exact country/france policy and preserve the submitted bytes |
+| positional derivative | exactly three removed pairs | retain separate identity; no unrecorded accuracy claim |
+
+## evaluation and integrity boundaries
+
+complete truth degrees prevent an unretrieved alias from disappearing from the denominator
+complete candidate competition prevents evaluation from changing the winner by removing rival owners
+population-dependent context must be constructed before the projection used for a new-head comparison
+
+the inherited run-6 sibling-bank ordering is a documented exception/limitation in the frozen upstream evidence
+the later full-pool context and structured new-head protocol address specific scope issues without erasing historical upstream exposure
+[additional findings](additional-workspace-findings.md) gives concrete examples
+
+format validation, exact replay and model evaluation are separately recorded
+the final code suite's 395 passing tests and the zip/tsv hash checks establish implementation integrity
+france remains unlabeled and the final positional edit has no separately recorded public result
+
+## completed historical learned submission
 
 - [release evidence](submission-learned.json): validated archive, output hashes, candidate counts and local-cache inventory
 - [development comparison](learned-development-comparison.json): 0.9845466096 to 0.9903538925 macro f0.5 on identical 73,752 businesses
@@ -23,7 +82,7 @@ our team developed and compared the methods below using fixed candidates, entity
 - [team method review](team-latest-review.md): methods and reproduced evaluation findings
 - [2,560-trial finalist comparison](learned-r2-finalists.json): selected development macro f0.5 0.9905552568
 
-the ready archive is `artifacts/submission-learned/Amazites_submission.zip`
+the historical learned archive is `artifacts/submission-learned/Amazites_submission.zip`
 the bounded france-rule archive contains 5,823,095 matches and received team-reported public 0.986416
 its isolated france-rule score effect remains unmeasured; the later sprint2 public result is 0.990284
 
@@ -46,8 +105,10 @@ the baseline output is complete and validated; see [baseline file evidence](subm
 | artifact | evidence |
 | --- | --- |
 | [eda](eda.json) | supplied-data sizes missingness scripts country and string statistics |
+| [compact census](data-census-summary.json) | verified per-file/country counts and complete ownership totals |
 | [labels](labels.json) | label and ownership audit |
-| [research plan](../plan.md) | primary sources analysis decisions and experimental history |
+| [research and eda narrative](../submission/docs/research.md) | current primary-source, data and decision account |
+| [historical research notebook](../plan.md) | dated implementation notes and experiments |
 
 raw records caches and detailed local diagnostic rows are retained separately from public reports
 
@@ -116,7 +177,7 @@ the first 13 and extended four cached gate variants did not displace the existin
 
 | artifact | what it verifies |
 | --- | --- |
-| [model sources](model_sources.json) | immutable revisions license metadata and parameter bounds |
+| [model sources](model_sources.json) | immutable revisions, license metadata and source identity |
 | [runtime parity](team_runtime_parity.json) | exact transforms 54-feature arrays and checkpoint predictions on the parity sample |
 | [upgraded smoke](upgraded_runtime_smoke.json) | real three-retriever checkpoint execution and sharded launcher coverage |
 | [redistribution recovery](scatter_runtime_check.json) | missing checkpoint batch recomputed with exact pair/probability parity and disjoint coverage |
@@ -132,4 +193,4 @@ it does not establish competition accuracy
 - per-variant output hashes distinguish checkpoint results from the final team score
 - retained scores support reproducible composition, calibration and france-rule diagnostics
 
-see [arch](../docs/arch.md), [ops](../docs/ops.md), and [status](../docs/status.md)
+see the [final architecture](../submission/docs/arch.md), [reproduction guide](../submission/docs/reproduce.md), [compute design](../submission/docs/compute.md), [method integration](team-integration.md) and [status](../docs/status.md)
