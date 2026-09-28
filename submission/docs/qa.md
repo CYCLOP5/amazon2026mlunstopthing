@@ -19,6 +19,8 @@ it contains the learned retrieval/pair-model work, the complementary lexical/gra
 
 | question | source to inspect |
 | --- | --- |
+| how do i run the complete bundled model | [`reproduce.py`](../src/reproduce.py) and the [reproduction guide](reproduce.md) |
+| how are the trained heads loaded without refitting | [`heads.py`](../src/heads.py) |
 | how are original ids and folds prepared | [`neural_v2/src/data.py`](../src/neural_v2/src/data.py) |
 | how was the task retriever trained | [`neural_v2/src/retr.py`](../src/neural_v2/src/retr.py) and [`training/retriever.json`](../configs/training/retriever.json) |
 | which pair-model runs were selected | [`training/members.json`](../configs/training/members.json) |
@@ -36,6 +38,8 @@ it contains the learned retrieval/pair-model work, the complementary lexical/gra
 `finish.py` consolidates the frozen release policy into a smaller replay entry point
 the actual late-run selection scripts are retained separately
 the consolidation was verified against the exact uploaded matching and candidate files, including the final three-pair edit
+the full package now includes the trained neural/tree checkpoints and preprocessing state
+`reproduce.py cold` executes raw-data inference; `predict` uses the complete upstream feature checkpoint and the trained final model; `replay` uses the original recorded final scores
 
 ## 3. why not compare every record with every reference
 
@@ -158,7 +162,7 @@ the [results guide](results.md) labels each measurement as retrieval, oracle, se
 ## 13. what crossed the 0.99 public threshold
 
 the combined input baseline was reported at 0.989926
-sprint1 was 0.990108 and sprint2 was 0.990284
+sprint1 was 0.990108, sprint2 was 0.990284 and final-france was 0.990285
 the final sprint reused the combined model evidence, selected country cuts and adjusted the france blend with the existing decoy filter
 
 the 2,560-trial standalone rich-stack winner remained a separate research result rather than the released global replacement

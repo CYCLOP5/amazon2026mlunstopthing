@@ -15,10 +15,11 @@ it combines lexical and multilingual retrieval, a task-trained retriever, a rich
 the final policy uses collective probabilities for india/us and an available-score blend for france
 the french category-swap filter is common to both releases
 the final-france variant adds a narrow positional name rule that removes three pairs
+its team-reported public macro f0.5 is 0.990285, compared with 0.990284 for sprint2
 
-the package contains the exact submitted matching/candidate files, complete source implementations, actual late-sprint selection scripts, pinned environments, model-source records and compact score assets
-the supplied raw test records and those assets reproduce the submitted bytes without live model-serving or cloud access
-the full training/scoring source is included for deeper reconstruction
+the package contains the exact submitted matching/candidate files, complete trained model weights and tokenizers, preprocessing and calibration state, full reconstruction checkpoints, source implementations, actual late-sprint selection scripts and pinned environments
+the trained-head reconstruction and original score replay both reproduce the submitted bytes
+the raw-data inference command executes retrieval and the neural/tree/graph/hybrid chain using the included fixed checkpoints
 
 ## 2. challenge and scoring
 
@@ -112,6 +113,9 @@ fifteen complete-epoch members were selected; an interrupted bge checkpoint is e
 ensemble aggregation is mean logit followed by sigmoid, with individual member probabilities retained for the later stack
 
 model identities, revisions, licenses and per-member configurations are included under the source project's `configs/` and model-source records
+the selected 15-member pair ensemble contains 6,397,997,583 parameters (6.398 billion)
+the task-trained small retriever's source record contains approximately 117.65 million tensor elements, including buffers, giving approximately 6.516 billion for this selected retrieval/matching path
+this is not an end-to-end total for all earlier retrieval, tree, graph and fusion branches; the scoped breakdown and full role inventory are in `code/business_entity_resolution/docs/models.md`
 
 ## 7. learned feature and fusion layers
 
@@ -214,7 +218,7 @@ the resulting change is exactly three accepted pairs
 | combined input public | 0.989926 | starting artifact for the final policy sprint |
 | sprint1 public | 0.990108 | late decision-layer change |
 | sprint2 public | 0.990284 | recorded final measured release |
-| final-france positional edit | not separately recorded | exact three-pair derivative |
+| final-france positional edit | 0.990285 | team-reported final submission; exact three-pair derivative |
 
 the task retriever improved full-reference top-50 recall, especially for blank-address india
 adaptive gate selection then preserved more of those links
@@ -250,5 +254,6 @@ within `code/business_entity_resolution/docs/`:
 - `reproduce.md` gives exact replay, validation and packaging instructions
 - `models.md` records model identities, roles, notices and provenance
 
-france remains unlabeled, historical evaluation reuse is disclosed, and no independent gain is claimed for the three-pair positional edit
+france remains unlabeled and historical evaluation reuse is disclosed
+the final three-pair edit raises the reported public macro score by 0.000001; no france-only score was reported
 these limits are preserved alongside the implementation and artifact evidence

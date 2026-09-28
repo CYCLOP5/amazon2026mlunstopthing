@@ -241,7 +241,7 @@ they supplied no external business identities, geocoding results or entity label
 | could cpu-only search keep improving the learned stack | 64-trial and later 2,560-trial searches on saved scores | measured but modest later development gains; the broad finalist was not the final submitted global head |
 | did every additional verifier help | learned edit-channel and four-view comparisons | no demonstrated eligible tuning win; retained as experiments |
 | could richer collective context help | complete-pool graph features and a separately scoped new-head check | improved the conditional collective check from 0.991336 to 0.992280 |
-| what moved the final public score above 0.99 | combined score inputs, country decisions and france blends | recorded progression 0.989926 to 0.990108 to 0.990284 |
+| what moved the final public score above 0.99 | combined score inputs, country decisions and france blends | recorded progression 0.989926 to 0.990108 to 0.990284; final-france 0.990285 |
 | did the final three-pair edit improve accuracy | deterministic positional-rule replay | file behavior verified; independent score effect unrecorded |
 
 ## 13. what we kept
@@ -255,5 +255,6 @@ model capacity alone did not remove data/decision errors
 candidate coverage, feature scope, the deployed country route, calibration and output identity each had an independent role
 
 the final public score is not a proof that every hypothesis or rule is correct
-france remains unlabeled, historical audit reuse remains part of the development record, and the exact three-pair edit has no separately recorded public gain
+france remains unlabeled and historical audit reuse remains part of the development record
+the final three-pair edit is team-reported at 0.990285, 0.000001 above sprint2, without a france-only evaluation
 the detailed [results ledger](results.md) and [architecture](arch.md) connect these limits to the actual source

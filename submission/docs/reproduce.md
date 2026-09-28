@@ -1,201 +1,222 @@
-# reproduce the releases
+# complete trained-model reproduction
 
-## 1. exact cached replay
+## 1. what the full archive contains
 
-the package includes compact recorded score inputs under `assets/`
-the original raw test files are required for id mapping and the french text rules
+the final-france archive includes the trained neural weights, tokenizers, upstream snapshots, learned gates, cross-fitted tree heads, calibrations, graph configuration, fitted france rules and original hard-pair training inputs
+it also includes complete stage checkpoints and the compact final-score assets
 
-### choose the correct archive
+these are different starting points for the same fixed final policy:
 
-each variant is a separate `Amazites_submission.zip` with `output/`, `code/business_entity_resolution/`, `Documentation_template.md` and `manifest.json` at the expected locations
-use the archive for the matching file that was submitted
-an outer directory bundle containing both variants is a distribution bundle, not the single-variant layout
+| command | starting point | work performed |
+| --- | --- | --- |
+| `verify` | archive contents | validates the complete required model inventory and every payload/frozen-runtime hash |
+| `cold` | original raw train/test records and bundled fitted models | lexical/dense retrieval, neural scoring, run-6, graph/sibling and hybrid predictions, learned stack, full fusion features, collective graph/model and final export |
+| `predict` | original raw records and the complete upstream feature checkpoint | reloads the fitted final model, recomputes complete country graph context, predicts every candidate and exports the final policy |
+| `replay` | original raw test records and compact final scores | reapplies the exact frozen final decisions and writes the submitted bytes |
 
-extract into a fresh directory
-the commands below start at the extracted zip root
+`cold` does not consume the `resume/` prediction/feature checkpoints
+its france direction filter uses the fitted word-pair parameters in `models/france/rules.json`, just as the other fitted stages use their saved weights/calibrations
+the original direction-fitting pool and its fitting code remain available for audit
+
+the full inference pipeline does not require a live cloud workspace or model downloads
+dependency installation may access the package indexes named by the pinned environment files
+
+## 2. setup and archive integrity
+
+work from `code/business_entity_resolution/` in the extracted zip:
 
 ```sh
-cd code/business_entity_resolution
 uv venv --python 3.11.16 .venv
 uv pip sync --python .venv/bin/python requirements.txt
-.venv/bin/python src/finish.py --data /path/to/dataset --out reproduced
+.venv/bin/python src/reproduce.py verify
 ```
 
-the replay:
+`reproduction_manifest.json` lists all model, resume and training-pair files with their sizes, hashes and retained origins
+the verifier explicitly requires the selected neural members, old/new gates, retrieval checkpoint, run-6 models, graph/rank models, hybrid heads, residual/collective models and fitted rules
+a score-only payload does not pass this complete-model check
 
-1. verifies every score asset against `assets/manifest.json`
-2. verifies the raw challenge files against `configs/release.json`
-3. prepares compact test records with the original row identifiers
-4. decodes india/us from collective scores and france from the frozen blend
-5. applies the category-swap rule and, for the final-france variant, the positional rule
-6. generates the complete candidate tsv independently of match acceptance
-7. requires both output hashes to equal the submitted hashes
+the zip-root `manifest.json` additionally covers the source, documentation, environment files and submitted outputs
+zip integrity verification reads every member completely, checking its crc, size and sha256
 
-the two output files are written to the requested new directory
-`replay.json` records successful hash equality
+the archive uses zip64 for large members
+extract it with a zip64-capable tool and leave room for both the extracted models and the chosen working directory
 
-### raw input layout
+## 3. original challenge data
 
-`--data` can point to the challenge dataset directory containing `test/`, or directly to the directory containing these files:
+the dataset is supplied separately by the organizer:
 
 ```text
-test_source1.tsv
-test_source2.tsv
-test_source3.tsv
+dataset/
+  train/
+    train_source1.tsv
+    train_source2.tsv
+    train_source3.tsv
+    train_ground_truth.tsv
+  test/
+    test_source1.tsv
+    test_source2.tsv
+    test_source3.tsv
 ```
 
-the required columns are `entity_id`, `business_name`, `business_address` and `country`
-the original bytes must match the recorded input hashes
-rewriting a tsv through another tool can change quoting, row order or empty values and is therefore not accepted merely because its column names look correct
+`cold` and `predict` validate all original file fingerprints recorded in `configs/reproduction-data.json`, then recreate the original row-id/fold preparation
+the `replay` route needs only the three raw test files and can also use the exact previously prepared test tables
 
-the replay assigns source1 row ids in input order and offsets source3 targets by the complete source2 count
-it creates minimal working record tables under the new output directory; it does not modify the supplied raw files
+the main populations are 2,206,821 training references, 10,320,219 training targets, 1,732,544 test references and 9,969,589 test targets
+source3 target row ids start after the complete source2 population
+these row ids are never interchangeable with a filtered or differently ordered dataset
 
-## 2. prepared records
-
-an existing verified prepared dataset can be used instead of raw tsv files:
+## 4. full raw-data inference from fitted weights
 
 ```sh
-.venv/bin/python src/finish.py --data /path/to/cache/data --out reproduced
+.venv/bin/python src/reproduce.py cold \
+  --data /path/to/dataset \
+  --bundle . \
+  --work /scratch/amazites-cold \
+  --out reproduced-cold \
+  --gpus 4 --threads 48
 ```
 
-the directory must contain `test/ref.parquet`, `test/s2.parquet` and `test/s3.parquet`
-their fingerprints must match the recorded prepared-data version
-the loader does not silently reinterpret row ids from another preparation
-prepared mode expects the recorded standard tables, not an arbitrary parquet conversion or the minimal working records produced by a prior raw replay
+use a new output directory
+the original full hybrid gpu stage uses exactly four independently assigned workers
+the recorded environment was a four-a100 gpu node with large host memory, with e64-class cpu capacity for full-population feature construction
+the cold graph/feature stages require substantially more memory than compact replay; the original large-memory execution plan is detailed in [compute](compute.md)
 
-## 3. score inputs
+### executed stages
 
-| file | rows | columns | role |
-| --- | ---: | --- | --- |
-| `collective.parquet` | 20,177,322 | `qid`, `tid`, `p` | collective probability and the complete final candidate export |
-| `france.parquet` | 4,840,519 | `qid`, `tid`, `co`, `newest`, `friend`, `graph` | all france candidates with their component probabilities |
-| `swap-pool.parquet` | 7,269,734 | `qid`, `tid`, `p2` | original run-3 french candidate pool for directional swap statistics |
+1. verify every supplied model artifact and recreate prepared challenge records
+2. create an offline hugging face cache from the included pinned snapshots
+3. run the original earlier scoring runtime with its recorded retrieval, gate and pair-model configuration
+4. generate the lexical candidate source
+5. predict both run-6 rounds from their saved cross-fitted models
+6. rebuild graph candidates/features and predict the saved binary/ranking and sibling models
+7. select the original bounded hybrid target population from the regenerated graph scores
+8. regenerate hybrid lexical/dense candidates and score every pair with the included base/expert checkpoints
+9. apply the saved weighted hybrid residual heads
+10. score the learned-retrieval candidate pool with all selected neural members and the saved rich stack
+11. rebuild the complete final score union and fusion features
+12. reconstruct competitive graph context and predict the saved collective model
+13. apply the frozen country cuts, fitted direction rules and final positional rule
+14. write both output files and require the recorded submitted hashes
 
-france projection occurs after the population-dependent model features and scores have been computed
-these assets do not contain an accepted-match-only replacement for candidate generation
-their producer locations, byte lengths, schemas and hashes are recorded in the asset manifest
-the three parquet files occupy 311,724,746 bytes before zip packaging
-their azure provenance locations identify the original producers; live azure access is not required to use the packaged copies
+this path uses the original frozen earlier/learned scorer sources under `src/frozen/`
+`configs/runtime-sources.json` binds their original file hashes
+the runner copies these small source trees into the working directory and attaches the offline model cache there; the supplied checkpoints are not modified
 
-the run-3 pool is intentionally larger than the final france pool
-it supplies the original observation population for the swap/reverse counts
-replacing it with only final accepted pairs would change the rule's statistical context
+`HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` are set during reconstruction
+the original azure artifact locations in historical manifests serve as provenance, not as live input dependencies
 
-## 4. frozen variants
+### resource and numerical contract
 
-| release | matching rows | accepted pairs | candidate pairs |
-| --- | --- | --- | --- |
-| sprint2 | 1,732,544 | 5,866,303 | 20,177,322 |
-| final-france | 1,732,544 | 5,866,300 | 20,177,322 |
+the recorded retrieval uses fp16 and the original a100 neural scoring uses bf16 where supported
+batching, padding, selected checkpoints and worker ownership are explicit in the original configurations
+the output guard detects any changed candidate pool or final decisions rather than silently calling a different result the submitted one
 
-each zip provides its own active `configs/release.json`
-the source tree also contains `configs/final.json` for the positional variant
-runtime settings are frozen; exact replay does not rerun hyperparameter search
+the entire four-gpu cold pass was not rerun during local packaging validation
+the package's validation evidence separately records complete checkpoint/hash verification, offline neural loading, exact full-population final-model prediction and exact output reproduction
 
-### expected output hashes
+## 5. trained final-model reconstruction from the full feature checkpoint
 
-| file | sha256 |
+```sh
+.venv/bin/python src/reproduce.py predict \
+  --data /path/to/dataset \
+  --bundle . \
+  --work /scratch/amazites-predict \
+  --out reproduced-model \
+  --threads 8
+```
+
+this route reads `resume/fusion/test/prepared-test.parquet`
+that is the full upstream feature/candidate checkpoint, not a table of final collective probabilities
+the saved residual baseline and collective reranker are loaded from `models/`
+the graph representation is recomputed before prediction
+
+countries are processed independently because graph edges are country-local and the recorded run did not activate its global message-budget pruning fallback
+each country retains its complete candidate and target context
+prediction is chunked after graph construction, so a small prediction batch does not remove competing owners or sibling evidence
+
+packaging verification regenerated all 20,177,322 candidate probabilities:
+
+| country | candidate pairs | maximum probability difference |
+| --- | ---: | ---: |
+| france | 4,840,519 | 0 |
+| us | 6,898,320 | 0 |
+| india | 8,438,483 | 0 |
+
+the regenerated scores and fitted rule parameters reproduced both submitted tsv hashes exactly
+
+## 6. original exact-score replay
+
+```sh
+.venv/bin/python src/reproduce.py replay \
+  --data /path/to/dataset --out reproduced-replay
+```
+
+or invoke the smaller final-policy implementation directly:
+
+```sh
+.venv/bin/python src/finish.py \
+  --data /path/to/dataset --config configs/final.json --out reproduced-replay
+```
+
+this reads the three compact assets under `assets/`: complete collective probabilities, france component scores and the original rule-development pool
+the asset manifest checks their hashes before use
+the final candidate file is exported from the complete scored union, including every rejected pair
+
+## 7. reproduce the fitted france direction parameters
+
+the fitted rule can be regenerated directly from the original raw test records:
+
+```sh
+.venv/bin/python src/fit_rules.py \
+  --data /path/to/dataset \
+  --pool assets/swap-pool.parquet \
+  --config configs/final.json \
+  --out rebuilt-rules.json
+```
+
+the file records 1,869 directional word pairs, the original data identity, fitting-pool hash, minimum support 20 and maximum forward share 0.7
+these are word-direction parameters, not a list of accepted or rejected entity ids
+runtime application still checks the current pair's normalized words and matching house evidence
+
+the separate positional `groupe` rule remains an explicit deterministic part of the final-france policy
+
+## 8. environments and model fitting settings
+
+| artifact | contents |
 | --- | --- |
-| sprint2 matching | `b05d40e6c914e1741ebb6c17e3c11edd7b04d90d6c9a4d1c770c409ed25ec2dc` |
-| final-france matching | `e0565d95ecc02396992a8e56e9eec540438b8a255a477872a19ba25c8db9b7bd` |
-| shared candidate file | `344f114f8c81d4c806cf7019a2ebefc6cb312e16ca7ec04797701ee36a9e5e71` |
+| `requirements.txt` | exact replay/orchestration versions |
+| `src/frozen/earlier/pyproject.toml`, `uv.lock` | original earlier scoring environment |
+| `src/frozen/learned/pyproject.toml`, `uv.lock` | original learned scoring environment |
+| `src/fusion/pyproject.toml`, `uv.lock` | run-6, graph, hybrid and final model environment |
+| `models/*/` | checkpoint-specific metadata, model files, feature order and decisions |
+| `configs/training/` | selected retriever and pair-model training settings |
+| `training/pairs/` | actual grouped hard-pair populations and associated text tables |
+| `configs/earlier-scoring.json`, `learned-scoring.json` | exact original inference contracts |
 
-the matching file uses the original source1 order
-the candidate file uses the recorded country-merge row order
-target ids within a row are sorted and deduplicated
-these formatting choices are part of the byte-level replay contract, even though row order alone does not change the logical matching metric
+neural metadata retains learning rate, seed, sequence length, batch/world configuration, pooling/head definition, weight decay, precision and training-pair hashes
+lightgbm files and their sidecars retain the fitted trees, feature order and selected settings
+the broader training history remains in [pipeline](pipeline.md) and [compute](compute.md)
 
-## 5. rebuilding scores
+## 9. resumption and output verification
 
-[the full-pipeline guide](pipeline.md) covers generation of the score assets from the provided train/test data
-that route includes retrieval, training and gpu inference
-cached replay is the deterministic release check; fresh neural retraining can introduce numerical differences even with the recorded seeds
+working-stage receipts bind command arguments, the model-manifest hash, release configuration and resulting file hashes
+a changed completed stage is rejected instead of silently reused
+stage logs are written under `work/stages/`
+use a new working directory when changing a model or preprocessing contract
 
-## 6. resource use
+the final-france output has 5,866,300 matches and 20,177,322 candidates
+every source1 record has a row in both files
+accepted targets have one owner and every accepted pair belongs to the true candidate pool
+the complete expected output hashes are in [`configs/final.json`](../configs/final.json)
 
-replay is cpu-only and processes the complete candidate population
-use a machine with sufficient ram for the parquet joins and string aggregation
-on a memory-constrained workstation, run one replay at a time
-the archive builder records the environment and replay receipts used to verify each release
-
-joins use projected score columns and id/text fields needed by the rule layer
-large string-list exports are split into bounded reference chunks
-the cpu process still reads the complete candidate population; a small owner sample would not be an equivalent replay
-
-## 7. running from the git branch
-
-the git checkout keeps code, policies and compact receipts in version control
-the large artifacts are supplied separately and retained locally under `artifacts/`
-from the repository root:
+the official validator can be run from the organizer's resource directory:
 
 ```sh
-uv venv --python 3.11.16 .venv-replay
-uv pip sync --python .venv-replay/bin/python submission/requirements.txt
-.venv-replay/bin/python submission/src/finish.py \
-  --data student_resource/dataset --assets artifacts/package-assets \
-  --config submission/configs/release.json --out artifacts/replay-sprint2-new
-.venv-replay/bin/python submission/src/finish.py \
-  --data student_resource/dataset --assets artifacts/package-assets \
-  --config submission/configs/final.json --out artifacts/replay-france-new
+python3 utils/validate_submission.py \
+  --matching /path/to/reproduced-model/matching_results.tsv \
+  --candidate /path/to/reproduced-model/candidate_pairs.tsv \
+  --test-dir dataset/test --check-ids
 ```
 
-run the two replays sequentially on the local workstation
-both output directories must be new
-`artifacts/final-packages/` holds verified copies of the final zips, while `artifacts/release-inputs/` holds the exact tsv inputs used by the packager
-the release code does not depend on files remaining in downloads
-
-## 8. independent file validation
-
-the strict validator is included at [`src/neural_v2/src/validate.py`](../src/neural_v2/src/validate.py)
-it checks required reference coverage, duplicate rows, target ownership, candidate membership and external id validity
-the original challenge validator is also preserved under `src/neural_v2/student_resource/utils/`
-
-the final files were checked with the strict validator and the supplied validator with id checks enabled
-the exported candidate statistics include the full histogram and nearest-rank quantiles
-
-hash equality and format validation serve different purposes
-hash equality proves replay of this specific release; validation proves compliance with the file/id/ownership contract
-neither is a new accuracy measurement for unlabeled test data
-
-## 9. packaging from verified tsvs
-
-the repository's `src/release.py` reads the project-local release inputs and the compact score assets
-for a new packaging destination:
-
-```sh
-.venv/bin/python src/release.py \
-  --source submission --assets artifacts/package-assets \
-  --out artifacts/rebuilt-packages
-```
-
-the builder:
-
-1. checks each matching file and the shared candidate file against its frozen output hash
-2. includes the full source tree, final selection scripts, dependency records and written methodology
-3. installs the variant's active configuration under `configs/release.json`
-4. adds the recorded score assets and their manifest
-5. generates the zip member manifest
-6. verifies crcs and every member's content hash before publishing the finished archive
-
-compiled files, development cache directories and local environments are excluded
-the exact archive hash can change when documentation or source formatting changes while the submitted tsv hashes remain fixed
-
-## 10. interpreting failures
-
-| failure | likely cause | correct response |
-| --- | --- | --- |
-| raw data hash mismatch | altered or different challenge files | restore the recorded original inputs |
-| prepared hash mismatch | another preparation, row order or minimal working cache | use the recorded standard cache or raw input mode |
-| asset checksum mismatch | partial transfer or wrong model-stage output | restore the file matching the manifest |
-| absent score columns or invalid probabilities | incompatible score source | inspect the producer/configuration binding |
-| output directory exists | attempted overwrite of a previous run | choose a new output directory |
-| output hash mismatch | policy, tie, normalization, row-order or version drift | compare the frozen configuration and pinned environment; do not silently accept the new file |
-
-## 11. scope of reproducibility
-
-the checked release path reproduces the submitted bytes from recorded scores and original test records
-the included full training/scoring source explains how those scores were produced and supports reconstruction from the original train/test data
-fresh neural fitting can differ numerically across hardware or software environments
-
-for review, follow the [architecture](arch.md), [compute plan](compute.md), [full reconstruction](pipeline.md) and [measured results](results.md) together
+format/identity verification is distinct from matching accuracy
+the team-reported public macro f0.5 is 0.990285 for this final-france artifact; no france-only accuracy figure was reported

@@ -3,8 +3,8 @@
 ## 1. final release state
 
 the integrated source is under [`submission/`](../submission/README.md) on `final-submission-packages`
-the best recorded public result is **0.990284 macro f0.5 for sprint2**
-the final-france variant removes three pairs and has no separately recorded public result
+the best recorded public result is **0.990285 macro f0.5 for final-france**
+the final-france variant removes three pairs relative to sprint2's reported 0.990284
 
 | release item | state | evidence |
 | --- | --- | --- |
@@ -48,7 +48,7 @@ the per-target gate cap and per-reference candidate counts describe different di
 | combined input baseline | 0.989926 | supplied combined score/source lineage | starting artifact for the late policy sprint |
 | sprint1 | 0.990108 | new country/france decision selection | reported late-sprint result |
 | sprint2 | 0.990284 | exact final policy and output hashes | released measured artifact |
-| final-france | not separately recorded | exact three-pair positional-rule difference | released derivative |
+| final-france | 0.990285 | exact three-pair positional-rule difference | team-reported final submission |
 
 the branch development reports also contain historical 0.984/0.987 observations and a documented 0.984806 to 0.985292 large-model comparison
 an exact 0.987 artifact was not bound in that historical review
@@ -99,7 +99,7 @@ later labeled-country transfer probes supported richer score routing and empiric
 the final combined release uses the full score blend described in the [architecture](../submission/docs/arch.md#15-final-country-decisions)
 
 the final positional derivative removes exactly three pairs
-we retain its output and configuration without assigning it a public score that was not separately recorded
+the team's final submission records a public score of 0.990285; a france-only score was not reported
 
 [early rule delta](../reports/learned-france-rule-delta.json) · [transfer proxy](../reports/learned-country-transfer.json) · [earlier full-stack france variant](../reports/learned-france-stack-variant.json)
 

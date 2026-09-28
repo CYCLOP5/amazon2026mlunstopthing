@@ -1,0 +1,71 @@
+{
+  "seed": 42,
+  "norm": "nfkc casefold punctuation spaces anyascii",
+  "files": {
+    "train_ground_truth.tsv": {
+      "bytes": 127015583,
+      "sha256": "70bc1d8a16c667e0155c2105d0ab2ebe41d7e7a85d8a529e3ca81c6c3a5af037"
+    },
+    "train_source1.tsv": {
+      "bytes": 210069713,
+      "sha256": "591af0e1dfeb65cab71ea6ee8cb69df00f92d6ba6fa79e05746c938775d14973"
+    },
+    "train_source2.tsv": {
+      "bytes": 489301488,
+      "sha256": "6336c1a055eec79cf8a6d99fdc8d32a2e4d9dc2662e00963cb35d66b89ed09ed"
+    },
+    "train_source3.tsv": {
+      "bytes": 503705637,
+      "sha256": "67da22f5151898ff3006febd836c1a159e97ae95efa7257a5aff4fda685e58e9"
+    },
+    "test_source1.tsv": {
+      "bytes": 175022086,
+      "sha256": "3d4a32c54c2ca9c53fd7c2be105bf26f708f94c4d2f88eb370972a195665c2f5"
+    },
+    "test_source2.tsv": {
+      "bytes": 509456422,
+      "sha256": "79d906c7497af2ace70aa277f6e334a652094909de99bd6c57b53420b6a7b2dd"
+    },
+    "test_source3.tsv": {
+      "bytes": 506002772,
+      "sha256": "850942b11d2a4343486ed0834e28bce9f3b385f3fd497fd60ccf4ea3b8bda035"
+    }
+  },
+  "splits": {
+    "train": {
+      "refs": 2206821,
+      "targets": 10320219,
+      "sources": {
+        "s2": 5034616,
+        "s3": 5285603
+      },
+      "links": 7638365,
+      "countries": [
+        "india",
+        "us"
+      ],
+      "folds": {
+        "0": 220657,
+        "1": 220657,
+        "2": 1765507
+      }
+    },
+    "test": {
+      "refs": 1732544,
+      "targets": 9969589,
+      "sources": {
+        "s2": 4887273,
+        "s3": 5082316
+      },
+      "links": 0,
+      "countries": [
+        "france",
+        "india",
+        "us"
+      ],
+      "folds": {
+        "3": 1732544
+      }
+    }
+  }
+}

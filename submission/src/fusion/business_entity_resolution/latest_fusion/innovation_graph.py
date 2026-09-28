@@ -196,9 +196,11 @@ def propagate(frame, edges):
             'mean_absolute_owner_probability_change': float((current['_posterior']-current['_previous']).abs().mean() or 0.),
             'positively_reinforced_pairs': current.filter(pl.col('_shift') > 0).height})
         prev = current.select('qid', 'tid', '_posterior')
+    del prior, allowed, projected, messages, prev, cavity, reverse, incoming
     if current.height:
         totals = current.group_by('tid').agg(pl.col('_posterior').sum(), pl.col('_null').first())
         normalization_error = float((totals['_posterior']+totals['_null']-1).abs().max())
+        del totals
     else:
         normalization_error = 0.
     if normalization_error > 1e-6:

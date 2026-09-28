@@ -11,7 +11,8 @@ the exact release implementation is [`src/finish.py`](../src/finish.py)
 the source trees that produced its score inputs are included alongside it
 
 the recorded public result for sprint2 is **0.990284 macro f0.5**
-the final-france variant changes three accepted pairs and has no separately recorded public result
+the final-france submission is team-reported at **0.990285**, with the same candidate pool and three fewer accepted pairs
+the final-france variant changes three accepted pairs and is team-reported at 0.990285
 see [results and measurement scope](results.md)
 
 ## 2. end-to-end data flow

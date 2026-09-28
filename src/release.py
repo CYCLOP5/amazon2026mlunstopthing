@@ -57,13 +57,21 @@ def verify(file):
         for name, digest in spec["output_sha256"].items():
             if inv["files"]["output/" + name]["sha256"] != digest:
                 raise ValueError("submitted output hash differs")
-        if z.testzip() is not None:
-            raise ValueError("archive crc check failed")
+        if inv.get('reproduction') == 'trained-models-and-source':
+            prefix = 'code/business_entity_resolution/'
+            assets = json.loads(z.read(prefix + 'reproduction_manifest.json'))
+            for name, info in assets['files'].items():
+                record = inv['files'].get(prefix + name)
+                if record is None or any(record[k] != info[k] for k in ('sha256', 'bytes')):
+                    raise ValueError('reproduction artifact differs: ' + name)
+            if prefix + 'models/collective/models/reranker.txt' not in inv['files']:
+                raise ValueError('missing fitted final model')
     return {"archive": str(file), "bytes": file.stat().st_size, "sha256": sha(file), "files": len(entries),
-            "variant": spec["variant"], "outputs": spec["output_sha256"], "verified": True}
+            "variant": spec["variant"], "outputs": spec["output_sha256"], "verified": True,
+            "crc": "verified during complete member reads", "reproduction": inv.get('reproduction', 'score-replay')}
 
 
-def build(source, assets, matching, candidate, config, dest):
+def build(source, assets, matching, candidate, config, dest, payload=None):
     spec = json.loads(config.read_text())
     for name, file in (("matching_results.tsv", matching), ("candidate_pairs.tsv", candidate)):
         if sha(file) != spec["output_sha256"][name]:
@@ -81,10 +89,19 @@ def build(source, assets, matching, candidate, config, dest):
         raise FileExistsError(final)
     prefix = "code/business_entity_resolution/"
     inv = {"schema": 1, "team": "Amazites", "variant": spec["variant"], "files": {}}
+    if payload is not None:
+        inv['reproduction'] = 'trained-models-and-source'
+        import importlib.util
+        module_spec = importlib.util.spec_from_file_location('reproduction', source / 'src/reproduce.py')
+        module = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(module)
+        module.verify(payload.resolve())
+        payload_manifest = json.loads((payload / 'manifest.json').read_text())
     with zf.ZipFile(temporary, "w", compression=zf.ZIP_DEFLATED, compresslevel=6, allowZip64=True) as z:
         def add(file, name):
             inv["files"][name] = {"sha256": sha(file), "bytes": file.stat().st_size}
-            z.write(file, name, compress_type=zf.ZIP_STORED if file.suffix == ".parquet" else zf.ZIP_DEFLATED)
+            z.write(file, name, compress_type=zf.ZIP_STORED if file.suffix in {'.parquet', '.npy', '.npz'} else zf.ZIP_DEFLATED,
+                    compresslevel=1 if file.suffix in {'.safetensors', '.bin'} else 6)
 
         def text(value, name):
             raw = value.encode()
@@ -98,6 +115,12 @@ def build(source, assets, matching, candidate, config, dest):
         for name in sorted(asset["files"]):
             add(assets / name, prefix + "assets/" + name)
         add(assets / "manifest.json", prefix + "assets/manifest.json")
+        if payload is not None:
+            for name, expected in sorted(payload_manifest['files'].items()):
+                add(payload / name, prefix + name)
+                if any(inv['files'][prefix + name][k] != expected[k] for k in ('sha256', 'bytes')):
+                    raise ValueError('payload changed during packaging: ' + name)
+            add(payload / 'manifest.json', prefix + 'reproduction_manifest.json')
         add(matching, "output/matching_results.tsv")
         add(candidate, "output/candidate_pairs.tsv")
         text(doc(source, spec), "Documentation_template.md")
@@ -120,11 +143,14 @@ if __name__ == "__main__":
     p.add_argument("--out", type=path, default=path("artifacts/final-packages"))
     p.add_argument("--verify", type=path)
     p.add_argument("--render-doc", type=path)
+    p.add_argument('--payload', type=path)
+    p.add_argument('--final-only', action='store_true')
     a = p.parse_args()
     if a.verify:
         print(json.dumps(verify(a.verify), indent=2))
     elif a.render_doc:
         a.render_doc.write_text(doc(a.source, json.loads((a.source / "configs/release.json").read_text())))
     else:
-        build(a.source, a.assets, a.sprint2, a.candidate, a.source / "configs/release.json", a.out / "sprint2")
-        build(a.source, a.assets, a.final, a.candidate, a.source / "configs/final.json", a.out / "final-france")
+        if not a.final_only:
+            build(a.source, a.assets, a.sprint2, a.candidate, a.source / "configs/release.json", a.out / "sprint2", a.payload)
+        build(a.source, a.assets, a.final, a.candidate, a.source / "configs/final.json", a.out / "final-france", a.payload)

@@ -4,7 +4,7 @@
 
 our team compared successive internal matching implementations on 2026-09-27
 we reviewed the training recipes, calibration, france rules, composition features and validation logic against the competition's source1 macro f0.5 definition
-the best recorded public result is [0.990284](final-result.json) for sprint2; the measurements below describe individual experiments
+the best recorded public result is [0.990285](final-result.json) for final-france; the measurements below describe individual experiments
 
 ## methods we integrated
 

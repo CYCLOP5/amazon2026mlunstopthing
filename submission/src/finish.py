@@ -46,6 +46,14 @@ def blend(d, weights):
     return np.divide(n, den, out=np.zeros(len(d)), where=den > 0).astype(np.float32)
 
 
+def fit_swaps(refs, targets, pool):
+    ix = top(*(pool[c].to_numpy() for c in ("qid", "tid", "p2")))
+    raw = pool[ix].select("qid", "tid").lazy().join(refs.lazy(), on="qid").join(targets, on="tid").collect(engine="streaming")
+    counts = pat(raw).filter(pl.col("swap")).group_by("wa", "wb").len("n")
+    counts = counts.join(counts.rename({"wa": "wb", "wb": "wa", "n": "rev"}), on=["wa", "wb"], how="left").with_columns(pl.col("rev").fill_null(0))
+    return counts.filter((pl.col("n") + pl.col("rev") >= 20) & (pl.col("n") / (pl.col("n") + pl.col("rev")) < .7)).select("wa", "wb")
+
+
 def prep(data, dest):
     dest.mkdir(parents=True, exist_ok=False)
     off = 0
@@ -76,10 +84,13 @@ def write(d, r, t, dest, col, tail=False):
             out.select("source1_entity_id", pl.col(col).fill_null("")).write_csv(f, separator="\t", quote_style="never", include_header=start == 0)
 
 
-def run(data, assets, cfg, out):
+def run(data, assets, cfg, out, rules=None):
     spec = json.loads(cfg.read_text())
     inv = json.loads((assets / "manifest.json").read_text())
-    if set(inv["files"]) != {"collective.parquet", "france.parquet", "swap-pool.parquet"}:
+    required = {"collective.parquet", "france.parquet"}
+    if rules is None:
+        required.add("swap-pool.parquet")
+    if set(inv["files"]) != required:
         raise ValueError("incomplete replay asset inventory")
     for name, info in inv["files"].items():
         if sha(assets / name) != info["sha256"]:
@@ -120,14 +131,13 @@ def run(data, assets, cfg, out):
     accepted = fr[ix[p[ix] >= spec["france"]["cut"]]].select("qid", "tid")
     del fr, fr_scores, p, ix
     targets = t.select("tid", pl.col("nm").alias("tn"), pl.col("ad").alias("ta"))
-    pool = pl.read_parquet(assets / "swap-pool.parquet")
-    ix = top(*(pool[c].to_numpy() for c in ("qid", "tid", "p2")))
-    raw = pool[ix].select("qid", "tid").lazy().join(refs.lazy(), on="qid").join(targets, on="tid").collect(engine="streaming")
-    del pool, ix
-    counts = pat(raw).filter(pl.col("swap")).group_by("wa", "wb").len("n")
-    del raw
-    counts = counts.join(counts.rename({"wa": "wb", "wb": "wa", "n": "rev"}), on=["wa", "wb"], how="left").with_columns(pl.col("rev").fill_null(0))
-    bad = counts.filter((pl.col("n") + pl.col("rev") >= 20) & (pl.col("n") / (pl.col("n") + pl.col("rev")) < .7)).select("wa", "wb")
+    if rules is None:
+        bad = fit_swaps(refs, targets, pl.read_parquet(assets / "swap-pool.parquet"))
+    else:
+        fitted = json.loads(rules.read_text())
+        if fitted.get('algorithm') != 'france-category-direction-v1' or fitted['data'] != spec['data']:
+            raise ValueError('fitted rule model differs')
+        bad = pl.DataFrame(fitted['pairs'], schema={'wa': pl.String, 'wb': pl.String}).unique()
     rows = pat(accepted.lazy().join(refs.lazy(), on="qid").join(targets, on="tid").collect(engine="streaming"))
     drop = rows.filter(pl.col("swap") & pl.col("house")).join(bad, on=["wa", "wb"], how="semi").select("qid", "tid")
     accepted = accepted.join(drop, on=["qid", "tid"], how="anti")
@@ -139,7 +149,7 @@ def run(data, assets, cfg, out):
     accepted = pl.concat([known, accepted])
     if accepted["tid"].n_unique() != len(accepted) or len(accepted) != spec["matches"]:
         raise ValueError("matching ownership or row count differs")
-    del rows, counts, bad, drop
+    del rows, bad, drop
     write(accepted, r, t, out / "matching_results.tsv", "matched_entity_ids")
     write(scores.select("qid", "tid"), r, t, out / "candidate_pairs.tsv", "candidate_entity_ids", tail=True)
     hashes = {name: sha(out / name) for name in ("matching_results.tsv", "candidate_pairs.tsv")}
@@ -155,5 +165,6 @@ if __name__ == "__main__":
     p.add_argument("--assets", type=path, default=path(__file__).resolve().parents[1] / "assets")
     p.add_argument("--config", type=path, default=path(__file__).resolve().parents[1] / "configs/release.json")
     p.add_argument("--out", type=path, required=True)
+    p.add_argument("--rules", type=path)
     a = p.parse_args()
-    run(a.data, a.assets, a.config, a.out)
+    run(a.data, a.assets, a.config, a.out, a.rules)

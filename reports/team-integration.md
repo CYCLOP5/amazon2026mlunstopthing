@@ -193,7 +193,7 @@ the additional positional variant removes three `groupe`-before-legal-suffix pai
 both variants keep the same complete 20,177,322-pair candidate file
 
 reported public progression for the late artifacts was 0.989926 to 0.990108 to 0.990284
-the last value belongs to sprint2; the three-pair derivative has no separately recorded public result
+the last value belongs to sprint2; the final three-pair derivative was subsequently team-reported at 0.990285
 
 the actual final selection code is retained under `submission/src/final_tuning/`
 `submission/src/finish.py` is the consolidated replay entry point, checked against the exact submitted output hashes

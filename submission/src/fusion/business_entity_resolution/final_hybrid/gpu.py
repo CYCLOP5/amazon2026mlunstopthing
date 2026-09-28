@@ -537,7 +537,8 @@ def _model_scores(model, tokens, mode):
     return model(**tokens).logits[:, 0].float().cpu().numpy()
 
 
-def score_worker(prepared, lexical, old_model, verified, expert, output, rank, workers, batch):
+def score_worker(prepared, lexical, old_model, verified, expert, output, rank, workers, batch,
+                 splits=('train', 'test'), rescore_all=False):
     'score fused candidate shards, reusing exact-key cached pair scores'
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -563,16 +564,18 @@ def score_worker(prepared, lexical, old_model, verified, expert, output, rank, w
     print(f"FINAL HYBRID GPU{rank}: base={model_dir}; expert={expert_dir}; "
           f"batch={batch}; devices={torch.cuda.get_device_name(0)}", flush=True)
     tasks = []
-    for split in ("train", "test"):
+    for split in splits:
         manifest = json.loads((out_root / split / "fusion_report.json").read_text())
         tasks.extend((split, out_root / split / "score_inputs" / name)
                      for name in manifest["retrieval_shards"])
     cache_by_split = {}
     records_by_split = {}
-    for split in ("train", "test"):
+    for split in splits:
         cache_by_split[split] = (
-            _read_cached_scores(verified, split, "ce_full_lg", "ce_base_lg"),
-            _read_cached_scores(expert, split, "expert_lg", "expert_lg"))
+            pl.DataFrame(schema={'qid': pl.UInt32, 'tid': pl.UInt32, 'ce_base_lg': pl.Float32}),
+            pl.DataFrame(schema={'qid': pl.UInt32, 'tid': pl.UInt32, 'expert_lg': pl.Float32})) if rescore_all else (
+                _read_cached_scores(verified, split, "ce_full_lg", "ce_base_lg"),
+                _read_cached_scores(expert, split, "expert_lg", "expert_lg"))
         records_by_split[split] = (
             _records(lexical, split, "refs.parquet").select(
                 pl.col("rid").alias("qid"), pl.col("nm").alias("nm1"),
@@ -623,7 +626,7 @@ def score_worker(prepared, lexical, old_model, verified, expert, output, rank, w
               f"{res.height-reused_scores:,}", flush=True)
 
 
-def dense_worker(lexical, output, rank, workers, batch):
+def dense_worker(lexical, output, rank, workers, batch, splits=('train', 'test')):
     'encode pinned e5-base field vectors, then exact-gpu retrieve top eight'
     import torch
     from transformers import AutoModel, AutoTokenizer
@@ -636,7 +639,7 @@ def dense_worker(lexical, output, rank, workers, batch):
         torch_dtype=torch.bfloat16).to("cuda").eval()
     root = Path(lexical)
     tasks = []
-    for split in ("train", "test"):
+    for split in splits:
         refs, queries = _records(root, split, "refs.parquet"), _records(root, split, "queries.parquet")
         countries = sorted(set(refs["co"].unique().to_list()) & set(queries["co"].unique().to_list()))
         for country in countries:
@@ -682,10 +685,10 @@ def _spawn_runner(stage, args, workers, runner=None):
         raise
 
 
-def _verify_output(output):
+def _verify_output(output, splits=('train', 'test')):
     root = Path(output)
     reports = {}
-    for split in ("train", "test"):
+    for split in splits:
         base = root / split
         exp = pl.read_parquet(base / "candidates.parquet", columns=["qid", "tid"])
         manifest = json.loads((base / "fusion_report.json").read_text())
@@ -717,8 +720,8 @@ def _verify_output(output):
     return reports
 
 
-def _validate_old_score_pools(prepared, verified, expert):
-    for split in ("train", "test"):
+def _validate_old_score_pools(prepared, verified, expert, splits=('train', 'test')):
+    for split in splits:
         keys = pl.read_parquet(Path(prepared) / split / "features.parquet",
                                columns=["qid", "tid"])
         for root, score, name in ((verified, "ce_full_lg", "base"),
@@ -730,25 +733,29 @@ def _validate_old_score_pools(prepared, verified, expert):
                 raise ValueError(f"Cached {name} scores do not exactly cover old {split} prepared pairs")
 
 
-def run(prepared, lexical, old_model, verified, expert, output, workers=4, batch=128):
+def run(prepared, lexical, old_model, verified, expert, output, workers=4, batch=128,
+        splits=('train', 'test'), rescore_all=False):
     'run dense retrieval, deterministic fusion, and cached-fill pair scoring'
     if workers != 4:
         raise ValueError("Final hybrid GPU stage is configured for exactly four workers")
     if batch < 1:
         raise ValueError("batch must be positive")
+    if not splits or len(set(splits)) != len(splits) or not set(splits) <= {'train', 'test'}:
+        raise ValueError('invalid inference splits')
     prepared, lexical, output = Path(prepared), Path(lexical), Path(output)
-    for split in ("train", "test"):
+    for split in splits:
         for file in ("refs.parquet", "queries.parquet", "lexical.parquet"):
             if not (lexical / split / file).exists():
                 raise FileNotFoundError(lexical / split / file)
         if not (prepared / split / "features.parquet").exists():
             raise FileNotFoundError(prepared / split / "features.parquet")
-        if not (Path(verified) / split).exists() or not (Path(expert) / split).exists():
+        if not rescore_all and (not (Path(verified) / split).exists() or not (Path(expert) / split).exists()):
             raise FileNotFoundError(f"Missing cached neural score split {split}")
-    for path in (Path(verified) / "_SUCCESS", Path(expert) / "_SUCCESS"):
-        if not path.exists():
-            raise RuntimeError(f"Cached neural scoring incomplete: {path}")
-    _validate_old_score_pools(prepared, verified, expert)
+    if not rescore_all:
+        for path in (Path(verified) / "_SUCCESS", Path(expert) / "_SUCCESS"):
+            if not path.exists():
+                raise RuntimeError(f"Cached neural scoring incomplete: {path}")
+        _validate_old_score_pools(prepared, verified, expert, splits)
     output.mkdir(parents=True, exist_ok=True)
     for done in (output / "_SUCCESS",):
         done.unlink(missing_ok=True)
@@ -759,14 +766,19 @@ def run(prepared, lexical, old_model, verified, expert, output, workers=4, batch
         attn_implementation="sdpa", use_safetensors=True, torch_dtype="bfloat16")
     del warm
     runner = Path(__file__).resolve().parents[1] / "scripts/run_final_hybrid.py"
-    dense_args = ["--lexical", str(lexical), "--output", str(output), "--batch", str(batch)]
+    split_arg = 'both' if len(splits) == 2 else splits[0]
+    dense_args = ["--lexical", str(lexical), "--output", str(output), "--batch", str(batch), '--split', split_arg]
     _spawn_runner("dense-worker", dense_args, workers, runner)
     fusion = {}
-    for split in ("train", "test"):
+    for split in splits:
         fusion[split] = _fuse_split(prepared, lexical, output, split)
     _atomic_json(output / "fusion_report.json", fusion)
     score_args = ["--prepared", str(prepared), "--lexical", str(lexical),
-        "--old-model", str(old_model), "--verified", str(verified), "--expert", str(expert),
-        "--output", str(output), "--batch", str(batch)]
+        "--old-model", str(old_model), "--expert", str(expert),
+        "--output", str(output), "--batch", str(batch), '--split', split_arg]
+    if verified is not None:
+        score_args += ['--verified', str(verified)]
+    if rescore_all:
+        score_args.append('--rescore-all')
     _spawn_runner("score-worker", score_args, workers, runner)
-    return _verify_output(output)
+    return _verify_output(output, splits)

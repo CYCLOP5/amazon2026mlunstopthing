@@ -17,6 +17,40 @@ lightgbm models are trained from the challenge-derived features and labels
 frozen score assets preserve the predictions used by the final decision layer
 using recorded scores does not change which upstream models generated them
 
+## selected neural parameter counts
+
+the recorded 15-member pair ensemble has **6,397,997,583 parameters (6.398 billion)**:
+
+| fine-tuned member base | members | parameters per member | subtotal |
+| --- | ---: | ---: | ---: |
+| multilingual-e5-large-instruct | 6 | 558,841,857 | 3,353,051,142 |
+| bge-reranker-v2-m3 | 3 | 566,706,177 | 1,700,118,531 |
+| multilingual-e5-base | 4 | 277,453,825 | 1,109,815,300 |
+| multilingual-e5-small | 2 | 117,506,305 | 235,012,610 |
+
+the task-trained multilingual-e5-small retriever's source record contains approximately 117.65 million tensor elements, including buffers
+adding that source count gives approximately **6.516 billion** for this selected neural retrieval and matching path
+this is not an end-to-end count for all earlier retrieval, tree, graph and fusion models
+the full package retains each model's identity, role and checkpoint separately
+
+## bundled trained artifacts
+
+| location | role |
+| --- | --- |
+| `models/earlier/` | the original lexical gate and fitted pair classifier |
+| `models/learned/encoder/` | task-trained retrieval weights and tokenizer |
+| `models/learned/neural/` | all 15 selected pair-model checkpoints and member metadata |
+| `models/learned/gate/`, `reverse/`, `stack/` | rich gate, reverse-index state and selected score stack |
+| `models/run6/` | both rounds of cross-fitted tree models and their ordered feature contracts |
+| `models/graph-ranker/`, `graph-refine/` | calibrated binary/rank models and sibling heads |
+| `models/expert/`, `models/hybrid/` | trained neural expert and bounded hybrid residual heads |
+| `models/fusion/`, `models/collective/` | original residual baseline, fitted collective reranker and selection metadata |
+| `models/france/rules.json` | fitted category-direction parameters, data identity and fitting-pool hash |
+| `models/bases/` | pinned upstream snapshots and tokenizer/pooling support files |
+
+the run-3 artifacts are retained as rule-development provenance; cold inference applies the saved word-direction parameters rather than asking that historical scorer for new predictions
+`reproduction_manifest.json` binds every included file to its size, content hash and retained source
+
 ## provenance
 
 - neural source identities and revisions: `src/neural_v2/reports/model_sources.json`

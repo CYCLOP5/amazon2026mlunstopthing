@@ -108,3 +108,21 @@ def test_neural_dispatch_supports_hf_head_and_innovation_matcher_without_torch()
     tokens = {"input_ids": [1, 2]}
     assert _model_scores(Head(), tokens, "base").tolist() == [0.25, -0.75]
     assert _model_scores(Matcher(), tokens, "expert").tolist() == [0.25, -0.75]
+
+
+def test_test_only_verification_requires_every_candidate(tmp_path):
+    import json
+    from final_hybrid.gpu import _verify_output
+
+    base = tmp_path / 'test'
+    (base / 'parts').mkdir(parents=True)
+    pairs = pl.DataFrame({'qid': [1, 2], 'tid': [10, 10]})
+    pairs.write_parquet(base / 'candidates.parquet')
+    (base / 'fusion_report.json').write_text(json.dumps({'retrieval_shards': ['part.parquet']}))
+    scored = pairs.with_columns(pl.lit(.1).alias('ce_base_lg'), pl.lit(.2).alias('expert_lg'))
+    scored.head(1).write_parquet(base / 'parts/part.parquet')
+    with pytest.raises(RuntimeError, match='coverage'):
+        _verify_output(tmp_path, ('test',))
+    scored.write_parquet(base / 'parts/part.parquet')
+    result = _verify_output(tmp_path, ('test',))
+    assert result['test']['scored_pairs'] == 2 and set(result) == {'test'}

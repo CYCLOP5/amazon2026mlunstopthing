@@ -5,7 +5,7 @@ the submitted combined pipeline and its final variants are documented in [submis
 
 amazites: varun jhaveri, shivsharan sanjawad, raj mathuria, aastha singh
 
-**best recorded public leaderboard f0.5: 0.990284 for the later sprint2 release**
+**best recorded public leaderboard f0.5: 0.990285 for the later final-france release**
 our team developed the learned pipeline and reproducibility workflow described here
 the archived learned checkpoint's own scores and hashes remain documented in its [release receipt](../reports/submission-learned.json)
 

@@ -2,11 +2,12 @@
   "team": "Amazites",
   "reported_date": "2026-09-27",
   "metric": "public leaderboard source1 macro f0.5",
-  "score": 0.990284,
-  "provenance": "team-reported sprint2 public result, 99.0284 percent",
-  "matching_sha256": "b05d40e6c914e1741ebb6c17e3c11edd7b04d90d6c9a4d1c770c409ed25ec2dc",
+  "score": 0.990285,
+  "provenance": "team-reported final-france public result in the updated submission methodology",
+  "matching_sha256": "e0565d95ecc02396992a8e56e9eec540438b8a255a477872a19ba25c8db9b7bd",
   "candidate_sha256": "344f114f8c81d4c806cf7019a2ebefc6cb312e16ca7ec04797701ee36a9e5e71",
   "final_france_sha256": "e0565d95ecc02396992a8e56e9eec540438b8a255a477872a19ba25c8db9b7bd",
-  "final_france_public_score": null,
-  "artifact_binding": "sprint2 and its three-pair final-france derivative; the latter has no separately recorded public result"
+  "final_france_public_score": 0.990285,
+  "artifact_binding": "final-france: the submitted three-pair positional-rule derivative of sprint2",
+  "sprint2_public_score": 0.990284
 }

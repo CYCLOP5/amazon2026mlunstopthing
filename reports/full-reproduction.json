@@ -1,0 +1,215 @@
+{
+  "artifact_files": 331,
+  "artifact_bytes": 36710042999,
+  "collective": {
+    "verified": true,
+    "countries": {
+      "france": {
+        "pairs": 4840519,
+        "max_abs_error": 0.0,
+        "different_probabilities": 0
+      },
+      "us": {
+        "pairs": 6898320,
+        "max_abs_error": 0.0,
+        "different_probabilities": 0
+      },
+      "india": {
+        "pairs": 8438483,
+        "max_abs_error": 0.0,
+        "different_probabilities": 0
+      }
+    },
+    "total_pairs": 20177322
+  },
+  "neural": {
+    "device": "NVIDIA GeForce RTX 2060",
+    "pairs": 16,
+    "models": {
+      "m0": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 0.0011622905731201172,
+        "local_precision": "bf16"
+      },
+      "m1": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 0.0011026263236999512,
+        "local_precision": "bf16"
+      },
+      "m2": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 0.0008324980735778809,
+        "local_precision": "bf16"
+      },
+      "m3": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 6.198883056640625e-06,
+        "local_precision": "bf16"
+      },
+      "m4": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 0.00011843442916870117,
+        "local_precision": "bf16"
+      },
+      "m5": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 3.0683615477755666e-05,
+        "local_precision": "bf16"
+      },
+      "m6": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 3.4809112548828125e-05,
+        "local_precision": "bf16"
+      },
+      "m7": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 1.5020370483398438e-05,
+        "local_precision": "bf16"
+      },
+      "m8": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 3.594160079956055e-05,
+        "local_precision": "bf16"
+      },
+      "m9": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 0.0009385347366333008,
+        "local_precision": "bf16"
+      },
+      "m10": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 0.019505873322486877,
+        "local_precision": "bf16"
+      },
+      "m11": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 0.0012565255165100098,
+        "local_precision": "bf16"
+      },
+      "m12": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 0.0011776089668273926,
+        "local_precision": "bf16"
+      },
+      "m13": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 0.0013047456741333008,
+        "local_precision": "bf16"
+      },
+      "m14": {
+        "loaded_offline": true,
+        "finite_predictions": true,
+        "max_abs_difference_from_a100_bf16": 0.00043487176299095154,
+        "local_precision": "bf16"
+      },
+      "earlier": {
+        "loaded_offline": true,
+        "finite_predictions": true
+      },
+      "expert": {
+        "loaded_offline": true,
+        "finite_predictions": true
+      }
+    },
+    "torch": "2.8.0+cu128",
+    "transformers": "4.57.6"
+  },
+  "retrievers": {
+    "verified": true,
+    "models": {
+      "base": {
+        "model": "intfloat/multilingual-e5-base",
+        "revision": "d128750597153bb5987e10b1c3493a34e5a4502a",
+        "offline": true,
+        "dimensions": 768
+      },
+      "large": {
+        "model": "intfloat/multilingual-e5-large-instruct",
+        "revision": "274baa43b0e13e37fafa6428dbc7938e62e5c439",
+        "offline": true,
+        "dimensions": 1024
+      },
+      "qwen": {
+        "model": "Qwen/Qwen3-Embedding-0.6B",
+        "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+        "offline": true,
+        "dimensions": 1024
+      },
+      "trained-small": {
+        "offline": true,
+        "dimensions": 384
+      }
+    }
+  },
+  "regenerated_outputs": {
+    "variant": "final-france",
+    "sha256": {
+      "matching_results.tsv": "e0565d95ecc02396992a8e56e9eec540438b8a255a477872a19ba25c8db9b7bd",
+      "candidate_pairs.tsv": "344f114f8c81d4c806cf7019a2ebefc6cb312e16ca7ec04797701ee36a9e5e71"
+    }
+  },
+  "full_four_gpu_cold_rerun_performed_during_packaging": false,
+  "documented_predict_command": {
+    "verified": true,
+    "mode": "predict",
+    "raw_dataset_fingerprints_checked": true,
+    "output": {
+      "variant": "final-france",
+      "sha256": {
+        "matching_results.tsv": "e0565d95ecc02396992a8e56e9eec540438b8a255a477872a19ba25c8db9b7bd",
+        "candidate_pairs.tsv": "344f114f8c81d4c806cf7019a2ebefc6cb312e16ca7ec04797701ee36a9e5e71"
+      }
+    }
+  },
+  "prepared_logical_rows": {
+    "ref.parquet": {
+      "rows": 1732544,
+      "logical_rows_identical": true
+    },
+    "s2.parquet": {
+      "rows": 4887273,
+      "logical_rows_identical": true
+    },
+    "s3.parquet": {
+      "rows": 5082316,
+      "logical_rows_identical": true
+    }
+  },
+  "strict_validation": {
+    "source1": 1732544,
+    "targets": 9969589,
+    "matching_rows": 1732544,
+    "matching_empty": 99900,
+    "matching_ids": 5866300,
+    "candidate_rows": 1732544,
+    "candidate_empty": 25,
+    "candidate_ids": 20177322
+  },
+  "official_validation": {
+    "status": "PASS",
+    "check_ids": true,
+    "valid_target_ids": 9969589
+  },
+  "tests": {
+    "passed": 398,
+    "skipped": 1
+  },
+  "rule_fit_from_raw": {
+    "pairs": 1869,
+    "matches_packaged_rule_sha256": true
+  }
+}

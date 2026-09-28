@@ -4,7 +4,7 @@
 > cutoff comparisons retain their declared complete truth and candidate competition
 > team-reported leaderboard results are labeled separately from offline metrics
 
-**best recorded public leaderboard f0.5: 0.990284 for sprint2** · [result record](final-result.json)
+**best recorded public leaderboard f0.5: 0.990285 for final-france** · [result record](final-result.json)
 
 for the submitted execution path, start with the [q&a code map](../submission/docs/qa.md) and [final package receipts](final-packages.json)
 the experiment reports below preserve the development history of individual components
@@ -68,7 +68,7 @@ the later full-pool context and structured new-head protocol address specific sc
 
 format validation, exact replay and model evaluation are separately recorded
 the final code suite's 395 passing tests and the zip/tsv hash checks establish implementation integrity
-france remains unlabeled and the final positional edit has no separately recorded public result
+france remains unlabeled; the final positional edit is team-reported at 0.990285 without a france-only result
 
 ## completed historical learned submission
 
@@ -189,7 +189,7 @@ it does not establish competition accuracy
 
 ## final reporting
 
-- best recorded public score: 0.990284 for sprint2
+- best recorded public score: 0.990285 for final-france
 - per-variant output hashes distinguish checkpoint results from the final team score
 - retained scores support reproducible composition, calibration and france-rule diagnostics
 

@@ -21,7 +21,7 @@ the records below retain those distinctions
 | release | reported public macro f0.5 | accepted pairs | final candidates |
 | --- | ---: | ---: | ---: |
 | sprint2 | 0.990284 | 5,866,303 | 20,177,322 |
-| final-france positional variant | not separately recorded | 5,866,300 | 20,177,322 |
+| final-france positional variant | 0.990285 | 5,866,300 | 20,177,322 |
 
 both files contain all 1,732,544 required source1 rows
 the final-france variant removes three accepted pairs and changes no candidate pairs
@@ -87,7 +87,8 @@ these whole-release comparisons do not isolate a causal contribution for every u
 
 the final positional variant removes three pairs where an added `groupe` immediately precedes a legal suffix while preserving after-suffix cases
 the edit is implemented as a deterministic rule in the release replay, and exact file equality was checked
-there is no separate recorded public result establishing an accuracy gain for this edit
+the team-reported public macro f0.5 is 0.990285, which is 0.000001 above sprint2
+no separate france-only evaluation was reported
 
 ## 4. early full-pool diagnosis
 
@@ -198,7 +199,7 @@ the protocol excludes target overlap for the new head and records historical ups
 see [`configs/collective/`](../configs/collective/)
 
 these conditional head measurements support the model-development decision
-the released system's public result remains the separately reported 0.990284
+the final-france release's public result is the separately team-reported 0.990285
 
 ## 10. france transfer evidence and its limits
 

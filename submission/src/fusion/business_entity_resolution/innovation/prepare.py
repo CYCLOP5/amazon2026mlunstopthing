@@ -30,11 +30,11 @@ def select_targets(pred, targets, max_targets=500_000, topk=8):
         'selected_missing_address': int(wanted['missing_address'].sum())}
 
 
-def run(data, parent, output, max_targets=500_000, topk=8):
+def run(data, parent, output, max_targets=500_000, topk=8, splits=('train', 'test')):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     reports = {}
-    for split in ('train', 'test'):
+    for split in splits:
         dest = output/split
         (dest/'requests').mkdir(parents=True, exist_ok=True)
         refs, targets = load_refs(data, split), load_targets(data, split)

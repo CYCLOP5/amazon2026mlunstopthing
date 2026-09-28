@@ -1,21 +1,35 @@
 # amazites business entity resolution
 
 our team links noisy business records to a reference business using multilingual retrieval, lexical evidence, learned pair scores and graph context
-the release contains the complete source pipeline, pinned environments, compact replay inputs and the exact submitted output files
+the final-france release contains the trained checkpoints, tokenizers, pinned model sources, fitting settings, full feature checkpoints, source pipeline and exact submitted output files
+the team-reported public macro f0.5 is **0.990285**
 
-## 1. reproduce the submitted files
+## 1. verify and reproduce the submission
 
 from `code/business_entity_resolution` in the extracted archive:
 
 ```sh
 uv venv --python 3.11.16 .venv
 uv pip sync --python .venv/bin/python requirements.txt
-.venv/bin/python src/finish.py --data /path/to/dataset --out reproduced
+.venv/bin/python src/reproduce.py verify
+.venv/bin/python src/reproduce.py predict --data /path/to/dataset --out reproduced
 ```
 
-`dataset/test/` must contain the original `test_source1.tsv`, `test_source2.tsv` and `test_source3.tsv`
-the command checks input fingerprints, regenerates matching and candidate tsvs, and compares their sha256 values with the submitted files
+`dataset/` must contain the original `train/` and `test/` files
+`predict` loads the fitted final model, rebuilds complete country graph context from the included full feature checkpoint, and applies the fitted final rules
+all 20,177,322 regenerated candidate probabilities and both submitted output hashes were checked against the recorded release
 the destination must be new
+
+to recompute retrieval, neural scores and every subsequent matching stage from raw records using the included trained weights:
+
+```sh
+.venv/bin/python src/reproduce.py cold --data /path/to/dataset \
+  --work /scratch/amazites-cold --out reproduced-cold --gpus 4 --threads 48
+```
+
+the cold path requires the four-gpu, large-memory execution environment described in [reproduction](docs/reproduce.md)
+it loads fixed checkpoints and settings; it does not select new models or refit the final decision policy
+the original score-only replay is also available through `src/finish.py`
 
 the archive's `configs/release.json` selects its frozen policy
 the final-france variant applies the same policy followed by a narrow positional name rule
@@ -31,7 +45,11 @@ Amazites_submission.zip
     src/
     configs/
     assets/
+    models/
+    resume/
+    training/
     docs/
+    reproduction_manifest.json
     requirements.txt
     README.md
   Documentation_template.md
@@ -76,10 +94,13 @@ it is never reduced to accepted matches
 
 | path | purpose | environment |
 | --- | --- | --- |
+| `src/reproduce.py` | verified trained-checkpoint and full raw-data inference orchestration | top-level environment plus the stage-specific locks |
+| `src/heads.py` | prediction using saved run-6, graph, hybrid and collective heads | fusion environment |
 | `src/finish.py` | frozen final replay | top-level `requirements.txt` |
 | `src/final_tuning/` | country-cut and france-blend selection | `requirements/tuning.txt` |
 | `src/er/` | lexical pipeline and run-6 stack | `requirements/run6.txt` |
 | `src/neural_v2/` | learned retrieval, pair scoring and neural stack | its `pyproject.toml` and `uv.lock` |
+| `src/frozen/` | original source-hash-compatible earlier and learned scoring runtimes | each preserved `pyproject.toml` and `uv.lock` |
 | `src/fusion/` | hybrid, graph and collective fusion | its `pyproject.toml` and `uv.lock` |
 
 source and configuration snapshots for earlier experiments are retained for traceability
@@ -124,19 +145,23 @@ the separation makes it possible to inspect or reproduce a decision change witho
 | `configs/collective/` | fitting protocol, selected original policy and conditional model evidence | explain the final collective scorer's training/check scope |
 | `configs/execution/` | training allocation and full-scoring coverage records | trace parallel execution and completed populations |
 | `assets/` | complete final candidate probabilities and france replay inputs | deterministic cpu replay |
+| `models/` | neural weights, tokenizers, base snapshots, gates, tree heads, calibrations and fitted direction rules | complete trained inference dependency set |
+| `resume/` | complete scored/feature checkpoints at documented stage boundaries | model-based CPU reconstruction and inspection |
+| `training/` | original grouped hard-pair populations and text inputs | reproduce the recorded pair-training recipe |
+| `reproduction_manifest.json` | every model/checkpoint file size, hash and origin | full dependency integrity |
 | environment files | stage-specific pinned dependencies | distinguish different historical runtimes |
 | `docs/` and methodology | detailed design, experiments, results and commands | reviewer navigation |
 | `manifest.json` at zip root | file sizes and hashes | package-integrity audit |
 
 the original raw challenge data is provided separately
-the large trained bundles and full score/feature histories are separate retained artifacts; the zip's compact score assets are enough for its exact final replay
+the full trained dependency set and the documented reconstruction checkpoints are included in this zip
 
 ## 9. which variant should be reviewed
 
 | variant | accepted pairs | reported public macro f0.5 | difference |
 | --- | ---: | ---: | --- |
 | sprint2 | 5,866,303 | 0.990284 | recorded high-performing release |
-| final-france | 5,866,300 | not separately recorded | three extra positional-rule removals |
+| final-france | 5,866,300 | 0.990285 | team-reported final submission; three positional-rule removals |
 
 both use the same 20,177,322-pair candidate file
 each archive installs its own active `configs/release.json`

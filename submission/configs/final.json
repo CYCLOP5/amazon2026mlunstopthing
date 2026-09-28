@@ -4,7 +4,7 @@
   "source1_rows": 1732544,
   "candidate_pairs": 20177322,
   "matches": 5866300,
-  "reported_public_score": null,
+  "reported_public_score": 0.990285,
   "parent_reported_public_score": 0.990284,
   "cuts": {
     "india": 0.9310117959976196,

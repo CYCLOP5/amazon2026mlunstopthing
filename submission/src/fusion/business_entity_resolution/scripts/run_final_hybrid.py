@@ -22,12 +22,20 @@ def main():
     parser.add_argument('--rank', type=int, default=0)
     parser.add_argument('--batch', type=int, default=128)
     parser.add_argument('--rounds', type=int, default=800)
+    parser.add_argument('--rescore-all', action='store_true')
     args = parser.parse_args()
+    splits = ('train', 'test') if args.split == 'both' else (args.split,)
     required = {'prepare': ('data', 'prepared', 'output'),
         'gpu': ('prepared', 'lexical_train', 'lexical_test', 'old_model', 'verified', 'expert', 'output'),
         'dense-worker': ('lexical', 'output'),
         'score-worker': ('prepared', 'lexical', 'old_model', 'verified', 'expert', 'output'),
         'fit': ('data', 'parent', 'prepared', 'hybrid', 'output')}
+    if args.stage == 'gpu':
+        required['gpu'] = ('prepared', 'old_model', 'expert', 'output') + tuple('lexical_' + split for split in splits)
+        if not args.rescore_all:
+            required['gpu'] += ('verified',)
+    if args.stage == 'score-worker' and args.rescore_all:
+        required['score-worker'] = tuple(name for name in required['score-worker'] if name != 'verified')
     for name in required[args.stage]:
         if getattr(args, name) is None:
             parser.error(f'{args.stage} requires --{name.replace("_", "-")}')
@@ -46,19 +54,20 @@ def main():
         from final_hybrid.gpu import run
         with tempfile.TemporaryDirectory(prefix='hybrid_lexical_') as work:
             merged = Path(work)
-            for split, root in [('train', args.lexical_train), ('test', args.lexical_test)]:
+            for split in splits:
+                root = getattr(args, 'lexical_' + split)
                 if not (root/f'_{split}_SUCCESS').is_file():
                     raise RuntimeError(f'Lexical {split} preparation is incomplete')
                 (merged/split).symlink_to((root/split).resolve(), target_is_directory=True)
             run(args.prepared, merged, args.old_model, args.verified, args.expert,
-                args.output, args.workers, args.batch)
+                args.output, args.workers, args.batch, splits=splits, rescore_all=args.rescore_all)
     elif args.stage == 'dense-worker':
         from final_hybrid.gpu import dense_worker
-        dense_worker(args.lexical, args.output, args.rank, args.workers, args.batch)
+        dense_worker(args.lexical, args.output, args.rank, args.workers, args.batch, splits=splits)
     elif args.stage == 'score-worker':
         from final_hybrid.gpu import score_worker
         score_worker(args.prepared, args.lexical, args.old_model, args.verified, args.expert,
-                     args.output, args.rank, args.workers, args.batch)
+                     args.output, args.rank, args.workers, args.batch, splits=splits, rescore_all=args.rescore_all)
     else:
         from final_hybrid.fit import run
         run(args.data, args.parent, args.prepared, args.hybrid, args.output, args.rounds)

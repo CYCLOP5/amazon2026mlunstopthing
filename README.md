@@ -2,7 +2,7 @@
 
 our team built a multilingual business-matching pipeline from supplied records, compact candidate sets and calibrated entity-level decisions
 
-**team amazites · best recorded public leaderboard f0.5: 0.990284**
+**team amazites · best recorded public leaderboard f0.5: 0.990285**
 
 varun jhaveri · shivsharan sanjawad · raj mathuria · aastha singh
 
@@ -85,6 +85,9 @@ flowchart LR
 - keep raw records credentials host-specific paths and model/cache binaries out of git
 
 ## final release replay
+
+the full final-france package also contains every trained inference checkpoint, tokenizer, fitted rule and documented stage-resume artifact
+its [complete reproduction guide](submission/docs/reproduce.md) provides `verify`, trained-model `predict`, full raw-data `cold`, and exact `replay` commands
 
 run from the repository root with the original challenge dataset and the preserved score assets
 the final replay uses its own pinned, cpu-only environment
@@ -176,7 +179,7 @@ gpu is preferred for this corpus's embedding and neural matching workload
 - our feature implementation matched 54 values and checkpoint predictions exactly on the parity sample
 - full scored coverage includes every labeled and test target
 - the 2,560-trial cached search selected a finalist at development macro f0.5 0.990555257
-- best recorded public leaderboard f0.5: 0.990284 for sprint2
+- best recorded public leaderboard f0.5: 0.990285 for final-france
 
 immutable model-source revisions and licenses are in [model sources](reports/model_sources.json)
 upstream notices are in [licenses](licenses/readme.md)

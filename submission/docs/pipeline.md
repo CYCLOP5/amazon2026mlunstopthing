@@ -2,14 +2,15 @@
 
 ## 1. execution paths
 
-the release can be reproduced in two ways
+the full release provides three execution routes through `src/reproduce.py`
 
-- exact replay uses the included, hash-bound score assets and the original raw test records
-- a full rebuild regenerates retrieval, fitted models and scored pools from the original train/test data before applying the frozen final policy
+- `replay` uses the included, hash-bound final score assets and the original raw test records
+- `predict` loads the saved collective model and rebuilds complete graph features from the included full upstream feature checkpoint
+- `cold` regenerates retrieval, neural scores and subsequent tree/graph/hybrid predictions from raw records using all included trained checkpoints
 
-the first path reproduces the exact submitted bytes
-the second requires the appropriate cpu/gpu environments and can have numerical variation from fresh neural training
-all final source implementations and configuration files are included
+the replay and trained-head routes reproduce the exact submitted bytes
+the cold path requires the recorded cpu/gpu environments and preserves the model weights and selected settings
+the separate training recipes below explain how the checkpoints were originally fitted; rerunning training is not required to use the full inference command
 
 ### working directories
 
@@ -259,15 +260,16 @@ this is the release's byte-identical reproduction route
 this route can rebuild features, fit tree/fusion heads, compare calibration and reproduce final policy selection without refitting neural models
 changing a feature definition changes the cache identity and requires rebuilding that feature table
 
-### complete neural reconstruction
+### complete trained neural inference
 
-- every pinned base-model and tokenizer source
-- retained trained checkpoints, or the exact training-pair populations and settings needed to refit them
+- every fitted inference checkpoint and tokenizer, plus the frozen pretrained retrievers used during inference
+- the original training-pair populations and settings for inspecting or repeating the learned-pair recipe
 - lexical/reverse-index specifications and full reference populations
 - full inference shard plans and output coverage checks
 
-the large trained bundles are retained separately from the compact replay zips
-the compact zips include the code and recorded scores needed to reproduce the actual submitted bytes
+the full submission zip includes these trained bundles, tokenizers, feature contracts, calibrations, original grouped pair inputs and the documented resume checkpoints
+its `reproduction_manifest.json` lists their exact paths, hashes and origins
+retraining an expert from its original initialization is a separate workflow; its upstream identity and revision are recorded with the training source
 
 ## 11. cache and schema boundaries
 
