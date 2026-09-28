@@ -93,6 +93,9 @@ the [model-wise breakdown](submission/docs/models.md#verified-full-neural-parame
 the final-france Unstop zip stays below 1024 mb; trained checkpoints, tokenizers, fitted rules and large stage-resume artifacts are hosted on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1)
 its [complete reproduction guide](submission/docs/reproduce.md) provides automatic checksum-verified fetching, `verify`, trained-model `predict`, full raw-data `cold`, and exact `replay` commands
 
+the verified Unstop archive is **475,520,211 bytes (475.52 mb)**, below the 1024 mb upload limit
+it contains 658 checked files; the [delivery receipt](reports/unstop-submission.json) binds its hash, pinned Kaggle version and exact submitted TSVs
+
 run from the repository root with the original challenge dataset and the preserved score assets
 the final replay uses its own pinned, cpu-only environment
 

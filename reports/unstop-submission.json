@@ -1,0 +1,34 @@
+{
+  "archive": "/home/cyclops/Downloads/Amazites_submission.zip",
+  "bytes": 475520211,
+  "sha256": "f740c75b537c5c7fa94092add1b576703e763304b4ac95a56dd17540820e5405",
+  "files": 658,
+  "variant": "final-france",
+  "outputs": {
+    "matching_results.tsv": "e0565d95ecc02396992a8e56e9eec540438b8a255a477872a19ba25c8db9b7bd",
+    "candidate_pairs.tsv": "344f114f8c81d4c806cf7019a2ebefc6cb312e16ca7ec04797701ee36a9e5e71"
+  },
+  "verified": true,
+  "crc": "verified during complete member reads",
+  "reproduction": "kaggle-hosted-trained-models",
+  "maximum_bytes": 1024000000,
+  "dataset": "cycl0p5/amazites-ml-2026-reproduction-assets",
+  "dataset_version": 1,
+  "model_payload_bytes": 36710042999,
+  "public_url": "https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1",
+  "packed_fetch_code_matches_tested_code": true,
+  "exact_zip_replay": {
+    "archive": "artifacts/submission-kaggle/release/final-france/Amazites_submission.zip",
+    "bytes": 475520211,
+    "under_1024_mb": true,
+    "mode": "replay",
+    "large_models_present": false,
+    "curl_available": false,
+    "outputs": {
+      "matching_results.tsv": "e0565d95ecc02396992a8e56e9eec540438b8a255a477872a19ba25c8db9b7bd",
+      "candidate_pairs.tsv": "344f114f8c81d4c806cf7019a2ebefc6cb312e16ca7ec04797701ee36a9e5e71"
+    },
+    "verified": true
+  },
+  "source_commit": "f50c555"
+}
