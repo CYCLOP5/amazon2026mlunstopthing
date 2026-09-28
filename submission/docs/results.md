@@ -28,7 +28,7 @@ the final-france variant removes three accepted pairs and changes no candidate p
 
 | artifact | authoritative matching-file hash record |
 | --- | --- |
-| sprint2 | [`release.json`](../configs/release.json), `output_sha256.matching_results.tsv` |
+| sprint2 | [`sprint2.json`](../configs/sprint2.json), `output_sha256.matching_results.tsv` |
 | final-france | [`final.json`](../configs/final.json), `output_sha256.matching_results.tsv` |
 
 the frozen configuration files and archive manifests are authoritative for the complete hashes
