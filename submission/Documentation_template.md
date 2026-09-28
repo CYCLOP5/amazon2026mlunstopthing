@@ -17,9 +17,11 @@ the french category-swap filter is common to both releases
 the final-france variant adds a narrow positional name rule that removes three pairs
 its team-reported public macro f0.5 is 0.990285, compared with 0.990284 for sprint2
 
-the package contains the exact submitted matching/candidate files, complete trained model weights and tokenizers, preprocessing and calibration state, full reconstruction checkpoints, source implementations, actual late-sprint selection scripts and pinned environments
+the Unstop package stays below 1024 mb and contains the exact submitted matching/candidate files, source implementations, actual late-sprint selection scripts, pinned environments and checksum-bound model manifests
+the complete trained weights, tokenizers, preprocessing/calibration state and large reconstruction checkpoints are on Kaggle: https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1
+the reproduction command automatically fetches missing files with curl and verifies every SHA256 before model use
 the trained-head reconstruction and original score replay both reproduce the submitted bytes
-the raw-data inference command executes retrieval and the neural/tree/graph/hybrid chain using the included fixed checkpoints
+the raw-data inference command executes retrieval and the neural/tree/graph/hybrid chain using those fixed, verified checkpoints
 
 ## 2. challenge and scoring
 
@@ -113,9 +115,29 @@ fifteen complete-epoch members were selected; an interrupted bge checkpoint is e
 ensemble aggregation is mean logit followed by sigmoid, with individual member probabilities retained for the later stack
 
 model identities, revisions, licenses and per-member configurations are included under the source project's `configs/` and model-source records
-the selected 15-member pair ensemble contains 6,397,997,583 parameters (6.398 billion)
-the task-trained small retriever's source record contains approximately 117.65 million tensor elements, including buffers, giving approximately 6.516 billion for this selected retrieval/matching path
-this is not an end-to-end total for all earlier retrieval, tree, graph and fusion branches; the scoped breakdown and full role inventory are in `code/business_entity_resolution/docs/models.md`
+the actual neural inference inventory is:
+
+| model/checkpoint | role | parameters |
+| --- | --- | ---: |
+| multilingual-e5-large-instruct pair models ×6 | v2 matcher | 6 × 558,841,857 |
+| bge-reranker-v2-m3 ×3 | v2 matcher | 3 × 566,706,177 |
+| multilingual-e5-base pair models ×4 | v2 matcher | 4 × 277,453,825 |
+| multilingual-e5-small pair models ×2 | v2 matcher | 2 × 117,506,305 |
+| **v2 matching ensemble** | **15 selected checkpoints** | **6,397,997,583** |
+| task-trained multilingual-e5-small | v2 candidates | 117,653,760 |
+| frozen multilingual-e5-base | hybrid dense retrieval/features | 278,043,648 |
+| earlier fine-tuned e5-base matcher | earlier scores; reused in hybrid | 278,044,417 |
+| Qwen3-Embedding-0.6B | earlier candidates | 595,776,512 |
+| frozen multilingual-e5-large-instruct | earlier candidates | 559,890,432 |
+| fine-tuned multilingual-e5-large expert | hybrid pair feature | 558,841,857 |
+| **complete neural inference total** | **21 distinct checkpoints** | **8,786,248,209 (8.786B)** |
+
+**the organizer's 8B limit is per model, not the aggregate pipeline**
+our largest individual checkpoint is **595,776,512 parameters (approximately 0.596B)**, so the 8.786B combined neural total is consistent with that per-model rule
+the models retain their original MIT/Apache-2.0 licenses, run locally after checkpoint download, and are fine-tuned only on the provided data
+the same earlier pair model is reused across branches and counted once; buffer tensors, non-neural trees/rules and training-only initializers are excluded from this neural total
+the v2 ensemble plus its task retriever is the smaller **6,515,651,343 (6.516B)** subtotal
+the checkpoint-hash-bound inventory and recounting command are provided in `code/business_entity_resolution/docs/models.md`
 
 ## 7. learned feature and fusion layers
 
@@ -257,3 +279,67 @@ within `code/business_entity_resolution/docs/`:
 france remains unlabeled and historical evaluation reuse is disclosed
 the final three-pair edit raises the reported public macro score by 0.000001; no france-only score was reported
 these limits are preserved alongside the implementation and artifact evidence
+
+## architecture diagram
+
+<!-- diagram:pipeline -->
+```mermaid
+flowchart TB
+    raw["provided business records"]
+    older["earlier retrieval and matcher<br/>e5-large-instruct + qwen; e5-base pair model"]
+    learned["v2 learned branch<br/>task retriever, rich gate, 15 pair models, stack"]
+    run6["run-6 stack<br/>two cross-fitted tree rounds"]
+    graph_scores["graph and sibling refinement"]
+    hybrid["bounded hybrid<br/>dense retrieval + base/expert pair evidence"]
+    union["complete candidate and feature union<br/>20,177,322 pairs"]
+    context["complete country graph context<br/>13 competitive graph features"]
+    head["saved collective lightgbm<br/>105 ordered features"]
+    policy["frozen final policy<br/>country cuts; france blend and rules"]
+    matching["matching_results.tsv<br/>5,866,300 accepted pairs"]
+    candidates["candidate_pairs.tsv<br/>complete pre-matcher union"]
+    raw --> older
+    raw --> learned
+    older --> run6
+    older --> graph_scores
+    graph_scores --> hybrid
+    run6 --> union
+    graph_scores --> union
+    hybrid --> union
+    learned --> union
+    union --> context
+    context --> head
+    head --> policy
+    union -->|france component scores| policy
+    union --> candidates
+    policy --> matching
+```
+<!-- /diagram:pipeline -->
+
+## checkpoint delivery diagram
+
+<!-- diagram:distribution -->
+```mermaid
+flowchart TB
+    zip["Unstop zip below 1024 MB<br/>source, outputs, compact scores and hash manifests"]
+    kaggle["public Kaggle dataset<br/>fixed version; trained models and checkpoints"]
+    fetch["setup: curl raw content objects<br/>resumable downloads; no author credentials"]
+    check{"expected size and SHA256?"}
+    stop["stop on mismatch<br/>no unverified model is loaded"]
+    local["verified local model and checkpoint files"]
+    inference["local predict or cold reconstruction<br/>no hosted inference API"]
+    raw["organizer-provided raw records"]
+    replay["compact exact replay<br/>no large-model download"]
+    output["matching and candidate TSVs<br/>final hashes checked"]
+    zip -->|verify, predict or cold setup| fetch
+    kaggle --> fetch
+    fetch --> check
+    check -->|no| stop
+    check -->|yes| local
+    local --> inference
+    raw --> inference
+    inference --> output
+    zip -->|replay mode| replay
+    raw --> replay
+    replay --> output
+```
+<!-- /diagram:distribution -->

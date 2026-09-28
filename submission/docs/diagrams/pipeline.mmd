@@ -1,0 +1,28 @@
+flowchart TB
+    raw["provided business records"]
+    older["earlier retrieval and matcher<br/>e5-large-instruct + qwen; e5-base pair model"]
+    learned["v2 learned branch<br/>task retriever, rich gate, 15 pair models, stack"]
+    run6["run-6 stack<br/>two cross-fitted tree rounds"]
+    graph_scores["graph and sibling refinement"]
+    hybrid["bounded hybrid<br/>dense retrieval + base/expert pair evidence"]
+    union["complete candidate and feature union<br/>20,177,322 pairs"]
+    context["complete country graph context<br/>13 competitive graph features"]
+    head["saved collective lightgbm<br/>105 ordered features"]
+    policy["frozen final policy<br/>country cuts; france blend and rules"]
+    matching["matching_results.tsv<br/>5,866,300 accepted pairs"]
+    candidates["candidate_pairs.tsv<br/>complete pre-matcher union"]
+    raw --> older
+    raw --> learned
+    older --> run6
+    older --> graph_scores
+    graph_scores --> hybrid
+    run6 --> union
+    graph_scores --> union
+    hybrid --> union
+    learned --> union
+    union --> context
+    context --> head
+    head --> policy
+    union -->|france component scores| policy
+    union --> candidates
+    policy --> matching

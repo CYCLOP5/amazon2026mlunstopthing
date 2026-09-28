@@ -211,5 +211,13 @@
   "rule_fit_from_raw": {
     "pairs": 1869,
     "matches_packaged_rule_sha256": true
+  },
+  "distribution": {
+    "kind": "public-version-pinned-kaggle",
+    "dataset": "cycl0p5/amazites-ml-2026-reproduction-assets",
+    "version": 1,
+    "payload_manifest_sha256": "939927fe306b582b75ead32faf549e3ff7234b181c66df3ca414911ed8886eac",
+    "logical_bytes": 36710042999,
+    "unstop_zip_max_bytes": 1024000000
   }
 }

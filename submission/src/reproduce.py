@@ -260,6 +260,17 @@ def main():
     args.bundle = args.bundle.resolve()
     if args.threads < 1 or args.gpus < 1:
         parser.error('worker counts must be positive')
+    if args.mode == 'replay':
+        if args.data is None or args.out is None:
+            parser.error('--data and --out are required')
+        from finish import run
+        run(args.data.resolve(), root / 'assets', args.config, args.out.resolve())
+        return
+    hosted = root / 'configs/kaggle.json'
+    inventory = json.loads(manifest(args.bundle).read_text())
+    if hosted.is_file() and any(not (args.bundle / name).is_file() for name in inventory['files']):
+        from fetch_assets import fetch
+        fetch(args.bundle, hosted)
     verify(args.bundle)
     if args.mode == 'verify':
         return
@@ -268,10 +279,6 @@ def main():
     args.data, args.out = args.data.resolve(), args.out.resolve()
     if args.out.exists():
         raise FileExistsError(args.out)
-    if args.mode == 'replay':
-        from finish import run
-        run(args.data, root / 'assets', args.config, args.out)
-        return
     if shutil.which('uv') is None:
         raise RuntimeError('uv is required for the pinned reconstruction environments')
     work = (args.work or args.out.with_name(args.out.name + '-work')).resolve()

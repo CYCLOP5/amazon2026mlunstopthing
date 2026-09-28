@@ -1,0 +1,22 @@
+flowchart TB
+    zip["Unstop zip below 1024 MB<br/>source, outputs, compact scores and hash manifests"]
+    kaggle["public Kaggle dataset<br/>fixed version; trained models and checkpoints"]
+    fetch["setup: curl raw content objects<br/>resumable downloads; no author credentials"]
+    check{"expected size and SHA256?"}
+    stop["stop on mismatch<br/>no unverified model is loaded"]
+    local["verified local model and checkpoint files"]
+    inference["local predict or cold reconstruction<br/>no hosted inference API"]
+    raw["organizer-provided raw records"]
+    replay["compact exact replay<br/>no large-model download"]
+    output["matching and candidate TSVs<br/>final hashes checked"]
+    zip -->|verify, predict or cold setup| fetch
+    kaggle --> fetch
+    fetch --> check
+    check -->|no| stop
+    check -->|yes| local
+    local --> inference
+    raw --> inference
+    inference --> output
+    zip -->|replay mode| replay
+    raw --> replay
+    replay --> output

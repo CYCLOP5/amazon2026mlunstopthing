@@ -1,15 +1,17 @@
-# complete trained-model reproduction
+# complete trained-model reproduction with Kaggle assets
 
-## 1. what the full archive contains
+## 1. what is in the zip and on Kaggle
 
-the final-france archive includes the trained neural weights, tokenizers, upstream snapshots, learned gates, cross-fitted tree heads, calibrations, graph configuration, fitted france rules and original hard-pair training inputs
-it also includes complete stage checkpoints and the compact final-score assets
+Unstop limits the uploaded zip to 1024 mb
+the submitted zip therefore contains the code, documentation, exact output files, compact final-score assets and a complete hash-bound model manifest
+the trained neural weights, tokenizers, upstream snapshots, learned gates, cross-fitted tree heads, calibrations, fitted rules, training inputs and full stage checkpoints are hosted on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1)
+`configs/kaggle.json` pins the owner, dataset, version and manifest hashes
 
 these are different starting points for the same fixed final policy:
 
 | command | starting point | work performed |
 | --- | --- | --- |
-| `verify` | archive contents | validates the complete required model inventory and every payload/frozen-runtime hash |
+| `verify` | zip plus pinned Kaggle assets | fetches missing model files and validates the complete required model inventory and every payload/frozen-runtime hash |
 | `cold` | original raw train/test records and bundled fitted models | lexical/dense retrieval, neural scoring, run-6, graph/sibling and hybrid predictions, learned stack, full fusion features, collective graph/model and final export |
 | `predict` | original raw records and the complete upstream feature checkpoint | reloads the fitted final model, recomputes complete country graph context, predicts every candidate and exports the final policy |
 | `replay` | original raw test records and compact final scores | reapplies the exact frozen final decisions and writes the submitted bytes |
@@ -18,8 +20,9 @@ these are different starting points for the same fixed final policy:
 its france direction filter uses the fitted word-pair parameters in `models/france/rules.json`, just as the other fitted stages use their saved weights/calibrations
 the original direction-fitting pool and its fitting code remain available for audit
 
-the full inference pipeline does not require a live cloud workspace or model downloads
-dependency installation may access the package indexes named by the pinned environment files
+first setup requires internet to download the public Kaggle assets and install pinned software dependencies
+after the checkpoint files are verified locally, inference does not require a live cloud workspace or hosted inference API
+the public model fetch does not contain or require the author's Kaggle API token
 
 ## 2. setup and archive integrity
 
@@ -32,14 +35,38 @@ uv pip sync --python .venv/bin/python requirements.txt
 ```
 
 `reproduction_manifest.json` lists all model, resume and training-pair files with their sizes, hashes and retained origins
+`verify` automatically downloads any missing files before checking them
 the verifier explicitly requires the selected neural members, old/new gates, retrieval checkpoint, run-6 models, graph/rank models, hybrid heads, residual/collective models and fitted rules
 a score-only payload does not pass this complete-model check
 
 the zip-root `manifest.json` additionally covers the source, documentation, environment files and submitted outputs
 zip integrity verification reads every member completely, checking its crc, size and sha256
 
-the archive uses zip64 for large members
-extract it with a zip64-capable tool and leave room for both the extracted models and the chosen working directory
+the Unstop zip is checked against a conservative 1,024,000,000-byte limit
+allow at least 40 gb for the fetched dependency files and additional space for the selected reconstruction work
+
+### explicit or resumable model download
+
+```sh
+bash src/fetch_models.sh
+# equivalent standard-library driver, using curl for each pinned content object:
+python3 src/fetch_assets.py --bundle . --workers 4
+```
+
+the fetcher requests raw files from the version-pinned Kaggle API, resumes interrupted transfers with `curl --continue-at -`, and checks the expected byte count and SHA256 before exposing a checkpoint at its model path
+identical content is downloaded once and restored to all required paths
+completed correct files are reused; a changed existing model is rejected rather than silently overwritten
+rerun the same command after interruption
+
+the underlying request has this form, with the object hash taken from the checked manifest:
+
+```sh
+curl --fail --location --retry 5 --continue-at - \
+  --output MODEL_SHA256.bin.part \
+  'https://www.kaggle.com/api/v1/datasets/download/cycl0p5/amazites-ml-2026-reproduction-assets/MODEL_SHA256.bin?datasetVersionNumber=1&raw=true'
+```
+
+the Python driver performs the required hash verification and path restoration after `curl`; the raw curl line alone is not a complete integrity check
 
 ## 3. original challenge data
 
@@ -220,3 +247,34 @@ python3 utils/validate_submission.py \
 
 format/identity verification is distinct from matching accuracy
 the team-reported public macro f0.5 is 0.990285 for this final-france artifact; no france-only accuracy figure was reported
+
+## 10. download, verification and local execution flow
+
+<!-- diagram:distribution -->
+```mermaid
+flowchart TB
+    zip["Unstop zip below 1024 MB<br/>source, outputs, compact scores and hash manifests"]
+    kaggle["public Kaggle dataset<br/>fixed version; trained models and checkpoints"]
+    fetch["setup: curl raw content objects<br/>resumable downloads; no author credentials"]
+    check{"expected size and SHA256?"}
+    stop["stop on mismatch<br/>no unverified model is loaded"]
+    local["verified local model and checkpoint files"]
+    inference["local predict or cold reconstruction<br/>no hosted inference API"]
+    raw["organizer-provided raw records"]
+    replay["compact exact replay<br/>no large-model download"]
+    output["matching and candidate TSVs<br/>final hashes checked"]
+    zip -->|verify, predict or cold setup| fetch
+    kaggle --> fetch
+    fetch --> check
+    check -->|no| stop
+    check -->|yes| local
+    local --> inference
+    raw --> inference
+    inference --> output
+    zip -->|replay mode| replay
+    raw --> replay
+    replay --> output
+```
+
+[SVG version](diagrams/distribution.svg) · [Mermaid source](diagrams/distribution.mmd)
+<!-- /diagram:distribution -->

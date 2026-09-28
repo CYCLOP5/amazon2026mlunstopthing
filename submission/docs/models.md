@@ -7,7 +7,7 @@ the inventory below records identity and purpose; complete machine-readable prov
 | upstream model | license | role |
 | --- | --- | --- |
 | `intfloat/multilingual-e5-small` | mit | task-trained retriever and pair-model members |
-| `intfloat/multilingual-e5-base` | mit | earlier retrieval, pair classifiers and hybrid field embeddings |
+| `intfloat/multilingual-e5-base` | mit | pair classifiers, frozen hybrid retrieval and hybrid field embeddings |
 | `intfloat/multilingual-e5-large-instruct` | mit | earlier retrieval and pair-model members |
 | `BAAI/bge-reranker-v2-m3` | apache-2.0 | pair-model members |
 | `Qwen/Qwen3-Embedding-0.6B` | apache-2.0 | earlier candidate-retrieval lane |
@@ -17,7 +17,7 @@ lightgbm models are trained from the challenge-derived features and labels
 frozen score assets preserve the predictions used by the final decision layer
 using recorded scores does not change which upstream models generated them
 
-## selected neural parameter counts
+## verified full neural parameter inventory
 
 the recorded 15-member pair ensemble has **6,397,997,583 parameters (6.398 billion)**:
 
@@ -28,12 +28,58 @@ the recorded 15-member pair ensemble has **6,397,997,583 parameters (6.398 billi
 | multilingual-e5-base | 4 | 277,453,825 | 1,109,815,300 |
 | multilingual-e5-small | 2 | 117,506,305 | 235,012,610 |
 
-the task-trained multilingual-e5-small retriever's source record contains approximately 117.65 million tensor elements, including buffers
-adding that source count gives approximately **6.516 billion** for this selected neural retrieval and matching path
-this is not an end-to-end count for all earlier retrieval, tree, graph and fusion models
-the full package retains each model's identity, role and checkpoint separately
+the remaining inference checkpoints are:
 
-## bundled trained artifacts
+| model/checkpoint | actual role | parameters |
+| --- | --- | ---: |
+| task-trained multilingual-e5-small | v2 candidate retrieval | 117,653,760 |
+| frozen multilingual-e5-base | hybrid dense retrieval and pair similarity | 278,043,648 |
+| earlier fine-tuned multilingual-e5-base pair model | earlier matcher, reused for the hybrid `ce_base` feature | 278,044,417 |
+| frozen Qwen3-Embedding-0.6B | earlier candidate retrieval | 595,776,512 |
+| frozen multilingual-e5-large-instruct | earlier candidate retrieval | 559,890,432 |
+| fine-tuned multilingual-e5-large expert | hybrid neural pair feature | 558,841,857 |
+| **v2 ensemble + task retriever subtotal** | **selected v2 retrieval/matching path** | **6,515,651,343** |
+| **complete neural inference total** | **21 distinct checkpoints** | **8,786,248,209 (8.786B, approximately 8.79B)** |
+
+the expert is 558.842M, not the 559.890M of the frozen large retriever
+its fitted pair architecture uses the pooler-free backbone plus a scalar head
+the frozen e5-base model belongs to the hybrid dense branch; the earlier candidate retrievers are large-instruct and qwen
+
+### the 8B rule is per model
+
+the organizer clarification states: **the limit is per model**, so every embedder, reranker, matcher or other processing model must independently meet the model-size and license requirements
+it is not an aggregate pipeline limit
+our largest individual checkpoint is **595,776,512 parameters (approximately 0.596B)**
+the **8.786B combined neural total does not violate the stated per-model rule**; all individual checkpoints are below 8B
+the original model licenses are MIT or Apache-2.0 as listed above
+
+Kaggle is used only to download checkpoint files during setup
+inference loads the verified local files and makes no hosted-model API calls
+task-specific fine-tuning uses the provided challenge data
+
+### counting method and reuse
+
+the counts come from the actual safetensors checkpoint headers and are bound to file hashes in [`model-parameters.json`](../configs/model-parameters.json)
+frozen parameter tensors are included; optimizer state and non-parameter buffers are not
+the frozen e5-base snapshot contains 514 integer position-id buffer elements that are excluded from its parameter count
+the task-trained small retriever's 117,653,760 counted elements are parameter tensors
+
+the same earlier pair checkpoint is used in more than one branch and is counted only once
+distinct fine-tuned checkpoints are counted separately even when they start from the same pretrained family
+training-only initialization snapshots are excluded from the inference total
+lightgbm trees, calibration tables, fitted word rules and data/feature matrices are separate non-neural objects, not additional transformer parameter counts
+
+after fetching the assets, recount them locally with:
+
+```sh
+python3 src/model_inventory.py
+```
+
+## Kaggle-hosted trained artifacts
+
+the checkpoint files are on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1)
+the Unstop zip carries the manifest and `curl`-based automatic fetcher so it stays below 1024 mb
+the locations below are restored locally before trained-model inference
 
 | location | role |
 | --- | --- |
@@ -144,3 +190,34 @@ for transductive graph/fusion features, retain the complete population and candi
 the release keeps original machine-readable model records accurate
 the written documentation describes the model identities and their roles, while exact replay binds to the resulting score files
 recorded scores are not anonymous evidence: their producing model lineage remains part of the submission
+
+## neural checkpoint reuse map
+
+<!-- diagram:neural-models -->
+```mermaid
+flowchart TB
+    task["task-trained e5-small retriever<br/>117.654M parameters"]
+    v2["15 distinct v2 pair checkpoints<br/>6 large-instruct + 3 bge + 4 base + 2 small<br/>6,397,997,583 parameters"]
+    v2head["v2 gate and learned score stack"]
+    oldret["earlier frozen retrievers<br/>e5-large-instruct 559.890M<br/>qwen3 embedding 595.777M"]
+    oldpair["one earlier e5-base pair checkpoint<br/>278.044M; reused by two branches"]
+    oldheads["run-6 and graph/sibling models"]
+    dense["frozen e5-base retriever<br/>278.044M; hybrid candidates and similarity"]
+    expert["fine-tuned e5-large expert<br/>558.842M"]
+    hybrid["hybrid feature and residual models"]
+    union["full feature union and final collective model<br/>21 distinct neural checkpoints overall"]
+    task --> v2
+    v2 --> v2head
+    oldret --> oldpair
+    oldpair --> oldheads
+    oldheads --> hybrid
+    dense --> hybrid
+    expert --> hybrid
+    oldpair -->|same checkpoint; not counted again| hybrid
+    v2head --> union
+    oldheads --> union
+    hybrid --> union
+```
+
+[SVG version](diagrams/neural-models.svg) · [Mermaid source](diagrams/neural-models.mmd)
+<!-- /diagram:neural-models -->

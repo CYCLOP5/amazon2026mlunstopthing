@@ -1,5 +1,8 @@
 # final system architecture
 
+the size-limited Unstop zip carries the source, final outputs and model manifest
+trained checkpoints and large feature/training assets are on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1), restored by the [automatic verified fetcher](reproduce.md)
+
 ## 1. what this architecture implements
 
 our system resolves noisy records from sources2 and 3 against a source1 business catalog
@@ -10,6 +13,10 @@ lexical and neural retrieval create plausible links; learned gates and pair mode
 the exact release implementation is [`src/finish.py`](../src/finish.py)
 the source trees that produced its score inputs are included alongside it
 
+the full neural architecture contains 21 distinct checkpoints totaling **8,786,248,209 parameters**
+the organizer's **8B constraint is per model**; the largest individual checkpoint is **595,776,512 (approximately 0.596B)**
+the [model-wise inventory](models.md#verified-full-neural-parameter-inventory) separates the v2 subtotal, earlier retrieval/matching and hybrid expert, and counts reused checkpoints once
+
 the recorded public result for sprint2 is **0.990284 macro f0.5**
 the final-france submission is team-reported at **0.990285**, with the same candidate pool and three fewer accepted pairs
 the final-france variant changes three accepted pairs and is team-reported at 0.990285
@@ -17,37 +24,40 @@ see [results and measurement scope](results.md)
 
 ## 2. end-to-end data flow
 
+<!-- diagram:pipeline -->
 ```mermaid
-flowchart TD
-    raw[original train and test records] --> ids[stable row ids and comparison views]
-    ids --> old[earlier lexical and multilingual retrieval]
-    ids --> learned[task-trained small retriever and reverse retrieval]
-    learned --> gate[dense and name-aware gate]
-    gate --> ce[cross-encoder member scores]
-    ce --> stack[rich learned pair stack]
-    old --> run6[run-6 lexical and sibling stack]
-    run6 --> siblings[graph rank and sibling refinement]
-    siblings --> hybrid[bounded hybrid retrieval and residual model]
-    stack --> union[full score union and population features]
+flowchart TB
+    raw["provided business records"]
+    older["earlier retrieval and matcher<br/>e5-large-instruct + qwen; e5-base pair model"]
+    learned["v2 learned branch<br/>task retriever, rich gate, 15 pair models, stack"]
+    run6["run-6 stack<br/>two cross-fitted tree rounds"]
+    graph_scores["graph and sibling refinement"]
+    hybrid["bounded hybrid<br/>dense retrieval + base/expert pair evidence"]
+    union["complete candidate and feature union<br/>20,177,322 pairs"]
+    context["complete country graph context<br/>13 competitive graph features"]
+    head["saved collective lightgbm<br/>105 ordered features"]
+    policy["frozen final policy<br/>country cuts; france blend and rules"]
+    matching["matching_results.tsv<br/>5,866,300 accepted pairs"]
+    candidates["candidate_pairs.tsv<br/>complete pre-matcher union"]
+    raw --> older
+    raw --> learned
+    older --> run6
+    older --> graph_scores
+    graph_scores --> hybrid
     run6 --> union
-    siblings --> union
+    graph_scores --> union
     hybrid --> union
-    union --> residual[residual score fusion]
-    residual --> graph[competitive cavity graph features]
-    graph --> head[collective pair reranker]
-    head --> known[india and us owner selection and cuts]
-    head --> france[france available-score blend]
-    stack --> france
-    run6 --> france
-    siblings --> france
-    france --> swap[directional category-swap filter]
-    swap --> positional[optional final-france positional filter]
-    known --> export[external ids and matching tsv]
-    positional --> export
-    union --> candidates[complete candidate tsv]
-    export --> verify[expected hashes and submission checks]
-    candidates --> verify
+    learned --> union
+    union --> context
+    context --> head
+    head --> policy
+    union -->|france component scores| policy
+    union --> candidates
+    policy --> matching
 ```
+
+[SVG version](diagrams/pipeline.svg) · [Mermaid source](diagrams/pipeline.mmd)
+<!-- /diagram:pipeline -->
 
 the graph has two distinct roles in this diagram
 the earlier graph/sibling branch supplies a complementary score and an expanded candidate pool
@@ -571,3 +581,95 @@ historical audit reuse is disclosed in the relevant stage reports
 no earlier oracle or development value is presented as the final public score
 
 for artifact bindings, reconstruction commands and the experiment chronology, continue with [reproduction](reproduce.md), [full pipeline](pipeline.md) and [results](results.md)
+
+## 21. neural checkpoint reuse and parameter scope
+
+<!-- diagram:neural-models -->
+```mermaid
+flowchart TB
+    task["task-trained e5-small retriever<br/>117.654M parameters"]
+    v2["15 distinct v2 pair checkpoints<br/>6 large-instruct + 3 bge + 4 base + 2 small<br/>6,397,997,583 parameters"]
+    v2head["v2 gate and learned score stack"]
+    oldret["earlier frozen retrievers<br/>e5-large-instruct 559.890M<br/>qwen3 embedding 595.777M"]
+    oldpair["one earlier e5-base pair checkpoint<br/>278.044M; reused by two branches"]
+    oldheads["run-6 and graph/sibling models"]
+    dense["frozen e5-base retriever<br/>278.044M; hybrid candidates and similarity"]
+    expert["fine-tuned e5-large expert<br/>558.842M"]
+    hybrid["hybrid feature and residual models"]
+    union["full feature union and final collective model<br/>21 distinct neural checkpoints overall"]
+    task --> v2
+    v2 --> v2head
+    oldret --> oldpair
+    oldpair --> oldheads
+    oldheads --> hybrid
+    dense --> hybrid
+    expert --> hybrid
+    oldpair -->|same checkpoint; not counted again| hybrid
+    v2head --> union
+    oldheads --> union
+    hybrid --> union
+```
+
+[SVG version](diagrams/neural-models.svg) · [Mermaid source](diagrams/neural-models.mmd)
+<!-- /diagram:neural-models -->
+
+## 22. competitive graph computation before prediction
+
+<!-- diagram:collective-graph -->
+```mermaid
+flowchart TB
+    pool["full country candidate pool<br/>all competing owners retained"]
+    records["provided target names, addresses and source ids"]
+    edges["independent lexical graph<br/>cross-source; same country; house-compatible"]
+    neighbors["bounded graph<br/>small blocks; reciprocal top-4 edges"]
+    priors["saved baseline probabilities"]
+    states["owner hypotheses plus null state<br/>unsent rival odds remain in denominator"]
+    rounds["three damped cavity rounds<br/>exclude reverse-edge self-reinforcement<br/>positive support needs two original confident neighbors"]
+    features["13 graph features<br/>posteriors, entropy, margins, support and shifts"]
+    head["saved 105-feature lightgbm<br/>chunked prediction after complete context"]
+    output["one probability per original candidate"]
+    records --> edges
+    edges --> neighbors
+    pool --> priors
+    priors --> states
+    states --> rounds
+    neighbors --> rounds
+    rounds --> features
+    features --> head
+    pool -->|original non-graph features| head
+    head --> output
+```
+
+[SVG version](diagrams/collective-graph.svg) · [Mermaid source](diagrams/collective-graph.mmd)
+<!-- /diagram:collective-graph -->
+
+## 23. checkpoint delivery and offline inference boundary
+
+<!-- diagram:distribution -->
+```mermaid
+flowchart TB
+    zip["Unstop zip below 1024 MB<br/>source, outputs, compact scores and hash manifests"]
+    kaggle["public Kaggle dataset<br/>fixed version; trained models and checkpoints"]
+    fetch["setup: curl raw content objects<br/>resumable downloads; no author credentials"]
+    check{"expected size and SHA256?"}
+    stop["stop on mismatch<br/>no unverified model is loaded"]
+    local["verified local model and checkpoint files"]
+    inference["local predict or cold reconstruction<br/>no hosted inference API"]
+    raw["organizer-provided raw records"]
+    replay["compact exact replay<br/>no large-model download"]
+    output["matching and candidate TSVs<br/>final hashes checked"]
+    zip -->|verify, predict or cold setup| fetch
+    kaggle --> fetch
+    fetch --> check
+    check -->|no| stop
+    check -->|yes| local
+    local --> inference
+    raw --> inference
+    inference --> output
+    zip -->|replay mode| replay
+    raw --> replay
+    replay --> output
+```
+
+[SVG version](diagrams/distribution.svg) · [Mermaid source](diagrams/distribution.mmd)
+<!-- /diagram:distribution -->

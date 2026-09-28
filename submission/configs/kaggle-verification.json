@@ -1,0 +1,31 @@
+{
+  "dataset": "cycl0p5/amazites-ml-2026-reproduction-assets",
+  "version": 1,
+  "public": true,
+  "files": 262,
+  "bytes": 36540774472,
+  "payload_manifest_sha256": "939927fe306b582b75ead32faf549e3ff7234b181c66df3ca414911ed8886eac",
+  "all_remote_names_and_sizes_match": true,
+  "anonymous_manifest_sha256_verified": true,
+  "anonymous_large_file_resume": {
+    "dataset": "cycl0p5/amazites-ml-2026-reproduction-assets",
+    "version": 1,
+    "object": "62c24cdc13d4c9952d63718d6c9fa4c287974249e16b7ade6d5a85e7bbb75626.bin",
+    "bytes": 17082660,
+    "sha256": "62c24cdc13d4c9952d63718d6c9fa4c287974249e16b7ade6d5a85e7bbb75626",
+    "range_status": "206",
+    "resume_verified": true,
+    "anonymous": true
+  },
+  "automatic_missing_checkpoint_restore": {
+    "verified": true,
+    "dataset": "cycl0p5/amazites-ml-2026-reproduction-assets",
+    "version": 1,
+    "files": 331,
+    "bytes": 36710042999,
+    "restored_files": 1,
+    "payload_manifest_sha256": "939927fe306b582b75ead32faf549e3ff7234b181c66df3ca414911ed8886eac"
+  },
+  "curl_sends_no_author_credentials": true,
+  "unstop_zip_limit_bytes": 1024000000
+}

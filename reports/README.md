@@ -1,5 +1,7 @@
 # evidence index
 
+current trained-model and large checkpoint delivery: [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1), with the [automatic verified download workflow](../submission/docs/reproduce.md) included in the under-1024-mb Unstop zip
+
 > sampled retrieval recall pairwise precision and macro f0.5 are different measurements
 > cutoff comparisons retain their declared complete truth and candidate competition
 > team-reported leaderboard results are labeled separately from offline metrics

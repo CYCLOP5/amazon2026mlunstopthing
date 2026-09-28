@@ -11,6 +11,8 @@ the full release provides three execution routes through `src/reproduce.py`
 the replay and trained-head routes reproduce the exact submitted bytes
 the cold path requires the recorded cpu/gpu environments and preserves the model weights and selected settings
 the separate training recipes below explain how the checkpoints were originally fitted; rerunning training is not required to use the full inference command
+the checkpoint files and large resume/training artifacts are on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1)
+the size-limited Unstop zip includes the pinned manifest and automatically fetches/verifies them for `verify`, `predict` or `cold`
 
 ### working directories
 
@@ -267,8 +269,8 @@ changing a feature definition changes the cache identity and requires rebuilding
 - lexical/reverse-index specifications and full reference populations
 - full inference shard plans and output coverage checks
 
-the full submission zip includes these trained bundles, tokenizers, feature contracts, calibrations, original grouped pair inputs and the documented resume checkpoints
-its `reproduction_manifest.json` lists their exact paths, hashes and origins
+the Kaggle asset set includes these trained bundles, tokenizers, feature contracts, calibrations, original grouped pair inputs and the documented resume checkpoints
+the zip's `reproduction_manifest.json` lists their exact local paths, hashes and origins
 retraining an expert from its original initialization is a separate workflow; its upstream identity and revision are recorded with the training source
 
 ## 11. cache and schema boundaries

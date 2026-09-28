@@ -18,7 +18,8 @@ the final-france variant removes three pairs relative to sprint2's reported 0.99
 | local source/output custody | recorded independently of downloads | [custody record](../reports/final-source-custody.json) |
 
 the written documentation identifies the actual execution path and the measurement scope of earlier experiments
-full trained bundles and full score/feature histories are separate from the compact exact-replay package
+the size-limited Unstop zip includes code, compact replay inputs and the complete model manifest
+the trained bundles and large score/feature checkpoints are on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1), with automatic verified download through the reproduction commands
 
 ## 2. final file contract
 

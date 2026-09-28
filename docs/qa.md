@@ -1,5 +1,7 @@
 # final reviewer guide
 
+current model and checkpoint files are on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1); the [reproduction guide](../submission/docs/reproduce.md) explains automatic curl fetching and hash verification
+
 the detailed, package-aligned q&a is maintained at [submission/docs/qa.md](../submission/docs/qa.md)
 it maps reviewer questions to the exact implementation, recorded configurations and result scope
 

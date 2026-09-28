@@ -86,8 +86,12 @@ flowchart LR
 
 ## final release replay
 
-the full final-france package also contains every trained inference checkpoint, tokenizer, fitted rule and documented stage-resume artifact
-its [complete reproduction guide](submission/docs/reproduce.md) provides `verify`, trained-model `predict`, full raw-data `cold`, and exact `replay` commands
+the verified full neural inventory is **8,786,248,209 parameters across 21 distinct checkpoints**
+the **8B limit applies per model**, and the largest individual checkpoint is **595,776,512 (approximately 0.596B)**
+the [model-wise breakdown](submission/docs/models.md#verified-full-neural-parameter-inventory) explains checkpoint reuse, buffers, licenses and the smaller v2 subtotal
+
+the final-france Unstop zip stays below 1024 mb; trained checkpoints, tokenizers, fitted rules and large stage-resume artifacts are hosted on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1)
+its [complete reproduction guide](submission/docs/reproduce.md) provides automatic checksum-verified fetching, `verify`, trained-model `predict`, full raw-data `cold`, and exact `replay` commands
 
 run from the repository root with the original challenge dataset and the preserved score assets
 the final replay uses its own pinned, cpu-only environment
@@ -226,3 +230,71 @@ the learned cross-encoders trained on entity-isolated three-million-pair hard-pa
 full scoring used 16 disjoint assignments with explicit device and target ownership
 our team reused shared reference embeddings, completed score batches and full-corpus cpu caches
 see [training](docs/training.md), [arch](docs/arch.md), and [reproduction commands](docs/ops.md)
+
+## final architecture at a glance
+
+<!-- diagram:pipeline -->
+```mermaid
+flowchart TB
+    raw["provided business records"]
+    older["earlier retrieval and matcher<br/>e5-large-instruct + qwen; e5-base pair model"]
+    learned["v2 learned branch<br/>task retriever, rich gate, 15 pair models, stack"]
+    run6["run-6 stack<br/>two cross-fitted tree rounds"]
+    graph_scores["graph and sibling refinement"]
+    hybrid["bounded hybrid<br/>dense retrieval + base/expert pair evidence"]
+    union["complete candidate and feature union<br/>20,177,322 pairs"]
+    context["complete country graph context<br/>13 competitive graph features"]
+    head["saved collective lightgbm<br/>105 ordered features"]
+    policy["frozen final policy<br/>country cuts; france blend and rules"]
+    matching["matching_results.tsv<br/>5,866,300 accepted pairs"]
+    candidates["candidate_pairs.tsv<br/>complete pre-matcher union"]
+    raw --> older
+    raw --> learned
+    older --> run6
+    older --> graph_scores
+    graph_scores --> hybrid
+    run6 --> union
+    graph_scores --> union
+    hybrid --> union
+    learned --> union
+    union --> context
+    context --> head
+    head --> policy
+    union -->|france component scores| policy
+    union --> candidates
+    policy --> matching
+```
+
+[SVG version](submission/docs/diagrams/pipeline.svg) · [Mermaid source](submission/docs/diagrams/pipeline.mmd)
+<!-- /diagram:pipeline -->
+
+## checkpoint delivery at a glance
+
+<!-- diagram:distribution -->
+```mermaid
+flowchart TB
+    zip["Unstop zip below 1024 MB<br/>source, outputs, compact scores and hash manifests"]
+    kaggle["public Kaggle dataset<br/>fixed version; trained models and checkpoints"]
+    fetch["setup: curl raw content objects<br/>resumable downloads; no author credentials"]
+    check{"expected size and SHA256?"}
+    stop["stop on mismatch<br/>no unverified model is loaded"]
+    local["verified local model and checkpoint files"]
+    inference["local predict or cold reconstruction<br/>no hosted inference API"]
+    raw["organizer-provided raw records"]
+    replay["compact exact replay<br/>no large-model download"]
+    output["matching and candidate TSVs<br/>final hashes checked"]
+    zip -->|verify, predict or cold setup| fetch
+    kaggle --> fetch
+    fetch --> check
+    check -->|no| stop
+    check -->|yes| local
+    local --> inference
+    raw --> inference
+    inference --> output
+    zip -->|replay mode| replay
+    raw --> replay
+    replay --> output
+```
+
+[SVG version](submission/docs/diagrams/distribution.svg) · [Mermaid source](submission/docs/diagrams/distribution.mmd)
+<!-- /diagram:distribution -->

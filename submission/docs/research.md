@@ -1,5 +1,7 @@
 # challenge, eda, research and decision history
 
+current model/checkpoint assets are on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1), with [verified automatic fetching](reproduce.md) from the size-limited Unstop package
+
 ## 1. the actual challenge
 
 source1 is a reference catalog of businesses

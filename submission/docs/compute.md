@@ -1,5 +1,8 @@
 # azure compute and execution design
 
+the trained outputs and reconstruction checkpoints described here are distributed through [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1)
+the under-1024-mb Unstop zip includes the [automatic download and hash-check workflow](reproduce.md); the historical training architecture below is unchanged
+
 ## 1. why we split the workload
 
 our pipeline mixes very different operations

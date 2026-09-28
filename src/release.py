@@ -12,9 +12,11 @@ def sha(p):
 
 
 def sources(root):
-    suffixes = {".py", ".md", ".json", ".toml", ".yml", ".yaml", ".txt", ".lock", ".sh"}
+    suffixes = {".py", ".md", ".json", ".toml", ".yml", ".yaml", ".txt", ".lock", ".sh", ".mmd", ".svg"}
     for p in sorted(root.rglob("*")):
         rel = p.relative_to(root)
+        if rel.parts[0] in {'models', 'resume', 'training', '.model-downloads'} or rel.as_posix() in {'reproduction_manifest.json', 'model-fetch.json'}:
+            continue
         if not p.is_file() or any(k in rel.parts for k in ("__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", ".tox", ".venv", ".git", "assets", "output")):
             continue
         if p.name in {"Ml_Challenge.txt", "Documentation_template.md"} or p.name.startswith(".env"):
@@ -66,12 +68,25 @@ def verify(file):
                     raise ValueError('reproduction artifact differs: ' + name)
             if prefix + 'models/collective/models/reranker.txt' not in inv['files']:
                 raise ValueError('missing fitted final model')
+        if inv.get('reproduction') == 'kaggle-hosted-trained-models':
+            prefix = 'code/business_entity_resolution/'
+            cfg = json.loads(z.read(prefix + 'configs/kaggle.json'))
+            if not cfg.get('public_verified') or not isinstance(cfg.get('version'), int) or cfg['version'] < 1:
+                raise ValueError('unverified or unpinned Kaggle model release')
+            if inv['files'][prefix + 'reproduction_manifest.json']['sha256'] != cfg['payload_manifest_sha256']:
+                raise ValueError('hosted model inventory differs')
+            if not {prefix + 'src/fetch_assets.py', prefix + 'src/fetch_models.sh'}.issubset(entries):
+                raise ValueError('missing automatic model fetcher')
+            if file.stat().st_size > cfg['unstop_zip_max_bytes']:
+                raise ValueError('archive exceeds the Unstop size limit')
     return {"archive": str(file), "bytes": file.stat().st_size, "sha256": sha(file), "files": len(entries),
             "variant": spec["variant"], "outputs": spec["output_sha256"], "verified": True,
             "crc": "verified during complete member reads", "reproduction": inv.get('reproduction', 'score-replay')}
 
 
-def build(source, assets, matching, candidate, config, dest, payload=None):
+def build(source, assets, matching, candidate, config, dest, payload=None, kaggle_assets=None):
+    if payload is not None and kaggle_assets is not None:
+        raise ValueError('choose embedded or Kaggle-hosted assets')
     spec = json.loads(config.read_text())
     for name, file in (("matching_results.tsv", matching), ("candidate_pairs.tsv", candidate)):
         if sha(file) != spec["output_sha256"][name]:
@@ -97,6 +112,12 @@ def build(source, assets, matching, candidate, config, dest, payload=None):
         module_spec.loader.exec_module(module)
         module.verify(payload.resolve())
         payload_manifest = json.loads((payload / 'manifest.json').read_text())
+    if kaggle_assets is not None:
+        cfg = json.loads((source / 'configs/kaggle.json').read_text())
+        if not cfg.get('public_verified') or sha(kaggle_assets / 'manifest.json') != cfg['payload_manifest_sha256']:
+            raise ValueError('Kaggle publication must be verified before packaging')
+        inv['reproduction'] = 'kaggle-hosted-trained-models'
+        inv['model_dataset'] = {'dataset': cfg['dataset'], 'version': cfg['version'], 'manifest_sha256': cfg['payload_manifest_sha256']}
     with zf.ZipFile(temporary, "w", compression=zf.ZIP_DEFLATED, compresslevel=6, allowZip64=True) as z:
         def add(file, name):
             inv["files"][name] = {"sha256": sha(file), "bytes": file.stat().st_size}
@@ -121,6 +142,8 @@ def build(source, assets, matching, candidate, config, dest, payload=None):
                 if any(inv['files'][prefix + name][k] != expected[k] for k in ('sha256', 'bytes')):
                     raise ValueError('payload changed during packaging: ' + name)
             add(payload / 'manifest.json', prefix + 'reproduction_manifest.json')
+        if kaggle_assets is not None:
+            add(kaggle_assets / 'manifest.json', prefix + 'reproduction_manifest.json')
         add(matching, "output/matching_results.tsv")
         add(candidate, "output/candidate_pairs.tsv")
         text(doc(source, spec), "Documentation_template.md")
@@ -144,6 +167,7 @@ if __name__ == "__main__":
     p.add_argument("--verify", type=path)
     p.add_argument("--render-doc", type=path)
     p.add_argument('--payload', type=path)
+    p.add_argument('--kaggle-assets', type=path)
     p.add_argument('--final-only', action='store_true')
     a = p.parse_args()
     if a.verify:
@@ -152,5 +176,5 @@ if __name__ == "__main__":
         a.render_doc.write_text(doc(a.source, json.loads((a.source / "configs/release.json").read_text())))
     else:
         if not a.final_only:
-            build(a.source, a.assets, a.sprint2, a.candidate, a.source / "configs/release.json", a.out / "sprint2", a.payload)
-        build(a.source, a.assets, a.final, a.candidate, a.source / "configs/final.json", a.out / "final-france", a.payload)
+            build(a.source, a.assets, a.sprint2, a.candidate, a.source / "configs/release.json", a.out / "sprint2", a.payload, a.kaggle_assets)
+        build(a.source, a.assets, a.final, a.candidate, a.source / "configs/final.json", a.out / "final-france", a.payload, a.kaggle_assets)

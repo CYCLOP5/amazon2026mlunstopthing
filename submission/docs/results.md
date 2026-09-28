@@ -1,5 +1,8 @@
 # results, submission history and evaluation scope
 
+the Unstop package includes the exact result files and a pinned model manifest
+large checkpoints are on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1) and fetched through the [reproduction workflow](reproduce.md); this packaging change preserves both submitted TSV hashes
+
 ## 1. the metric we optimized
 
 the challenge scores each source1 business against its complete set of true source2/source3 aliases

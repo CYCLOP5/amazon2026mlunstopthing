@@ -1,0 +1,21 @@
+flowchart TB
+    pool["full country candidate pool<br/>all competing owners retained"]
+    records["provided target names, addresses and source ids"]
+    edges["independent lexical graph<br/>cross-source; same country; house-compatible"]
+    neighbors["bounded graph<br/>small blocks; reciprocal top-4 edges"]
+    priors["saved baseline probabilities"]
+    states["owner hypotheses plus null state<br/>unsent rival odds remain in denominator"]
+    rounds["three damped cavity rounds<br/>exclude reverse-edge self-reinforcement<br/>positive support needs two original confident neighbors"]
+    features["13 graph features<br/>posteriors, entropy, margins, support and shifts"]
+    head["saved 105-feature lightgbm<br/>chunked prediction after complete context"]
+    output["one probability per original candidate"]
+    records --> edges
+    edges --> neighbors
+    pool --> priors
+    priors --> states
+    states --> rounds
+    neighbors --> rounds
+    rounds --> features
+    features --> head
+    pool -->|original non-graph features| head
+    head --> output

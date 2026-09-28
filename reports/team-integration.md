@@ -1,5 +1,7 @@
 # team method integration
 
+the final trained assets are hosted on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1) and restored by the [verified fetch/reproduction commands](../submission/docs/reproduce.md)
+
 this report follows the integration from the earlier feature-limited matcher to the released combined pipeline
 the first sections preserve the original rich-stack development comparison; later sections explain the learned retrieval, full scoring, graph/hybrid fusion and final decision work
 the [current code map](../submission/docs/qa.md), [architecture](../submission/docs/arch.md) and [compute plan](../submission/docs/compute.md) are the canonical final implementation guides

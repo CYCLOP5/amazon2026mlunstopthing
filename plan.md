@@ -1,5 +1,7 @@
 # amazon ml 2026 research and execution plan
 
+current final model/checkpoint delivery uses [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1) with [automatic verified fetching](submission/docs/reproduce.md), keeping the Unstop zip below 1024 mb
+
 research date 2026-09-26
 
 ## final team result

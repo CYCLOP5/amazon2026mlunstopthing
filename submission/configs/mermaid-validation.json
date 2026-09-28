@@ -1,0 +1,113 @@
+{
+  "renderer": "mermaid-cli 11.12.0",
+  "browser": "Chromium 131",
+  "github_compatible_syntax": true,
+  "blocks": 17,
+  "unique_rendered": 7,
+  "render_checks": [
+    {
+      "sha256": "00697887a9f711b9ef3556d383d3cacb66b4bf2bce40ee1a42f439bf282160df",
+      "uses": [
+        {
+          "file": "README.md",
+          "block": 1
+        }
+      ]
+    },
+    {
+      "sha256": "e072f7e1c5267be9fd7deac61fdbb68bf330bd98f0aceafa35f9fb8d1951843f",
+      "uses": [
+        {
+          "file": "README.md",
+          "block": 2
+        },
+        {
+          "file": "Documentation_template.md",
+          "block": 1
+        },
+        {
+          "file": "submission/Documentation_template.md",
+          "block": 1
+        },
+        {
+          "file": "submission/README.md",
+          "block": 1
+        },
+        {
+          "file": "submission/docs/arch.md",
+          "block": 1
+        }
+      ]
+    },
+    {
+      "sha256": "5fa129be0c7cc13cff9b9bd932ee369932297b936d8fd15f93a2030af8946b41",
+      "uses": [
+        {
+          "file": "README.md",
+          "block": 3
+        },
+        {
+          "file": "Documentation_template.md",
+          "block": 2
+        },
+        {
+          "file": "submission/Documentation_template.md",
+          "block": 2
+        },
+        {
+          "file": "submission/README.md",
+          "block": 2
+        },
+        {
+          "file": "submission/docs/arch.md",
+          "block": 4
+        },
+        {
+          "file": "submission/docs/reproduce.md",
+          "block": 1
+        }
+      ]
+    },
+    {
+      "sha256": "93d9e20a3fc3ffe19f121d5ee21f15b702029087b60705ecab44c0aad3ab0e1a",
+      "uses": [
+        {
+          "file": "docs/arch.md",
+          "block": 1
+        }
+      ]
+    },
+    {
+      "sha256": "286035657e91abca38c38911c872eb918217dc0294f3bb448d9e0245616cd47d",
+      "uses": [
+        {
+          "file": "docs/arch.md",
+          "block": 2
+        }
+      ]
+    },
+    {
+      "sha256": "0d4690547c2d7e63f467a0744e5c35236897ed9c98100304e03590962814b8b4",
+      "uses": [
+        {
+          "file": "submission/docs/arch.md",
+          "block": 2
+        },
+        {
+          "file": "submission/docs/models.md",
+          "block": 1
+        }
+      ]
+    },
+    {
+      "sha256": "425cde03b6cc02ab20519bb6f28c8c980114212aeeab28e0896e31487d887de3",
+      "uses": [
+        {
+          "file": "submission/docs/arch.md",
+          "block": 3
+        }
+      ]
+    }
+  ],
+  "svg_fallbacks": "submission/docs/diagrams/"
+}

@@ -1,8 +1,12 @@
 # amazites business entity resolution
 
 our team links noisy business records to a reference business using multilingual retrieval, lexical evidence, learned pair scores and graph context
-the final-france release contains the trained checkpoints, tokenizers, pinned model sources, fitting settings, full feature checkpoints, source pipeline and exact submitted output files
+the final-france Unstop zip stays below 1024 mb and contains the source pipeline, exact submitted outputs, compact replay assets and a checksum-bound model inventory
+the 36.7 gb trained-model/checkpoint set is hosted on [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1) and fetched automatically by the reproduction commands
 the team-reported public macro f0.5 is **0.990285**
+the full inference graph uses **8,786,248,209 neural parameters across 21 distinct checkpoints**
+the organizer's **8B limit is per model**; the largest individual checkpoint is **595,776,512 (approximately 0.596B)**
+see the [verified full model breakdown and reuse rules](docs/models.md#verified-full-neural-parameter-inventory)
 
 ## 1. verify and reproduce the submission
 
@@ -16,6 +20,9 @@ uv pip sync --python .venv/bin/python requirements.txt
 ```
 
 `dataset/` must contain the original `train/` and `test/` files
+`verify`, `predict` and `cold` automatically fetch missing model files with `curl`, pin the dataset version, and check every SHA256 before loading
+the public downloads require internet for first setup and do not require the author's Kaggle credentials
+use `bash src/fetch_models.sh` to perform the same verified download explicitly
 `predict` loads the fitted final model, rebuilds complete country graph context from the included full feature checkpoint, and applies the fitted final rules
 all 20,177,322 regenerated candidate probabilities and both submitted output hashes were checked against the recorded release
 the destination must be new
@@ -45,9 +52,6 @@ Amazites_submission.zip
     src/
     configs/
     assets/
-    models/
-    resume/
-    training/
     docs/
     reproduction_manifest.json
     requirements.txt
@@ -59,6 +63,7 @@ Amazites_submission.zip
 the score assets are derived from the supplied challenge records
 they contain the complete final candidate pool and the score columns needed for exact replay
 the raw challenge dataset is supplied separately
+`models/`, `resume/` and `training/` are created locally by the Kaggle fetcher; they are outside the size-limited Unstop zip
 
 ## 3. pipeline
 
@@ -95,6 +100,7 @@ it is never reduced to accepted matches
 | path | purpose | environment |
 | --- | --- | --- |
 | `src/reproduce.py` | verified trained-checkpoint and full raw-data inference orchestration | top-level environment plus the stage-specific locks |
+| `src/fetch_assets.py`, `src/fetch_models.sh` | automatic pinned Kaggle download and SHA256 verification | python standard library and `curl` |
 | `src/heads.py` | prediction using saved run-6, graph, hybrid and collective heads | fusion environment |
 | `src/finish.py` | frozen final replay | top-level `requirements.txt` |
 | `src/final_tuning/` | country-cut and france-blend selection | `requirements/tuning.txt` |
@@ -145,16 +151,17 @@ the separation makes it possible to inspect or reproduce a decision change witho
 | `configs/collective/` | fitting protocol, selected original policy and conditional model evidence | explain the final collective scorer's training/check scope |
 | `configs/execution/` | training allocation and full-scoring coverage records | trace parallel execution and completed populations |
 | `assets/` | complete final candidate probabilities and france replay inputs | deterministic cpu replay |
-| `models/` | neural weights, tokenizers, base snapshots, gates, tree heads, calibrations and fitted direction rules | complete trained inference dependency set |
-| `resume/` | complete scored/feature checkpoints at documented stage boundaries | model-based CPU reconstruction and inspection |
-| `training/` | original grouped hard-pair populations and text inputs | reproduce the recorded pair-training recipe |
+| Kaggle → `models/` | neural weights, tokenizers, base snapshots, gates, tree heads, calibrations and fitted direction rules | complete trained inference dependency set |
+| Kaggle → `resume/` | complete scored/feature checkpoints at documented stage boundaries | model-based CPU reconstruction and inspection |
+| Kaggle → `training/` | original grouped hard-pair populations and text inputs | reproduce the recorded pair-training recipe |
 | `reproduction_manifest.json` | every model/checkpoint file size, hash and origin | full dependency integrity |
 | environment files | stage-specific pinned dependencies | distinguish different historical runtimes |
 | `docs/` and methodology | detailed design, experiments, results and commands | reviewer navigation |
 | `manifest.json` at zip root | file sizes and hashes | package-integrity audit |
 
 the original raw challenge data is provided separately
-the full trained dependency set and the documented reconstruction checkpoints are included in this zip
+the model manifest and automatic fetch code are included in the zip; the large dependency files are on the pinned public Kaggle dataset
+compact `replay` uses the small score assets already inside the zip and does not download the large models
 
 ## 9. which variant should be reviewed
 
@@ -180,3 +187,71 @@ we therefore retained complete candidate competition, separated heavy scoring fr
 the inherited sibling-projection caveat and historical audit reuse are documented explicitly
 
 the source is organized so a reviewer can move from a result to its policy, from the policy to its score input, and from that score to the exact implementation and recorded training/execution configuration
+
+## architecture at a glance
+
+<!-- diagram:pipeline -->
+```mermaid
+flowchart TB
+    raw["provided business records"]
+    older["earlier retrieval and matcher<br/>e5-large-instruct + qwen; e5-base pair model"]
+    learned["v2 learned branch<br/>task retriever, rich gate, 15 pair models, stack"]
+    run6["run-6 stack<br/>two cross-fitted tree rounds"]
+    graph_scores["graph and sibling refinement"]
+    hybrid["bounded hybrid<br/>dense retrieval + base/expert pair evidence"]
+    union["complete candidate and feature union<br/>20,177,322 pairs"]
+    context["complete country graph context<br/>13 competitive graph features"]
+    head["saved collective lightgbm<br/>105 ordered features"]
+    policy["frozen final policy<br/>country cuts; france blend and rules"]
+    matching["matching_results.tsv<br/>5,866,300 accepted pairs"]
+    candidates["candidate_pairs.tsv<br/>complete pre-matcher union"]
+    raw --> older
+    raw --> learned
+    older --> run6
+    older --> graph_scores
+    graph_scores --> hybrid
+    run6 --> union
+    graph_scores --> union
+    hybrid --> union
+    learned --> union
+    union --> context
+    context --> head
+    head --> policy
+    union -->|france component scores| policy
+    union --> candidates
+    policy --> matching
+```
+
+[SVG version](docs/diagrams/pipeline.svg) · [Mermaid source](docs/diagrams/pipeline.mmd)
+<!-- /diagram:pipeline -->
+
+## checkpoint delivery at a glance
+
+<!-- diagram:distribution -->
+```mermaid
+flowchart TB
+    zip["Unstop zip below 1024 MB<br/>source, outputs, compact scores and hash manifests"]
+    kaggle["public Kaggle dataset<br/>fixed version; trained models and checkpoints"]
+    fetch["setup: curl raw content objects<br/>resumable downloads; no author credentials"]
+    check{"expected size and SHA256?"}
+    stop["stop on mismatch<br/>no unverified model is loaded"]
+    local["verified local model and checkpoint files"]
+    inference["local predict or cold reconstruction<br/>no hosted inference API"]
+    raw["organizer-provided raw records"]
+    replay["compact exact replay<br/>no large-model download"]
+    output["matching and candidate TSVs<br/>final hashes checked"]
+    zip -->|verify, predict or cold setup| fetch
+    kaggle --> fetch
+    fetch --> check
+    check -->|no| stop
+    check -->|yes| local
+    local --> inference
+    raw --> inference
+    inference --> output
+    zip -->|replay mode| replay
+    raw --> replay
+    replay --> output
+```
+
+[SVG version](docs/diagrams/distribution.svg) · [Mermaid source](docs/diagrams/distribution.mmd)
+<!-- /diagram:distribution -->

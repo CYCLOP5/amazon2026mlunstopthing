@@ -1,0 +1,524 @@
+{
+  "schema": 1,
+  "method": "sum distinct inference-checkpoint parameter tensors; include frozen parameters; exclude named/integer buffers; count reused checkpoints once",
+  "models": [
+    {
+      "id": "v2-m0",
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 558841857,
+      "stored_tensor_elements": 558841857,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "6b618a5ace56acfc4af2afd1c15f49fa6fff151abfd4981b3e0598ae90067874",
+      "files": [
+        {
+          "path": "models/learned/neural/m0/head.safetensors",
+          "sha256": "83f811819a0b68a100d96896882cd4acc7136c23ae019185e13c231954dad469",
+          "bytes": 2186,
+          "parameters": 1025
+        },
+        {
+          "path": "models/learned/neural/m0/model.safetensors",
+          "sha256": "4fd2b40844ea5b603ab65ef968444585df367795c65be6cae19e1e30ff5d3dc3",
+          "bytes": 1117726296,
+          "parameters": 558840832
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m1",
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 558841857,
+      "stored_tensor_elements": 558841857,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "4dbb304e00223545deff51a1c8b85d956594ddac6c5c70e1cfc95e5d1376693e",
+      "files": [
+        {
+          "path": "models/learned/neural/m1/head.safetensors",
+          "sha256": "5a53620cffd0d9a44e61037ab20d6009277490cd5a2c5bd49de36d1eb6fdcbb7",
+          "bytes": 2186,
+          "parameters": 1025
+        },
+        {
+          "path": "models/learned/neural/m1/model.safetensors",
+          "sha256": "febbc37592c5d196ac06315d251f2b736f92fd8e2ed3b1273291cbb04baec2d2",
+          "bytes": 1117726296,
+          "parameters": 558840832
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m2",
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 558841857,
+      "stored_tensor_elements": 558841857,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "8ea4d1a608ebd825ff02e9e70f281c2291b294dc006f10174a45eb9d8b49ed50",
+      "files": [
+        {
+          "path": "models/learned/neural/m2/head.safetensors",
+          "sha256": "5bccf43863fdd3f9662f1acef96a447dad1c13b14fc7cc576935b53f98900ce1",
+          "bytes": 2186,
+          "parameters": 1025
+        },
+        {
+          "path": "models/learned/neural/m2/model.safetensors",
+          "sha256": "0e5ec08cb5d17550e852dc915cb67125f159ea3e50c5d428823f1eb97f95f0db",
+          "bytes": 1117726296,
+          "parameters": 558840832
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m3",
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 558841857,
+      "stored_tensor_elements": 558841857,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "b5e554be3f8a58e7e41c9613636b84c1a6004f20e89fd3e56e469fe350c25b57",
+      "files": [
+        {
+          "path": "models/learned/neural/m3/head.safetensors",
+          "sha256": "4b3331a138ac1a4242288c4e0d91fd29b8a345046ed5e4543265beb027d33f90",
+          "bytes": 2186,
+          "parameters": 1025
+        },
+        {
+          "path": "models/learned/neural/m3/model.safetensors",
+          "sha256": "ed2781e10a7884784663c512ece93f6fc306af1a135a68804072ac12eff83d4c",
+          "bytes": 1117726296,
+          "parameters": 558840832
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m4",
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 558841857,
+      "stored_tensor_elements": 558841857,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "96cf4b5eaa2ebb0d29a79fdf31b122144be86a2013bab33ca1ca13fe510c7d73",
+      "files": [
+        {
+          "path": "models/learned/neural/m4/head.safetensors",
+          "sha256": "d98d799f2421ec050343bf7bc6cbdb70b8411f46f374b90eaac8781b59dba999",
+          "bytes": 2186,
+          "parameters": 1025
+        },
+        {
+          "path": "models/learned/neural/m4/model.safetensors",
+          "sha256": "76a99ad0904c464b95b9f266eb79a9f68e87466013af7504c20c2e1c5f2cd086",
+          "bytes": 1117726296,
+          "parameters": 558840832
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m5",
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 558841857,
+      "stored_tensor_elements": 558841857,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "91fab10de11ee357a2d928a6085ff58a4400cfc9a7f872335de5581f0520c7ad",
+      "files": [
+        {
+          "path": "models/learned/neural/m5/head.safetensors",
+          "sha256": "99d90c6f4080f19505c2f7104cf909e6b85ae80e7ccf999af8887858275bd5b5",
+          "bytes": 2186,
+          "parameters": 1025
+        },
+        {
+          "path": "models/learned/neural/m5/model.safetensors",
+          "sha256": "4c4233682521e4e9a5361560e324fd5401d2ce6b7ba3ea405a4b367446031128",
+          "bytes": 1117726296,
+          "parameters": 558840832
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m6",
+      "model": "BAAI/bge-reranker-v2-m3",
+      "role": "selected v2 pair matcher",
+      "license": "apache-2.0",
+      "parameters": 566706177,
+      "stored_tensor_elements": 566706177,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "a1c9818249047774b2da63ab677302ae9d5a84e9ad330e6005c762fb119216d3",
+      "files": [
+        {
+          "path": "models/learned/neural/m6/head.safetensors",
+          "sha256": "511422613b8b1e2446754f9b6d7ebac4074c1d6dbdfc31da79eb288a0bd32041",
+          "bytes": 2186,
+          "parameters": 1025
+        },
+        {
+          "path": "models/learned/neural/m6/model.safetensors",
+          "sha256": "a1ebab5e8a952222fd148029514267f792d1b9afeb6ddbaa870b9fb4a42313c5",
+          "bytes": 1133454960,
+          "parameters": 566705152
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m7",
+      "model": "BAAI/bge-reranker-v2-m3",
+      "role": "selected v2 pair matcher",
+      "license": "apache-2.0",
+      "parameters": 566706177,
+      "stored_tensor_elements": 566706177,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "e7930b85aa2d25578133dbd635b87c1960550790d1a85eb45740eef57be9d05c",
+      "files": [
+        {
+          "path": "models/learned/neural/m7/head.safetensors",
+          "sha256": "faf562146af35db5f21e7074581d8aafbd79ad4f82995845266265006163fa98",
+          "bytes": 2186,
+          "parameters": 1025
+        },
+        {
+          "path": "models/learned/neural/m7/model.safetensors",
+          "sha256": "c620c564b45289c37985a69886ec107824d8e59375116f473b617e6a7f4b4adf",
+          "bytes": 1133454960,
+          "parameters": 566705152
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m8",
+      "model": "BAAI/bge-reranker-v2-m3",
+      "role": "selected v2 pair matcher",
+      "license": "apache-2.0",
+      "parameters": 566706177,
+      "stored_tensor_elements": 566706177,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "b01cd34442a7d5d0024b79238091fc3dc3064c8b34a2a44c3a9718f9b2c9dadb",
+      "files": [
+        {
+          "path": "models/learned/neural/m8/head.safetensors",
+          "sha256": "cba88a4900f17c5c9cb4abb8df8c506cb0a64d11db44aaf9c3b778b6cc532240",
+          "bytes": 2186,
+          "parameters": 1025
+        },
+        {
+          "path": "models/learned/neural/m8/model.safetensors",
+          "sha256": "308123254c63f43464156433943d855eb5602c642a4e37b5ffb2c6eec272f694",
+          "bytes": 1133454960,
+          "parameters": 566705152
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m9",
+      "model": "intfloat/multilingual-e5-base",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 277453825,
+      "stored_tensor_elements": 277453825,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "664905f18feda5159594204d5eafe254da1e4df3b59a644c32dfbc24196076b2",
+      "files": [
+        {
+          "path": "models/learned/neural/m9/head.safetensors",
+          "sha256": "2bc5ab3b49e9fbffdaf841b0729c6966ed474765043c9d9bd595322223dbf6e9",
+          "bytes": 1674,
+          "parameters": 769
+        },
+        {
+          "path": "models/learned/neural/m9/model.safetensors",
+          "sha256": "ff5862c5370593ed50421682c1f4b47a2c938ec1e9805cd99db97c5ca30ba8f5",
+          "bytes": 554928304,
+          "parameters": 277453056
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m10",
+      "model": "intfloat/multilingual-e5-base",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 277453825,
+      "stored_tensor_elements": 277453825,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "7bd9b419290468605d17655d93ec1a2dc5d8a3a9b984e730a014c3885c1124b7",
+      "files": [
+        {
+          "path": "models/learned/neural/m10/head.safetensors",
+          "sha256": "a842a15e084ff370075446738b5c4ca936027c4819ca7ee7af2d869e9aabaf61",
+          "bytes": 1674,
+          "parameters": 769
+        },
+        {
+          "path": "models/learned/neural/m10/model.safetensors",
+          "sha256": "2fff1ab78a3aadee562b1516be410c6f67ddf641ee64239b32f8569c16c05389",
+          "bytes": 554928304,
+          "parameters": 277453056
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m11",
+      "model": "intfloat/multilingual-e5-base",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 277453825,
+      "stored_tensor_elements": 277453825,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "08367b007d13c5c67413c38e5fd2f62b3c45a4ba54f166026cd40d35be041a24",
+      "files": [
+        {
+          "path": "models/learned/neural/m11/head.safetensors",
+          "sha256": "8f3d96acac18408d4ca8cd38eba1c47d6095fa7a044951f66665d46a6044e8f9",
+          "bytes": 1674,
+          "parameters": 769
+        },
+        {
+          "path": "models/learned/neural/m11/model.safetensors",
+          "sha256": "6081f98ebd31b54ecf2780c4eb1e723fd1378c23fd1d0f850e6277fb12ae7bef",
+          "bytes": 554928304,
+          "parameters": 277453056
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m12",
+      "model": "intfloat/multilingual-e5-base",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 277453825,
+      "stored_tensor_elements": 277453825,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "fdad8702f89fe08645ae91743c2ee19f06fde1e249ae76d928a24c800bda9e4c",
+      "files": [
+        {
+          "path": "models/learned/neural/m12/head.safetensors",
+          "sha256": "a41181791d0cc299cb7dd47f5b7e87a685a43706a39572332a80dd39d52089d0",
+          "bytes": 1674,
+          "parameters": 769
+        },
+        {
+          "path": "models/learned/neural/m12/model.safetensors",
+          "sha256": "8de54f58cbc243e79683e6a6dcc53757d0a9be0aaf2aa98d78c7a7226c18c1f4",
+          "bytes": 554928304,
+          "parameters": 277453056
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m13",
+      "model": "intfloat/multilingual-e5-small",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 117506305,
+      "stored_tensor_elements": 117506305,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "4a2ddccfa2d54c05edd15d514e8e60ac5a1c1fe98e4ebe6c4ae91fbbf5163ffe",
+      "files": [
+        {
+          "path": "models/learned/neural/m13/head.safetensors",
+          "sha256": "eb33d81a8bfb0fab3f16021dfe90f6b08a6d8521fd0f6e3d9b38d5679618e089",
+          "bytes": 906,
+          "parameters": 385
+        },
+        {
+          "path": "models/learned/neural/m13/model.safetensors",
+          "sha256": "c4e4297c6ea140611cc43fae6ff1dae6bcc6d802bd1545ef7e9f73da689f97c3",
+          "bytes": 235034032,
+          "parameters": 117505920
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "v2-m14",
+      "model": "intfloat/multilingual-e5-small",
+      "role": "selected v2 pair matcher",
+      "license": "mit",
+      "parameters": 117506305,
+      "stored_tensor_elements": 117506305,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "2fe3c655e909210c52946cbe8589c76c50729a6c5a1cde2d0d8c0e03c0efe611",
+      "files": [
+        {
+          "path": "models/learned/neural/m14/head.safetensors",
+          "sha256": "fb1881da465e692dce274c8f52b4e07125f06ce01cf0be7627f068a81272f889",
+          "bytes": 906,
+          "parameters": 385
+        },
+        {
+          "path": "models/learned/neural/m14/model.safetensors",
+          "sha256": "c5b277e2d526b8587d1467278fb60f3c0610ce15ca365e45edfa808269098d68",
+          "bytes": 235034032,
+          "parameters": 117505920
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "trained-retriever",
+      "model": "intfloat/multilingual-e5-small",
+      "role": "task-trained v2 candidate retrieval",
+      "license": "mit",
+      "parameters": 117653760,
+      "stored_tensor_elements": 117653760,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "a16a7f479f5a50debe7ab043d2138c84cacbf85cf920135eb462135cb1bbcb62",
+      "files": [
+        {
+          "path": "models/learned/encoder/model.safetensors",
+          "sha256": "f56556f61200eecc3572bdfdb94d0105cf5b8835a9887a310a3d15f8755ea0ef",
+          "bytes": 470637416,
+          "parameters": 117653760
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "earlier-pair",
+      "model": "intfloat/multilingual-e5-base",
+      "role": "earlier pair classifier; reused for the hybrid ce_base feature",
+      "license": "mit",
+      "parameters": 278044417,
+      "stored_tensor_elements": 278044417,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "5c6f45131a0086499286311155aabb68959fd77ec21cd29855e12aab3662d711",
+      "files": [
+        {
+          "path": "models/earlier/neural/model.safetensors",
+          "sha256": "6f6b95e00ce00265ff1f8af18c6b97b2167f60a215d0a32d0040a03eb144f400",
+          "bytes": 1112201932,
+          "parameters": 278044417
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "e5-base-retriever",
+      "model": "intfloat/multilingual-e5-base",
+      "role": "frozen hybrid dense candidate retrieval and pair-similarity features",
+      "license": "mit",
+      "parameters": 278043648,
+      "stored_tensor_elements": 278044162,
+      "excluded_buffer_elements": 514,
+      "checkpoint_identity": "6924fef896a6aeb5c12c41ed59221ce18ab777887702b97b685a7d6528801495",
+      "files": [
+        {
+          "path": "models/bases/base/model.safetensors",
+          "sha256": "a18a44fad1d0b46ded15928144138cff1135d5cc8233bdd90be5f18822de09a7",
+          "bytes": 1112201288,
+          "parameters": 278043648
+        }
+      ],
+      "excluded_buffers": [
+        {
+          "tensor": "embeddings.position_ids",
+          "dtype": "I64",
+          "elements": 514
+        }
+      ]
+    },
+    {
+      "id": "qwen-retriever",
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "role": "frozen earlier candidate retrieval",
+      "license": "apache-2.0",
+      "parameters": 595776512,
+      "stored_tensor_elements": 595776512,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "d121cfcedb84961ee25da175070baf32214a380da8e5621c760a1c461d4908d4",
+      "files": [
+        {
+          "path": "models/bases/qwen/model.safetensors",
+          "sha256": "0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd",
+          "bytes": 1191586416,
+          "parameters": 595776512
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "e5-large-instruct-retriever",
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "role": "frozen earlier candidate retrieval",
+      "license": "mit",
+      "parameters": 559890432,
+      "stored_tensor_elements": 559890432,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "7d3b8ee32ccbf4211829d54d0c8c25282fb244c0d096fa1ae7cf31fe7ebb304f",
+      "files": [
+        {
+          "path": "models/bases/large/model.safetensors",
+          "sha256": "dd6b6e4f52db0a7aff83a13d10e6c5342ef9f6ab799bad3221f4b35ef390fa85",
+          "bytes": 1119825680,
+          "parameters": 559890432
+        }
+      ],
+      "excluded_buffers": []
+    },
+    {
+      "id": "hybrid-expert",
+      "model": "intfloat/multilingual-e5-large",
+      "role": "fine-tuned hybrid neural expert",
+      "license": "mit",
+      "parameters": 558841857,
+      "stored_tensor_elements": 558841857,
+      "excluded_buffer_elements": 0,
+      "checkpoint_identity": "2191739545245fb46049ed8661e5a30938dc753a4af89603901f318bcb315ec0",
+      "files": [
+        {
+          "path": "models/expert/model/head.safetensors",
+          "sha256": "52f6041ebe5352fc74d09119b73f6ab74880ac877085b5d218168743740ea8f2",
+          "bytes": 4236,
+          "parameters": 1025
+        },
+        {
+          "path": "models/expert/model/model.safetensors",
+          "sha256": "349bb0e442fc8eca06ac392393bf4f7af02ad995c4d6537ba15cccc63014180e",
+          "bytes": 2235408584,
+          "parameters": 558840832
+        }
+      ],
+      "excluded_buffers": []
+    }
+  ],
+  "v2_ensemble_parameters": 6397997583,
+  "v2_retrieval_and_matching_parameters": 6515651343,
+  "full_neural_parameters": 8786248209,
+  "distinct_neural_checkpoints": 21,
+  "excluded_buffer_elements": 514,
+  "not_in_neural_total": [
+    "lightgbm trees and calibration/rule tables",
+    "training-only initializers in models/bases/small and models/bases/bge",
+    "optimizer states and training data"
+  ],
+  "largest_individual_checkpoint": 595776512,
+  "parameter_limit": {
+    "scope": "per individual model",
+    "limit": 8000000000,
+    "source": "organizer clarification supplied by the team",
+    "all_individual_neural_checkpoints_within_limit": true
+  }
+}

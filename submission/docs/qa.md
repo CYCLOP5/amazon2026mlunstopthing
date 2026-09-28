@@ -1,5 +1,12 @@
 # final submission q&a and code map
 
+model/checkpoint delivery uses [Kaggle version 1](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1) so the Unstop zip stays below 1024 mb
+the included [reproduction commands](reproduce.md) fetch missing files with curl and verify their fixed hashes before inference
+
+the full neural graph totals **8,786,248,209 parameters across 21 distinct checkpoints**
+the organizer clarified that **8B is a per-model limit**, not a pipeline sum; our largest checkpoint is **595,776,512 (approximately 0.596B)**
+the [model breakdown](models.md#verified-full-neural-parameter-inventory) records the exact counts, repeated-checkpoint reuse and MIT/Apache-2.0 licenses
+
 ## 1. what problem did we solve
 
 we link noisy business records from sources2 and 3 to the source1 reference catalog, or abstain when no reference is justified
@@ -38,7 +45,7 @@ it contains the learned retrieval/pair-model work, the complementary lexical/gra
 `finish.py` consolidates the frozen release policy into a smaller replay entry point
 the actual late-run selection scripts are retained separately
 the consolidation was verified against the exact uploaded matching and candidate files, including the final three-pair edit
-the full package now includes the trained neural/tree checkpoints and preprocessing state
+the complete trained neural/tree checkpoints and preprocessing state are provided by the pinned Kaggle asset set
 `reproduce.py cold` executes raw-data inference; `predict` uses the complete upstream feature checkpoint and the trained final model; `replay` uses the original recorded final scores
 
 ## 3. why not compare every record with every reference

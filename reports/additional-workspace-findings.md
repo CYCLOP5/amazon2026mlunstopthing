@@ -1,5 +1,7 @@
 # additional full-pool findings
 
+the current model/checkpoint release is [Kaggle-hosted](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1); the size-limited submission carries its [automatic checksum-verified fetcher](../submission/docs/reproduce.md)
+
 this report records failure modes found while comparing the team's scored pools and later graph/fusion implementations
 it separates a demonstrated implementation or measurement issue from an unmeasured leaderboard effect
 the current production stages are described in the [final architecture](../submission/docs/arch.md)

@@ -1,5 +1,8 @@
 # historical learned-only submission
 
+the current combined release uses [Kaggle-hosted checkpoints](https://www.kaggle.com/datasets/cycl0p5/amazites-ml-2026-reproduction-assets/versions/1) and [automatic verified fetching](../submission/docs/reproduce.md) to meet Unstop's 1024 mb zip limit
+the archive contents described below refer to the earlier learned-only component
+
 this page covers the earlier learned-only archive
 the submitted combined pipeline and its final variants are documented in [submission](../submission/README.md) and the [q&a guide](qa.md)
 

@@ -1,0 +1,22 @@
+flowchart TB
+    task["task-trained e5-small retriever<br/>117.654M parameters"]
+    v2["15 distinct v2 pair checkpoints<br/>6 large-instruct + 3 bge + 4 base + 2 small<br/>6,397,997,583 parameters"]
+    v2head["v2 gate and learned score stack"]
+    oldret["earlier frozen retrievers<br/>e5-large-instruct 559.890M<br/>qwen3 embedding 595.777M"]
+    oldpair["one earlier e5-base pair checkpoint<br/>278.044M; reused by two branches"]
+    oldheads["run-6 and graph/sibling models"]
+    dense["frozen e5-base retriever<br/>278.044M; hybrid candidates and similarity"]
+    expert["fine-tuned e5-large expert<br/>558.842M"]
+    hybrid["hybrid feature and residual models"]
+    union["full feature union and final collective model<br/>21 distinct neural checkpoints overall"]
+    task --> v2
+    v2 --> v2head
+    oldret --> oldpair
+    oldpair --> oldheads
+    oldheads --> hybrid
+    dense --> hybrid
+    expert --> hybrid
+    oldpair -->|same checkpoint; not counted again| hybrid
+    v2head --> union
+    oldheads --> union
+    hybrid --> union
